@@ -291,11 +291,13 @@ export function GroceryProductField({
     <div className="flex flex-col gap-2">
       <ComboBox
         allowsEmptyCollection
-        // The shop filtered already, and it knows things about its own
-        // products that their names do not say.
-        defaultFilter={() => true}
         inputValue={term}
         isDisabled={!canSearch}
+        // The rows are the answer already: the shop filtered its own products,
+        // and what the Store had lying around was held against the question
+        // above. Handing the rows over says so, and a ComboBox told its list is
+        // filtered leaves the collection exactly as this component built it.
+        items={rows}
         menuTrigger="focus"
         selectedKey={picked}
         variant="secondary"
