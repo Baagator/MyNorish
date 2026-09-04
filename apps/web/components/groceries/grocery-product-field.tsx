@@ -102,7 +102,7 @@ export function GroceryProductField({
   const canSearch = Boolean(store.searchAddress);
   const opensWith = linkedProduct?.name ?? "";
   const [term, setTerm] = useState(opensWith);
-  const [searchedTerm, setSearchedTerm] = useState(groceryName);
+  const [searchedTerm, setSearchedTerm] = useState(() => groceryName.trim());
   const [asked, setAsked] = useState(false);
   const [typed, setTyped] = useState(false);
   const [manualPrice, setManualPrice] = useState("");
@@ -116,17 +116,29 @@ export function GroceryProductField({
     setManualName(groceryName);
   }, [groceryName, opensWith]);
 
-  // The shop is asked about what was typed, once the typing stops. Never
-  // about the linked product's own name: that question is already answered.
+  // Until the shopper types, the question is the grocery's own name, which the
+  // panel above may still be being filled in; after they type it is what they
+  // typed, once the typing stops. Never the linked product's own name: that
+  // question is already answered.
   useEffect(() => {
-    if (!typed) return;
-    const timer = setTimeout(() => setSearchedTerm(term.trim() || groceryName), SEARCH_DEBOUNCE_MS);
+    if (!typed) {
+      setSearchedTerm(groceryName.trim());
+
+      return;
+    }
+    const timer = setTimeout(
+      () => setSearchedTerm(term.trim() || groceryName.trim()),
+      SEARCH_DEBOUNCE_MS
+    );
 
     return () => clearTimeout(timer);
   }, [term, groceryName, typed]);
 
-  const searches = canSearch && asked && (typed || !linkedProduct);
-  const search = useShopSearch(store.id, searchedTerm, searches);
+  const wants = canSearch && asked && (typed || !linkedProduct);
+  // Exactly the query's own `enabled`, so what the field says about the search
+  // and what the search is doing cannot drift apart.
+  const asking = wants && searchedTerm.trim().length > 0;
+  const search = useShopSearch(store.id, searchedTerm, asking);
   const products = useStoreProducts(store.id, asked);
   const candidates = (search.data?.candidates ?? []).filter(isPriced);
   const known = products.data ?? [];
@@ -149,11 +161,13 @@ export function GroceryProductField({
       .filter((product) => !product.pageUrl || !offered.has(product.pageUrl))
       .map((product) => productRow(product, locale)),
   ];
-  const isSearching = searches && (search.isPending || search.isFetching);
+  // A query nobody enabled sits in `pending` for ever, so a field that reads
+  // `isPending` alone says it is searching long after it has stopped.
+  const isSearching = asking && (search.isPending || search.isFetching);
   // Whether the *shop* answered with nothing, not whether the dropdown is
   // empty: a Store that already knows other products still has a shop that
   // cannot price this one.
-  const foundNothing = searches && !isSearching && candidates.length === 0;
+  const foundNothing = asking && !isSearching && candidates.length === 0;
 
   // What the shop is most likely to charge in, so the field is a confirmation
   // rather than a question: what this Store's products are already priced in,
