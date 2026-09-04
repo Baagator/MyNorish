@@ -1,6 +1,6 @@
 # 03 — Store Products, Product Links and Misses
 
-Status: ready-for-agent
+Status: ready-for-human
 Blocked by: 01
 
 Spec: `.scratch/simplified-grocery-linking/spec.md`
@@ -29,12 +29,12 @@ Follow the repository convention (`packages/db/repositories/`); no router-level 
 
 ## Acceptance criteria
 
-- [ ] Both tables exist with their unique constraints and a migration.
-- [ ] `(storeId, pageUrl)` cannot hold two products; `(storeId, normalizedName)` cannot hold two links.
-- [ ] Resolving a link for a known name returns its product in one query; for an unknown name it returns nothing.
-- [ ] A link with no product reads as a Miss and carries its `triedAt`.
-- [ ] Upserting a product read from a page updates price, currency, size and `pricedAt`, and leaves a manual product untouched.
-- [ ] A manual product can be created and edited by any household member and has no `pageUrl`.
-- [ ] Reading products for a list of groceries is one query, not one per grocery.
-- [ ] Deleting a Store removes its products and links; deleting a Grocery removes neither.
-- [ ] Name normalization lives in one shared place and folds case, diacritics, punctuation and whitespace.
+- [x] Both tables exist with their unique constraints and a migration.
+- [x] `(storeId, pageUrl)` cannot hold two products; `(storeId, normalizedName)` cannot hold two links.
+- [x] Resolving a link for a known name returns its product in one query; for an unknown name it returns nothing.
+- [x] A link with no product reads as a Miss and carries its `triedAt`.
+- [x] Upserting a product read from a page updates price, currency, size and `pricedAt`, and leaves a manual product untouched.
+- [x] A manual product can be created and edited by any household member and has no `pageUrl`.
+- [x] Reading products for a list of groceries is one query, not one per grocery.
+- [x] Deleting a Store removes its products and links; deleting a Grocery removes neither.
+- [x] Name normalization lives in one shared place and folds case, diacritics, punctuation and whitespace.

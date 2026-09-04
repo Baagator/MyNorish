@@ -11,6 +11,7 @@ export type * from "./dto/notes";
 export type * from "./dto/groceries";
 export type * from "./dto/recurring-groceries";
 export type * from "./dto/stores";
+export type * from "./dto/store-products";
 export type * from "./dto/recipe-ingredient";
 export type * from "./dto/step-ingredients";
 export type * from "./dto/caldav-config";
