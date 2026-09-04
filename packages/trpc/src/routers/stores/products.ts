@@ -24,6 +24,7 @@ import type { StoreProcedureContext } from "./stores-helpers";
 import { authedProcedure } from "../../middleware";
 import { router } from "../../trpc";
 import { storeEmitter } from "./emitter";
+import { priceTheList } from "./pricing";
 
 /** A Store belongs to one household; its products and links follow it exactly. */
 async function assertStoreAccess(ctx: StoreProcedureContext, storeId: string): Promise<void> {
@@ -47,6 +48,13 @@ const listAllProducts = authedProcedure.query(async ({ ctx }) => {
 
   return listStoreProductsByStoreIds(stores.map((store) => store.id));
 });
+
+/**
+ * What every Grocery on the household's list costs, as its Store last knew.
+ * Read on the list, so staleness is noticed exactly where somebody is
+ * shopping and nowhere else.
+ */
+const groceryPrices = authedProcedure.query(async ({ ctx }) => priceTheList(ctx));
 
 const createProduct = authedProcedure
   .input(StoreProductManualCreateSchema)
@@ -109,6 +117,7 @@ const linkGrocery = authedProcedure
   });
 
 export const storeProductProcedures = router({
+  groceryPrices,
   listProducts,
   listAllProducts,
   createProduct,

@@ -65,6 +65,7 @@ export const JOB_PIPELINES: Record<QueueName, string[]> = {
   // CalDAV runs either a sync or a delete flow; no fixed sequence
   [QUEUE_NAMES.CALDAV_SYNC]: [],
   [QUEUE_NAMES.SCHEDULED_TASKS]: ["running"],
+  [QUEUE_NAMES.STORE_LOOKUP]: ["searching", "reading-product", "saving"],
 };
 
 /**

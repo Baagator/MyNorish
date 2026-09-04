@@ -8,4 +8,10 @@ export {
   type StoreUpdateDraft,
 } from "./use-stores-mutations";
 export { useStoresSubscription } from "./use-stores-subscription";
+export {
+  useStorePrices,
+  useStorePricesSubscription,
+  priceKey,
+  type StorePricesResult,
+} from "./use-store-prices";
 export { useStoresCacheHelpers, type StoresCacheHelpers } from "./use-stores-cache";

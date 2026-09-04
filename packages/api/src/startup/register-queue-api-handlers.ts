@@ -8,6 +8,8 @@ import { extractRecipeFromImages } from "@norish/api/parser/image-extraction";
 import { extractRecipeNodesFromJsonValue } from "@norish/api/parser/jsonld";
 import { normalizeRecipeFromJson, parseCategories, parseTags } from "@norish/api/parser/normalize";
 import { extractRecipeWithAI } from "@norish/api/parser/recipe-extraction";
+import { fetchStorePage } from "@norish/api/parser/store-fetch";
+import { readProduct, readSearchResults } from "@norish/api/parser/store-page";
 import { discoverSearchAddress, verifySearchAddress } from "@norish/api/parser/store-search";
 import {
   cleanupOrphanedAvatars,
@@ -35,5 +37,8 @@ export function registerApiHandlersForQueue(): void {
     cleanupOldTempFiles,
     discoverSearchAddress,
     verifySearchAddress,
+    fetchStorePage,
+    readSearchResults,
+    readProduct,
   });
 }

@@ -1,6 +1,6 @@
 # 04 — The lookup queue: auto-match and refresh
 
-Status: ready-for-agent
+Status: ready-for-human
 Blocked by: 02, 03
 
 Spec: `.scratch/simplified-grocery-linking/spec.md`
@@ -29,15 +29,15 @@ A shop that answers nothing at all is not a Miss for every candidate — write t
 
 ## Acceptance criteria
 
-- [ ] A `storeLookup` queue starts with the workers, always-on, concurrency 1.
-- [ ] Creating a Grocery whose `(store, name)` link is known returns its Shelf Price with no outbound request.
-- [ ] Creating a Grocery with an unknown name returns immediately and enqueues a match job.
-- [ ] Renaming a Grocery, or moving it to another Store, resolves the new key and never carries the old link.
-- [ ] A normalized-equal candidate auto-links; a name whose words appear in exactly one candidate auto-links.
-- [ ] A name whose words appear in two or more candidates writes a Miss and links nothing.
-- [ ] A match reads the product page and stores price, currency, size and `pricedAt`.
-- [ ] No job on this queue is ever enqueued with `delay`, and a test asserts it.
-- [ ] Store visits are paced; two match jobs for the same Store do not fetch concurrently.
-- [ ] A price older than 12 hours refreshes only for products attached to a live Grocery, capped per page view.
-- [ ] A manual product is never refreshed.
-- [ ] A landed price reaches other household members over the existing subscription without a reload.
+- [x] A `storeLookup` queue starts with the workers, always-on, concurrency 1.
+- [x] Creating a Grocery whose `(store, name)` link is known returns its Shelf Price with no outbound request.
+- [x] Creating a Grocery with an unknown name returns immediately and enqueues a match job.
+- [x] Renaming a Grocery, or moving it to another Store, resolves the new key and never carries the old link.
+- [x] A normalized-equal candidate auto-links; a name whose words appear in exactly one candidate auto-links.
+- [x] A name whose words appear in two or more candidates writes a Miss and links nothing.
+- [x] A match reads the product page and stores price, currency, size and `pricedAt`.
+- [x] No job on this queue is ever enqueued with `delay`, and a test asserts it.
+- [x] Store visits are paced; two match jobs for the same Store do not fetch concurrently.
+- [x] A price older than 12 hours refreshes only for products attached to a live Grocery, capped per page view.
+- [x] A manual product is never refreshed.
+- [x] A landed price reaches other household members over the existing subscription without a reload.

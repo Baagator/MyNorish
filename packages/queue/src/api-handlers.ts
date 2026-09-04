@@ -1,4 +1,10 @@
-import type { RecipeCategory, SearchAddressCheck, Slot } from "@norish/shared/contracts";
+import type {
+  ProductReading,
+  RecipeCategory,
+  SearchAddressCheck,
+  Slot,
+  StoreCandidate,
+} from "@norish/shared/contracts";
 import type { FullRecipeInsertDTO } from "@norish/shared/contracts/dto/recipe";
 import type { SiteAuthTokenDecryptedDto } from "@norish/shared/contracts/dto/site-auth-tokens";
 
@@ -62,6 +68,15 @@ export interface QueueApiHandlers {
   discoverSearchAddress(website: string): Promise<string | null>;
   /** Whether a Search Address works, asked with the user's own term. */
   verifySearchAddress(searchAddress: string, term: string | null): Promise<SearchAddressCheck>;
+  /** One Store Visit: a plain fetch, and Obscura only when that is turned away. */
+  fetchStorePage(
+    url: string,
+    isEmptyHanded?: (html: string) => boolean
+  ): Promise<{ html: string; url: string; rendered: boolean }>;
+  /** The products a results page offers, priced and unpriced alike. */
+  readSearchResults(html: string, baseUrl: string): StoreCandidate[];
+  /** The authoritative Shelf Price a product page states. */
+  readProduct(html: string, url: string): ProductReading | null;
 }
 
 const globalForQueueApiHandlers = globalThis as typeof globalThis & {

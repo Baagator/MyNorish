@@ -27,6 +27,7 @@ import {
 import { trpcLogger as log } from "@norish/shared-server/logger";
 import { AssignGroceryToStoreInputSchema } from "@norish/shared/contracts/zod";
 
+import { noticeGroceries } from "../stores/pricing";
 import { groceryEmitter } from "./emitter";
 
 export type GroceryProcedureContext = {
@@ -47,7 +48,8 @@ type GroceryMergeCandidate = {
   sortOrder: number;
 };
 
-function normalizeGroceryName(name: string | null): string {
+/** The key two list lines are merged under; not the Product Link's folding. */
+function normalizeForMerge(name: string | null): string {
   return (name ?? "").toLowerCase().trim();
 }
 
@@ -91,7 +93,7 @@ export async function createGroceriesData(
   const existingByKey = new Map<string, GroceryMergeCandidate>();
 
   for (const grocery of existingGroceries) {
-    const normalizedName = normalizeGroceryName(grocery.name);
+    const normalizedName = normalizeForMerge(grocery.name);
 
     if (normalizedName && !grocery.isDone) {
       const recipeKey = grocery.recipeIngredientId ?? "manual";
@@ -122,7 +124,7 @@ export async function createGroceriesData(
   const returnIds: string[] = [];
 
   for (const grocery of input) {
-    const normalizedName = normalizeGroceryName(grocery.name);
+    const normalizedName = normalizeForMerge(grocery.name);
     const recipeKey = grocery.recipeIngredientId ?? "manual";
     const recurringKey = grocery.recurringGroceryId ?? "none";
     const lookupKey = normalizedName ? `${normalizedName}|${recipeKey}|${recurringKey}` : null;
@@ -227,11 +229,17 @@ export async function createGroceriesData(
     .map((id) => groceriesById.get(id))
     .filter((grocery): grocery is GroceryDto => grocery !== undefined);
 
+  // A name the Store already knows is priced in this same response, with no
+  // outbound request; a name it does not goes to the lookup queue, so adding
+  // six things in a row stays as fast as it was.
+  const prices = await noticeGroceries(ctx, returnedGroceries);
+
   return {
     ids: returnIds,
     createdGroceries,
     updatedGroceries,
     returnedGroceries,
+    prices,
   };
 }
 
@@ -388,6 +396,10 @@ export async function assignGroceryToStoreData(
   }
 
   log.info({ userId: ctx.user.id, groceryId, storeId }, "Grocery assigned to store");
+
+  // Moving a grocery to another Store asks that Store a new question; the old
+  // Store's answer was never about this one.
+  await noticeGroceries(ctx, [updated]);
 
   if (savePreference && storeId && grocery.name) {
     const normalized = normalizeIngredientName(grocery.name);

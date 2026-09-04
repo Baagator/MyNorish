@@ -34,6 +34,7 @@ import { parseIngredientWithDefaults } from "@norish/shared/lib/helpers";
 
 import { authedProcedure } from "../../middleware";
 import { router } from "../../trpc";
+import { noticeGroceries } from "../stores/pricing";
 import { groceryEmitter } from "./emitter";
 import {
   assignGroceryToStoreData,
@@ -144,6 +145,10 @@ const update = authedProcedure.input(GroceryUpdateInputSchema).mutation(({ ctx, 
 
         await upsertIngredientStorePreference(ctx.user.id, normalized, storeId);
       }
+
+      // A rename asks a new question rather than carrying the old answer to a
+      // name it was never about.
+      await noticeGroceries(ctx, updatedGroceries);
 
       log.debug({ userId: ctx.user.id, groceryId }, "Grocery updated");
       groceryEmitter.emitToHousehold(ctx.householdKey, "updated", {
