@@ -72,7 +72,12 @@ export async function fetchStorePage(
 
   // Obscura is optional for this feature: when it is not reachable it answers
   // with no HTML, which is a shop Norish cannot read rather than a failure.
-  const rendered = await fetchRenderedPage(url);
+  //
+  // A shop that turned the plain fetch away turns the browser away too, and
+  // answers it with a bot check that replaces itself with the real page a few
+  // seconds later. Rendering is what gets past it, but only if the page is
+  // read after it has let go rather than the instant it loads.
+  const rendered = await fetchRenderedPage(url, undefined, (html) => !looksLikeAChallenge(html));
 
   if (!rendered) return { html: plain.html, url, rendered: false };
 
