@@ -26,6 +26,7 @@ import {
   getGroceryOwnerIds,
   getRecipeInfoForGroceries,
   listGroceriesByUsers,
+  reorderGroceriesInStore,
   updateGroceries,
 } from "../mocks/db";
 import { groceryEmitter } from "../mocks/grocery-emitter";
@@ -50,14 +51,17 @@ const storesRepository = vi.hoisted(() => ({
 }));
 
 const storeProductsRepository = vi.hoisted(() => ({
-  resolveProductLinks: vi.fn(async () => []),
+  resolveProductLinks: vi.fn(async () => [] as unknown[]),
   listStaleProducts: vi.fn(async () => []),
 }));
+
+const storeEmitter = vi.hoisted(() => ({ emitToHousehold: vi.fn() }));
 
 // Setup mocks before any imports that use them
 vi.mock("@norish/db", () => import("../mocks/db"));
 vi.mock("@norish/db/repositories/stores", () => storesRepository);
 vi.mock("@norish/db/repositories/store-products", () => storeProductsRepository);
+vi.mock("@norish/shared-server/realtime/stores", () => ({ storeEmitter }));
 vi.mock(
   "@norish/db/repositories/recurring-groceries",
   () => import("../mocks/recurring-groceries")
@@ -542,6 +546,41 @@ describe("stale grocery updates", () => {
       "oat milk",
       storeId
     );
+  });
+
+  it("asks the Store a grocery was dragged into what it knows about it", async () => {
+    const groceryId = crypto.randomUUID();
+    const storeId = crypto.randomUUID();
+    const link = {
+      storeId,
+      normalizedName: "cola",
+      lastTriedAt: null,
+      product: { id: crypto.randomUUID(), storeId, name: "Cola 1 L", price: 1.49 },
+    };
+
+    getGroceryOwnerIds.mockResolvedValue(new Map([[groceryId, ctx.user.id]]));
+    assertHouseholdAccess.mockResolvedValue(undefined);
+    storesRepository.getStoreOwnerId.mockResolvedValue(ctx.user.id);
+    getGroceriesByIds.mockResolvedValue([createMockGrocery({ id: groceryId, name: "cola" })]);
+    reorderGroceriesInStore.mockResolvedValue([
+      createMockGrocery({ id: groceryId, name: "cola", storeId }),
+    ]);
+    storeProductsRepository.resolveProductLinks.mockResolvedValue([link]);
+
+    const caller = groceriesProcedures.createCaller({ ...ctx, multiplexer: null } as any);
+
+    await caller.reorderInStore({
+      updates: [{ id: groceryId, version: 1, sortOrder: 0, storeId }],
+      savePreference: true,
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    // Dragging a grocery into another Store asks that Store the same question
+    // the panel would: what it already knows reaches the list there and then.
+    expect(storeEmitter.emitToHousehold).toHaveBeenCalledWith(ctx.householdKey, "linkUpdated", {
+      link,
+    });
   });
 
   it("passes storeId through to updateGroceries when provided", async () => {

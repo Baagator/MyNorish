@@ -491,6 +491,18 @@ const reorderInStore = authedProcedure
 
         log.info({ userId: ctx.user.id, count: updated.length }, "Groceries reordered");
 
+        // Dragging a grocery into another Store asks that Store the same
+        // question its panel would: what that Store already knows reaches the
+        // list there and then, and a name it does not know goes to the lookup
+        // queue. Without this a dragged grocery is unpriced until the whole
+        // list is fetched again.
+        const moved = new Set(updates.filter((u) => u.storeId !== undefined).map((u) => u.id));
+        const movedGroceries = updated.filter((grocery) => moved.has(grocery.id));
+
+        if (movedGroceries.length > 0) {
+          await noticeGroceries(ctx, movedGroceries);
+        }
+
         // Save store preferences for any items that changed stores
         if (savePreference) {
           const itemsWithStoreChange = updates.filter(
