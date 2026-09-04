@@ -10,6 +10,7 @@ import { useLocale, useTranslations } from "next-intl";
 import type { StoreDto, StoreProductChoice, StoreProductDto } from "@norish/shared/contracts";
 import type { PricedCandidate } from "@norish/shared/lib/currency";
 import { currencyForUrl, isPriced } from "@norish/shared/lib/currency";
+import { createClientId } from "@norish/shared/lib/operation-helpers";
 
 /** How long a shopper stops typing before the shop is asked. */
 const SEARCH_DEBOUNCE_MS = 400;
@@ -107,7 +108,7 @@ export function GroceryProductField({
   const [manualPrice, setManualPrice] = useState("");
   const [manualName, setManualName] = useState(groceryName);
   const [manualCurrency, setManualCurrency] = useState("");
-  const [manualId] = useState(() => crypto.randomUUID());
+  const [manualId] = useState(createClientId);
   const heldByHand = useRef("");
 
   useEffect(() => {
