@@ -61,12 +61,16 @@ export function useProductChoice(options: {
   }, [options.resetOn, selectedStoreId]);
 
   const commit = useCallback(() => {
-    if (!choice || !selectedStoreId || !groceryName) return;
+    // Committed or not, the choice is spent: the panel that stays open for the
+    // next grocery must not still be holding this one's product.
+    const held = choice;
+
+    setChoice(null);
+    if (!held || !selectedStoreId || !groceryName) return;
     // An untouched field has nothing to say: only a choice the user actually
     // made is written, and never over the same product it already pointed at.
-    if (choice.kind === "product" && choice.storeProductId === linked?.id) return;
-    void chooseProduct(selectedStoreId, groceryName, choice);
-    setChoice(null);
+    if (held.kind === "product" && held.storeProductId === linked?.id) return;
+    void chooseProduct(selectedStoreId, groceryName, held);
   }, [choice, chooseProduct, groceryName, linked?.id, selectedStoreId]);
 
   return {

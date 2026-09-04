@@ -1,8 +1,10 @@
 /**
- * Swapping the Store in the grocery panel: the product field is about the
- * Store that is selected now, and nothing of the old one may survive the swap.
+ * The grocery panels around their product field: the field is about the Store
+ * that is selected now and the grocery being added now, and nothing of the
+ * last one may survive into it.
  */
 import type { ReactNode } from "react";
+import AddGroceryPanel from "@/components/Panel/consumers/add-grocery-panel";
 import EditGroceryPanel from "@/components/Panel/consumers/edit-grocery-panel";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -221,5 +223,42 @@ describe("EditGroceryPanel, swapping the Store", () => {
     // Store A's product is not in Store B; writing it there is an error the
     // shopper never asked for.
     expect(chooseProduct).not.toHaveBeenCalled();
+  });
+});
+
+describe("AddGroceryPanel, adding one grocery after another", () => {
+  it("does not offer the last grocery's product for the next one", () => {
+    render(
+      <AddGroceryPanel
+        open={true}
+        stores={STORES}
+        onCreate={() => undefined}
+        onCreateRecurring={() => undefined}
+        onOpenChange={() => undefined}
+      />
+    );
+
+    fireEvent.change(screen.getByPlaceholderText("placeholder"), { target: { value: "cola" } });
+    fireEvent.change(screen.getByTestId("store-selector"), { target: { value: "store-a" } });
+
+    act(() => {
+      screen.getByTestId("grocery-product-field").focus();
+    });
+
+    const option = screen
+      .getAllByTestId("product-option")
+      .find((node) => node.textContent?.includes("Coca-Cola 1 L"));
+
+    act(() => {
+      fireEvent.click(option as HTMLElement);
+    });
+    expect(screen.getByTestId("grocery-product-field")).toHaveValue("Coca-Cola 1 L");
+
+    // The panel stays open for the next grocery; the last one's product must
+    // not still be sitting in it.
+    fireEvent.click(screen.getByRole("button", { name: "add" }));
+
+    expect(screen.getByTestId("grocery-product-field")).toHaveValue("");
+    expect(screen.queryByTestId("product-by-hand")).not.toBeInTheDocument();
   });
 });

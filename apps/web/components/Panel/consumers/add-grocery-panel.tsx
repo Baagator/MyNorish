@@ -39,6 +39,9 @@ export default function AddGroceryPanel({
   const tActions = useTranslations("common.actions");
   const [recurrencePanelOpen, setRecurrencePanelOpen] = useState(false);
   const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null);
+  // One per grocery added, so the panel that stays open for the next one is
+  // not still showing the last one's product.
+  const [added, setAdded] = useState(0);
   const {
     itemName,
     setItemName,
@@ -81,6 +84,7 @@ export default function AddGroceryPanel({
     // Reset form but keep panel open for batch adding; `commit` has already
     // put the price stage back.
     reset();
+    setAdded((count) => count + 1);
     // Keep the store selection for batch adding to same store
   };
   const handleRecurrenceSave = (pattern: RecurrencePattern | null) => {
@@ -126,9 +130,10 @@ export default function AddGroceryPanel({
             {/* Which of that shop's products this is */}
             {price.store && (
               <GroceryProductField
-                // A different Store is a different question: the field starts
-                // over rather than carrying the last shop's answers into it.
-                key={price.store.id}
+                // A different Store is a different question, and so is the
+                // next grocery: the field starts over rather than carrying the
+                // last shop's answers into it.
+                key={`${price.store.id}:${added}`}
                 choice={price.choice}
                 groceryName={price.groceryName}
                 linkedProduct={price.linkedProduct}
