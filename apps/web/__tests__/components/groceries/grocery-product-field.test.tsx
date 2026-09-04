@@ -285,6 +285,27 @@ describe("GroceryProductField", () => {
     expect(offered).not.toContain("Oude kaas");
   });
 
+  it("does not answer a question with a product that only shares a size", async () => {
+    KNOWN["store-a"] = [product("known-melk", "store-a", "Halfvolle melk 1 L", 1.29)];
+
+    render(
+      <GroceryProductField
+        choice={null}
+        groceryName="cola"
+        linkedProduct={null}
+        store={STORE_A}
+        onChoice={() => undefined}
+      />
+    );
+
+    await act(async () => {
+      field().focus();
+    });
+
+    // "cola" and "Halfvolle melk 1 L" share the letter l and nothing else.
+    expect(options().join("|")).not.toContain("Halfvolle melk");
+  });
+
   it("says which rows the Store already knew and which the shop just answered", async () => {
     KNOWN["store-a"] = [product("known-cola", "store-a", "Cola Light 1 L", 1.89)];
 

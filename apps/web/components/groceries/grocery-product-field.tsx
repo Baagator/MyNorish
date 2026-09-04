@@ -99,7 +99,12 @@ function answers(name: string, term: string): boolean {
   if (asked.length === 0) return true;
   const has = words(name);
 
-  return asked.some((word) => has.some((part) => part.includes(word) || word.includes(part)));
+  // A long enough word may sit inside one of the name's own — "cola" answers
+  // "Coca-Cola" — but a short one must be a word in its own right, or the "l"
+  // of "1 L" would answer every question with an l in it.
+  return asked.some((word) =>
+    word.length < 3 ? has.includes(word) : has.some((part) => part.includes(word))
+  );
 }
 
 /**
