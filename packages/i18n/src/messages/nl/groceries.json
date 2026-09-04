@@ -115,6 +115,6 @@
     "byHandCurrency": "Valuta",
     "productLabel": "Product bij {store}",
     "cannotSearch": "Deze winkel kan niet doorzocht worden",
-    "cannotSearchHint": "Geef {store} een winkellink om prijzen te tonen."
+    "cannotSearchHint": "Norish kon geen zoekpagina uit de winkellink van {store} lezen. Pas hem aan bij Winkels beheren en de prijzen volgen."
   }
 }

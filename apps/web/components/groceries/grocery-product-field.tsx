@@ -125,6 +125,11 @@ function answers(name: string, term: string): boolean {
  * grocery's own name while it is unlinked, or something typed. Opening a
  * grocery to rename it must not send anyone's household to a supermarket.
  *
+ * A Store with no shop behind it has no such field at all — pricing is
+ * something a Store gains, and an ordinary Store is a heading. A Store that
+ * points at a shop Norish could not make a search out of keeps the field, dead
+ * and saying why, because there is a link to go and correct.
+ *
  * Nothing here writes anything: the choice is held by the panel and committed
  * by its own Save or Add, because writing on tap reads as "it saved without me
  * saving".
@@ -140,6 +145,7 @@ export function GroceryProductField({
   const locale = useLocale();
   const portalContainer = usePanelPortalContainer();
   const canSearch = Boolean(store.searchAddress);
+  const pointsAtShop = Boolean(store.website ?? store.searchAddress);
   const opensWith = linkedProduct?.name ?? "";
   const [term, setTerm] = useState(opensWith);
   const [searchedTerm, setSearchedTerm] = useState(() => groceryName.trim());
@@ -277,6 +283,10 @@ export function GroceryProductField({
   // whenever there is an answer to show or one to be typed.
   const showsPrice = Boolean(picked) || Boolean(linkedProduct) || foundNothing || byHand;
 
+  // Hooks first, and only then: a Store that points at no shop has nothing to
+  // ask and nothing to show.
+  if (!pointsAtShop) return null;
+
   return (
     <div className="flex flex-col gap-2">
       <ComboBox
@@ -362,7 +372,9 @@ export function GroceryProductField({
       </ComboBox>
 
       {!canSearch && (
-        <p className="text-muted text-xs">{t("cannotSearchHint", { store: store.name })}</p>
+        <p className="text-muted text-xs" data-testid="product-cannot-search">
+          {t("cannotSearchHint", { store: store.name })}
+        </p>
       )}
 
       {isSearching && (

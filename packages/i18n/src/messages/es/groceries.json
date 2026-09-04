@@ -115,6 +115,6 @@
     "byHandCurrency": "Moneda",
     "productLabel": "Producto en {store}",
     "cannotSearch": "No se puede buscar en esta tienda",
-    "cannotSearchHint": "Da a {store} un enlace de tienda para ver precios."
+    "cannotSearchHint": "Norish no pudo sacar una página de búsqueda del enlace de {store}. Corrígelo en Gestionar tiendas y los precios llegarán."
   }
 }

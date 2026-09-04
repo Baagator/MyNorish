@@ -115,6 +115,6 @@
     "byHandCurrency": "Valuta",
     "productLabel": "Produkt hos {store}",
     "cannotSearch": "Denne butik kan ikke søges",
-    "cannotSearchHint": "Giv {store} et butikslink for at vise priser."
+    "cannotSearchHint": "Norish kunne ikke læse en søgeside ud af butikslinket til {store}. Ret det under Administrer butikker, så følger priserne."
   }
 }

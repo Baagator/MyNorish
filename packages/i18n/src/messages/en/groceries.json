@@ -115,6 +115,6 @@
     "byHandCurrency": "Currency",
     "productLabel": "Product at {store}",
     "cannotSearch": "This shop cannot be searched",
-    "cannotSearchHint": "Give {store} a shop link to price its groceries."
+    "cannotSearchHint": "Norish could not read a search page out of {store}'s shop link. Correct it in Manage Stores and prices follow."
   }
 }

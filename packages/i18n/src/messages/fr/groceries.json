@@ -115,6 +115,6 @@
     "byHandCurrency": "Devise",
     "productLabel": "Produit chez {store}",
     "cannotSearch": "Cette boutique ne peut pas être cherchée",
-    "cannotSearchHint": "Donnez un lien de boutique à {store} pour afficher les prix."
+    "cannotSearchHint": "Norish n'a pas pu tirer de page de recherche du lien de {store}. Corrigez-le dans Gérer les magasins et les prix suivront."
   }
 }

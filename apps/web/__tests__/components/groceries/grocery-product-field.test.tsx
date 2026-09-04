@@ -100,7 +100,10 @@ function store(id: string, name: string, searchAddress: string | null): StoreDto
 
 const STORE_A = store("store-a", "Store A", "https://a.example/search?q={query}");
 const STORE_B = store("store-b", "Store B", "https://b.example/search?q={query}");
+/** A Store with a shop link Norish could not make a search out of. */
 const UNREADABLE = store("store-c", "Store C", null);
+/** An ordinary Store: a heading, and no shop behind it at all. */
+const NO_SHOP = { ...store("store-d", "Store D", null), website: null } as StoreDto;
 
 function product(id: string, storeId: string, name: string, price: number): StoreProductDto {
   return {
@@ -243,6 +246,20 @@ describe("GroceryProductField", () => {
     expect(screen.getByTestId("product-by-hand-price")).toHaveValue("1.49");
   });
 
+  it("is not there at all for a Store with no shop behind it", () => {
+    const { container } = render(
+      <GroceryProductField
+        choice={null}
+        groceryName="cola"
+        linkedProduct={null}
+        store={NO_SHOP}
+        onChoice={() => undefined}
+      />
+    );
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it("cannot be typed in for a shop Norish cannot read", () => {
     render(
       <GroceryProductField
@@ -256,6 +273,8 @@ describe("GroceryProductField", () => {
 
     expect(field()).toBeDisabled();
     expect(searchCalls.every((call) => !call.enabled)).toBe(true);
+    // And it says why, rather than leaving a dead field to be puzzled over.
+    expect(screen.getByTestId("product-cannot-search")).toBeInTheDocument();
   });
 
   it("offers the Store's own products for the term, and not its whole shelf", async () => {
