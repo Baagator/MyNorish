@@ -101,16 +101,9 @@
     "addSelectedToGroceries": "장보기에 추가",
     "ingredientsAdded": "장보기 목록에 재료가 추가되었습니다.",
     "ingredientsFailed": "장보기 목록에 재료를 추가하지 못했습니다.",
-    "addToGroceries": "장보기에 추가",
-    "priceTitle": "가격 선택"
-  },
-  "prices": {
-    "pickPrice": "가격 추가",
-    "changeProduct": "{product}에 연결됨. 다른 상품을 선택하세요."
+    "addToGroceries": "장보기에 추가"
   },
   "picker": {
-    "title": "{name} 가격",
-    "searchLabel": "{store}에서 검색",
     "searchPlaceholder": "입력하여 상점 검색",
     "searching": "{store} 검색 중…",
     "nothingFound": "{store}에서 아무것도 찾지 못했습니다. 가격을 직접 입력할 수 있습니다.",
@@ -118,6 +111,7 @@
     "byHandPrice": "가격",
     "useThisPrice": "이 가격 사용",
     "byHandChosen": "{price}이(가) 이 항목과 함께 저장됩니다.",
-    "byHandCurrency": "통화"
+    "byHandCurrency": "통화",
+    "productLabel": "{store}의 상품"
   }
 }

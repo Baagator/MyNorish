@@ -48,7 +48,6 @@ export function GroceriesPage() {
     setAddGroceryPanelOpen,
     editingGrocery,
     setEditingGrocery,
-    editingGroceryStage,
     viewMode,
     setViewMode,
     groupSimilarIngredients,
@@ -278,7 +277,6 @@ export function GroceriesPage() {
       {editingGrocery && (
         <EditGroceryPanel
           grocery={editingGrocery}
-          initialStage={editingGroceryStage}
           open={!!editingGrocery}
           recurringGrocery={editingRecurringGrocery}
           stores={stores}

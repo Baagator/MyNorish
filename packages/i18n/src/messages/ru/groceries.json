@@ -101,16 +101,9 @@
     "addSelectedToGroceries": "Добавить в список покупок",
     "ingredientsAdded": "Ингредиенты добавлены в список покупок.",
     "ingredientsFailed": "Не удалось добавить ингредиенты в список покупок.",
-    "addToGroceries": "Добавить в список покупок",
-    "priceTitle": "Выберите цену"
-  },
-  "prices": {
-    "pickPrice": "Добавить цену",
-    "changeProduct": "Связано с {product}. Выберите другой товар."
+    "addToGroceries": "Добавить в список покупок"
   },
   "picker": {
-    "title": "Цена для {name}",
-    "searchLabel": "Искать в {store}",
     "searchPlaceholder": "Введите, чтобы искать в магазине",
     "searching": "Ищем в {store}…",
     "nothingFound": "Norish ничего не нашёл в {store}. Вы можете ввести цену сами.",
@@ -118,6 +111,7 @@
     "byHandPrice": "Цена",
     "useThisPrice": "Использовать эту цену",
     "byHandChosen": "{price} будет сохранена с этой покупкой.",
-    "byHandCurrency": "Валюта"
+    "byHandCurrency": "Валюта",
+    "productLabel": "Товар в {store}"
   }
 }

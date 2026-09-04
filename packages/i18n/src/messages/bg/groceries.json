@@ -101,16 +101,9 @@
     "addSelectedToGroceries": "Добави в продуктите",
     "ingredientsAdded": "Съставките са добавени в списъка с продукти.",
     "ingredientsFailed": "Добавянето на съставките в списъка с продукти не бе успешно.",
-    "addToGroceries": "Добави в продуктите",
-    "priceTitle": "Изберете цена"
-  },
-  "prices": {
-    "pickPrice": "Добавяне на цена",
-    "changeProduct": "Свързано с {product}. Изберете друг продукт."
+    "addToGroceries": "Добави в продуктите"
   },
   "picker": {
-    "title": "Цена за {name}",
-    "searchLabel": "Търсене в {store}",
     "searchPlaceholder": "Пишете, за да търсите в магазина",
     "searching": "Търсим в {store}…",
     "nothingFound": "Norish не намери нищо в {store}. Можете сами да въведете цената.",
@@ -118,6 +111,7 @@
     "byHandPrice": "Цена",
     "useThisPrice": "Използване на тази цена",
     "byHandChosen": "{price} ще бъде запазена с тази покупка.",
-    "byHandCurrency": "Валута"
+    "byHandCurrency": "Валута",
+    "productLabel": "Продукт в {store}"
   }
 }

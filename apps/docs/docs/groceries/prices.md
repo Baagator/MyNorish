@@ -67,31 +67,28 @@ Norish links a grocery to a product by itself only where you would not
 hesitate: the names match, or every word of your grocery's name appears in
 exactly one product's name. Anything less certain is left to you.
 
-## Choosing the price yourself
+## Choosing the product yourself
 
-An unpriced grocery in a Store with a Search Address offers **Add a price** on
-its row; a priced one opens the same picker when you tap its price, so a link
-you want to change is one tap away.
+Which of the shop's products a grocery is, is a field of the grocery's own
+panel — beside its store, where it belongs. Open a grocery and the **Product**
+field reads whatever it is linked to now; type in it and Norish searches the
+shop, dropping down what came back with the price beside each one, together
+with the products this Store already knows.
 
-The picker is a stage inside the grocery's own panel, and its field is a
-search box over the shop. It opens reading whatever the grocery is linked to
-now, or the grocery's own name when it is linked to nothing, and it asks the
-shop as you type. Everything the shop answered drops down with its price
-beside it, together with the products this Store already knows.
+![The product field in a grocery's panel, offering priced results from the shop](/img/screenshots/groceries-picker.png)
 
-![The picker, searching the shop and offering priced results](/img/screenshots/groceries-picker.png)
-
-Your choice is shown in the field immediately and written when you press
-**Save** or **Add** — tapping around in the picker never changes what your
-household sees.
+Your choice shows in the field immediately and is written when you press
+**Save** or **Add** — nothing you do in the dropdown changes what your
+household sees until then. Norish asks the shop only once you use the field,
+so opening a grocery to rename it sends nobody to a supermarket.
 
 ### A shop Norish cannot read
 
 Some shops answer with nothing Norish can read. When a search comes back
-empty, the picker offers to take a price by hand: a name, prefilled with the
-grocery's, and the price you saw. That makes a Store Product like any other,
-except that nothing Norish reads will ever overwrite it — a price you typed is
-the last word.
+empty, the field offers to take a price by hand: a name, prefilled with the
+grocery's, and the price and currency you saw. That makes a Store Product like
+any other, except that nothing Norish reads will ever overwrite it — a price
+you typed is the last word.
 
 ## What this does not do yet
 

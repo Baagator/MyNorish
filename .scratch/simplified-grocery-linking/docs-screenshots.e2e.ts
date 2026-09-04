@@ -93,12 +93,11 @@ test("captures a priced shopping list", async () => {
   await page.screenshot({ path: path.join(SHOTS, "groceries-prices.png") });
 });
 
-test("captures the picker", async () => {
+test("captures the product field in the grocery panel", async () => {
   await page.goto("/groceries");
   await addGrocery("beleg");
-  await expect(page.getByTestId("pick-price").first()).toBeVisible({ timeout: 90_000 });
-  await page.getByTestId("pick-price").first().click();
-  await page.getByTestId("picker-search").click();
+  await page.getByText("beleg").first().click();
+  await page.getByTestId("grocery-product-field").click();
   await expect(page.getByRole("option").first()).toBeVisible({ timeout: 30_000 });
   await page.waitForTimeout(400);
   await page.screenshot({ path: path.join(SHOTS, "groceries-picker.png") });

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { RecurrenceSuggestion } from "@/app/(app)/groceries/components/recurrence-suggestion";
-import { ProductPicker } from "@/components/groceries/product-picker";
+import { GroceryProductField } from "@/components/groceries/grocery-product-field";
 import { StoreSelector } from "@/components/groceries/store-selector";
 import { RecurrencePanel } from "@/components/Panel/consumers/recurrence-panel";
 import Panel from "@/components/Panel/Panel";
@@ -37,7 +37,6 @@ export default function AddGroceryPanel({
 }: AddGroceryPanelProps) {
   const t = useTranslations("groceries.panel");
   const tActions = useTranslations("common.actions");
-  const tPrices = useTranslations("groceries.prices");
   const [recurrencePanelOpen, setRecurrencePanelOpen] = useState(false);
   const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null);
   const {
@@ -94,108 +93,90 @@ export default function AddGroceryPanel({
   };
   return (
     <>
-      <Panel
-        open={open}
-        title={price.stage === "picker" ? t("priceTitle") : t("addTitle")}
-        onOpenChange={handlePanelOpenChange}
-      >
+      <Panel open={open} title={t("addTitle")} onOpenChange={handlePanelOpenChange}>
         <Panel.Body>
-          {price.stage === "picker" && price.store ? (
-            <ProductPicker
-              choice={price.choice}
-              groceryName={price.groceryName}
-              linkedProduct={price.linkedProduct}
-              storeId={price.store.id}
-              storeName={price.store.name}
-              storeWebsite={price.store.website}
-              onBack={price.closePicker}
-              onChoice={price.setChoice}
+          <div className="space-y-3">
+            <Input
+              className="h-12 text-base font-medium"
+              variant="secondary"
+              placeholder={t("placeholder")}
+              style={{
+                fontSize: "16px",
+              }}
+              value={itemName}
+              onChange={(e) => setItemName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleSubmit();
+                }
+              }}
             />
-          ) : (
-            <div className="space-y-3">
-              <Input
-                className="h-12 text-base font-medium"
-                variant="secondary"
-                placeholder={t("placeholder")}
-                style={{
-                  fontSize: "16px",
-                }}
-                value={itemName}
-                onChange={(e) => setItemName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleSubmit();
-                  }
-                }}
+
+            {/* Store selection */}
+            <StoreSelector
+              label={t("storeOptional")}
+              noStoreDescription={t("autoDetectFromHistory")}
+              placeholder={t("autoDetectOrSelect")}
+              selectedStoreId={selectedStoreId}
+              stores={stores}
+              onSelectionChange={setSelectedStoreId}
+            />
+
+            {/* Which of that shop's products this is */}
+            {price.canPick && price.store && (
+              <GroceryProductField
+                choice={price.choice}
+                groceryName={price.groceryName}
+                linkedProduct={price.linkedProduct}
+                storeId={price.store.id}
+                storeName={price.store.name}
+                storeWebsite={price.store.website}
+                onChoice={price.setChoice}
               />
+            )}
 
-              {/* Store selection */}
-              <StoreSelector
-                label={t("storeOptional")}
-                noStoreDescription={t("autoDetectFromHistory")}
-                placeholder={t("autoDetectOrSelect")}
-                selectedStoreId={selectedStoreId}
-                stores={stores}
-                onSelectionChange={setSelectedStoreId}
-              />
+            {/* Recurrence Pills Container */}
+            <AnimatePresence mode="popLayout">
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Suggested pill  */}
+                {detectedPattern && (
+                  <RecurrenceSuggestion
+                    key="detected"
+                    itemName={itemName}
+                    pattern={detectedPattern.pattern}
+                    type="detected"
+                    onReplace={() => handleConfirmPattern(detectedPattern)}
+                  />
+                )}
 
-              {/* Recurrence Pills Container */}
-              <AnimatePresence mode="popLayout">
-                <div className="flex flex-wrap items-center gap-2">
-                  {/* Suggested pill  */}
-                  {detectedPattern && (
-                    <RecurrenceSuggestion
-                      key="detected"
-                      itemName={itemName}
-                      pattern={detectedPattern.pattern}
-                      type="detected"
-                      onReplace={() => handleConfirmPattern(detectedPattern)}
-                    />
-                  )}
+                {/* Active pill */}
+                {confirmedPattern && (
+                  <RecurrenceSuggestion
+                    key="confirmed"
+                    itemName={itemName}
+                    pattern={confirmedPattern}
+                    type="confirmed"
+                    onEdit={() => setRecurrencePanelOpen(true)}
+                    onRemove={handleRemovePattern}
+                  />
+                )}
+              </div>
+            </AnimatePresence>
 
-                  {/* Active pill */}
-                  {confirmedPattern && (
-                    <RecurrenceSuggestion
-                      key="confirmed"
-                      itemName={itemName}
-                      pattern={confirmedPattern}
-                      type="confirmed"
-                      onEdit={() => setRecurrencePanelOpen(true)}
-                      onRemove={handleRemovePattern}
-                    />
-                  )}
-                </div>
-              </AnimatePresence>
-
-              {/* Link to manual recurrence editor */}
-              {!confirmedPattern && !detectedPattern && (
-                <ActionButton
-                  action="add"
-                  className="min-w-16 font-medium"
-                  size="sm"
-                  onPress={() => setRecurrencePanelOpen(true)}
-                  variant="tertiary"
-                >
-                  {t("addRepeat")}
-                </ActionButton>
-              )}
-
-              {/* The shop this Store stands for can be asked what this costs */}
-              {price.canPick && (
-                <ActionButton
-                  action="edit"
-                  className="min-w-16 font-medium"
-                  data-testid="open-price-picker"
-                  size="sm"
-                  variant="tertiary"
-                  onPress={price.openPicker}
-                >
-                  {tPrices("pickPrice")}
-                </ActionButton>
-              )}
-            </div>
-          )}
+            {/* Link to manual recurrence editor */}
+            {!confirmedPattern && !detectedPattern && (
+              <ActionButton
+                action="add"
+                className="min-w-16 font-medium"
+                size="sm"
+                onPress={() => setRecurrencePanelOpen(true)}
+                variant="tertiary"
+              >
+                {t("addRepeat")}
+              </ActionButton>
+            )}
+          </div>
         </Panel.Body>
         <Panel.Footer>
           <ActionButtonGroup>

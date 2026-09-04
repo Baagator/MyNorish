@@ -101,16 +101,9 @@
     "addSelectedToGroceries": "Add to groceries",
     "ingredientsAdded": "Ingredients added to grocery list.",
     "ingredientsFailed": "Failed to add ingredients to grocery list.",
-    "addToGroceries": "Add to Groceries",
-    "priceTitle": "Choose a price"
-  },
-  "prices": {
-    "pickPrice": "Add a price",
-    "changeProduct": "Linked to {product}. Choose a different product."
+    "addToGroceries": "Add to Groceries"
   },
   "picker": {
-    "title": "Price for {name}",
-    "searchLabel": "Search {store}",
     "searchPlaceholder": "Type to search the shop",
     "searching": "Searching {store}…",
     "nothingFound": "Norish found nothing at {store}. You can type the price yourself.",
@@ -118,6 +111,7 @@
     "byHandPrice": "Price",
     "useThisPrice": "Use this price",
     "byHandChosen": "{price} will be saved with this grocery.",
-    "byHandCurrency": "Currency"
+    "byHandCurrency": "Currency",
+    "productLabel": "Product at {store}"
   }
 }

@@ -101,16 +101,9 @@
     "addSelectedToGroceries": "Legg til i handleliste",
     "ingredientsAdded": "Ingredienser lagt til i handlelisten.",
     "ingredientsFailed": "Kunne ikke legge til ingredienser i handlelisten.",
-    "addToGroceries": "Legg til i handleliste",
-    "priceTitle": "Velg en pris"
-  },
-  "prices": {
-    "pickPrice": "Legg til en pris",
-    "changeProduct": "Knyttet til {product}. Velg et annet produkt."
+    "addToGroceries": "Legg til i handleliste"
   },
   "picker": {
-    "title": "Pris for {name}",
-    "searchLabel": "Søk i {store}",
     "searchPlaceholder": "Skriv for å søke i butikken",
     "searching": "Søker i {store}…",
     "nothingFound": "Norish fant ingenting hos {store}. Du kan skrive prisen selv.",
@@ -118,6 +111,7 @@
     "byHandPrice": "Pris",
     "useThisPrice": "Bruk denne prisen",
     "byHandChosen": "{price} lagres sammen med denne varen.",
-    "byHandCurrency": "Valuta"
+    "byHandCurrency": "Valuta",
+    "productLabel": "Produkt hos {store}"
   }
 }

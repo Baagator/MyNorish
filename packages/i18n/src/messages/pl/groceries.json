@@ -101,16 +101,9 @@
     "addSelectedToGroceries": "Dodaj do zakupów",
     "ingredientsAdded": "Składniki dodane do listy zakupów.",
     "ingredientsFailed": "Nie udało się dodać składników do listy zakupów.",
-    "addToGroceries": "Dodaj do zakupów",
-    "priceTitle": "Wybierz cenę"
-  },
-  "prices": {
-    "pickPrice": "Dodaj cenę",
-    "changeProduct": "Powiązane z {product}. Wybierz inny produkt."
+    "addToGroceries": "Dodaj do zakupów"
   },
   "picker": {
-    "title": "Cena dla {name}",
-    "searchLabel": "Szukaj w {store}",
     "searchPlaceholder": "Wpisz, aby szukać w sklepie",
     "searching": "Szukanie w {store}…",
     "nothingFound": "Norish nic nie znalazł w {store}. Możesz sam wpisać cenę.",
@@ -118,6 +111,7 @@
     "byHandPrice": "Cena",
     "useThisPrice": "Użyj tej ceny",
     "byHandChosen": "{price} zostanie zapisana przy tym zakupie.",
-    "byHandCurrency": "Waluta"
+    "byHandCurrency": "Waluta",
+    "productLabel": "Produkt w {store}"
   }
 }

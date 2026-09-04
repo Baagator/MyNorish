@@ -5,7 +5,6 @@ import { usePanelPortalContainer } from "@/components/Panel/Panel";
 import { ActionButton } from "@/components/shared/action-button";
 import { useShopSearch, useStoreProducts } from "@/hooks/stores";
 import { formatShelfPrice } from "@/lib/format-price";
-import { ChevronLeftIcon } from "@heroicons/react/24/solid";
 import { ComboBox, Input, Label, ListBox, TextField } from "@heroui/react";
 import { useLocale, useTranslations } from "next-intl";
 
@@ -16,7 +15,7 @@ import { currencyForUrl, isPriced } from "@norish/shared/lib/currency";
 /** How long a shopper stops typing before the shop is asked. */
 const SEARCH_DEBOUNCE_MS = 400;
 
-interface ProductPickerProps {
+interface GroceryProductFieldProps {
   storeId: string;
   storeName: string;
   /** The shop's own website, which is what its currency is guessed from. */
@@ -27,18 +26,17 @@ interface ProductPickerProps {
   linkedProduct: StoreProductDto | null;
   choice: StoreProductChoice | null;
   onChoice: (choice: StoreProductChoice | null) => void;
-  onBack: () => void;
 }
 
 /** One row of the dropdown, whichever list it came from. */
-interface PickerRow {
+interface ProductRow {
   key: string;
   name: string;
   detail: string;
   choice: StoreProductChoice;
 }
 
-function candidateRow(candidate: PricedCandidate, locale: string): PickerRow {
+function candidateRow(candidate: PricedCandidate, locale: string): ProductRow {
   return {
     key: candidate.url,
     name: candidate.name,
@@ -49,7 +47,7 @@ function candidateRow(candidate: PricedCandidate, locale: string): PickerRow {
   };
 }
 
-function productRow(product: StoreProductDto, locale: string): PickerRow {
+function productRow(product: StoreProductDto, locale: string): ProductRow {
   return {
     key: product.id,
     name: product.name,
@@ -60,7 +58,7 @@ function productRow(product: StoreProductDto, locale: string): PickerRow {
   };
 }
 
-/** Which row the held choice is, so the field shows what is linked. */
+/** Which row the held choice is, so the field reads what is linked. */
 function selectedKey(choice: StoreProductChoice | null): string | null {
   if (choice?.kind === "product") return choice.storeProductId;
   if (choice?.kind === "candidate") return choice.candidate.url;
@@ -69,22 +67,21 @@ function selectedKey(choice: StoreProductChoice | null): string | null {
 }
 
 /**
- * A stage inside the grocery panel rather than a second panel over it: the
- * content swaps and the back affordance returns, which keeps the grocery's
- * name on screen while you choose for it and sidesteps the portal wiring a
- * stacked overlay inside a vaul panel would need.
+ * Which of the shop's products this grocery is, as a field of the grocery
+ * panel like any other: it reads what the grocery is linked to now, asks the
+ * shop as you type, and drops down what it answered with the price beside it.
  *
- * The field is a combo box over the shop's own search: what you type goes to
- * the shop, what it answers drops down, and what is linked now is what the
- * field reads. The shop has already filtered, so the list is never filtered
- * again here — a search for "beleg" that answers "Oude kaas" must still offer
- * it.
+ * The shop has already filtered, so the list is never filtered again here — a
+ * search for "beleg" that answers "Oude kaas" must still offer it.
  *
- * Nothing here writes anything. A selection is held by the panel and committed
- * by its own Save, because writing on tap reads as "it saved without me
+ * The shop is asked only once somebody uses the field. Opening this panel to
+ * rename a grocery must not send anyone's household to a supermarket.
+ *
+ * Nothing here writes anything: the choice is held by the panel and committed
+ * by its own Save or Add, because writing on tap reads as "it saved without me
  * saving".
  */
-export function ProductPicker({
+export function GroceryProductField({
   storeId,
   storeName,
   storeWebsite,
@@ -92,46 +89,43 @@ export function ProductPicker({
   linkedProduct,
   choice,
   onChoice,
-  onBack,
-}: ProductPickerProps) {
+}: GroceryProductFieldProps) {
   const t = useTranslations("groceries.picker");
-  const tActions = useTranslations("common.actions");
   const locale = useLocale();
   const portalContainer = usePanelPortalContainer();
-  // The field reads what is linked now, and asks the shop about it; with
-  // nothing linked it is the grocery's own name, which is the first thing
-  // worth searching for.
-  const opensWith = linkedProduct?.name ?? groceryName;
+  const opensWith = linkedProduct?.name ?? "";
   const [term, setTerm] = useState(opensWith);
-  const [searchedTerm, setSearchedTerm] = useState(opensWith);
+  const [searchedTerm, setSearchedTerm] = useState(groceryName);
+  const [asked, setAsked] = useState(false);
   const [manualPrice, setManualPrice] = useState("");
   const [manualName, setManualName] = useState(groceryName);
   const [manualCurrency, setManualCurrency] = useState("");
 
   useEffect(() => {
     setTerm(opensWith);
-    setSearchedTerm(opensWith);
     setManualName(groceryName);
   }, [groceryName, opensWith]);
 
   // The shop is asked about what was typed, once the typing stops.
   useEffect(() => {
-    const timer = setTimeout(() => setSearchedTerm(term.trim() || opensWith), SEARCH_DEBOUNCE_MS);
+    const timer = setTimeout(() => setSearchedTerm(term.trim() || groceryName), SEARCH_DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
-  }, [term, opensWith]);
+  }, [term, groceryName]);
 
-  const search = useShopSearch(storeId, searchedTerm, true);
-  const products = useStoreProducts(storeId, true);
+  const search = useShopSearch(storeId, searchedTerm, asked);
+  const products = useStoreProducts(storeId, asked);
   const candidates = (search.data?.candidates ?? []).filter(isPriced);
   const known = products.data ?? [];
   const storedByPage = new Map(
-    known.filter((product) => product.pageUrl).map((product) => [product.pageUrl!, product])
+    known
+      .filter((product) => product.pageUrl)
+      .map((product) => [product.pageUrl ?? "", product] as const)
   );
   const offered = new Set(candidates.map((candidate) => candidate.url));
-  // One product, one row. A result the Store already has a product for is
-  // that product: it carries the price Norish read from the product's own
-  // page, and it is what a link can point at.
+  // One product, one row. A result the Store already has a product for is that
+  // product: it carries the price Norish read from the product's own page, and
+  // it is what a link can point at.
   const rows = [
     ...candidates.map((candidate) => {
       const stored = storedByPage.get(candidate.url);
@@ -142,8 +136,8 @@ export function ProductPicker({
       .filter((product) => !product.pageUrl || !offered.has(product.pageUrl))
       .map((product) => productRow(product, locale)),
   ];
-  const isSearching = search.isPending || search.isFetching;
-  const foundNothing = !isSearching && rows.length === 0;
+  const isSearching = asked && (search.isPending || search.isFetching);
+  const foundNothing = asked && !isSearching && rows.length === 0;
 
   // What the shop is most likely to charge in, so the field is a confirmation
   // rather than a question: what this Store's products are already priced in,
@@ -151,31 +145,9 @@ export function ProductPicker({
   const suggestedCurrency =
     known[0]?.currency ?? candidates[0]?.currency ?? currencyForUrl(storeWebsite) ?? "EUR";
   const currency = (manualCurrency.trim() || suggestedCurrency).toUpperCase();
-  const chooseManual = (price: number) => {
-    onChoice({
-      kind: "manual",
-      id: crypto.randomUUID(),
-      name: manualName.trim() || groceryName,
-      price,
-      currency,
-    });
-  };
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-2">
-        <button
-          aria-label={tActions("back")}
-          className="text-muted hover:text-foreground -ml-1 p-1"
-          data-testid="picker-back"
-          type="button"
-          onClick={onBack}
-        >
-          <ChevronLeftIcon className="h-5 w-5" />
-        </button>
-        <p className="text-sm font-medium">{t("title", { name: groceryName })}</p>
-      </div>
-
+    <div className="flex flex-col gap-2">
       <ComboBox
         allowsEmptyCollection
         // The shop filtered already, and it knows things about its own
@@ -185,7 +157,10 @@ export function ProductPicker({
         menuTrigger="focus"
         selectedKey={selectedKey(choice)}
         variant="secondary"
-        onInputChange={setTerm}
+        onInputChange={(value) => {
+          setAsked(true);
+          setTerm(value);
+        }}
         onSelectionChange={(key) => {
           const row = rows.find((candidate) => candidate.key === String(key));
 
@@ -195,17 +170,21 @@ export function ProductPicker({
           }
         }}
       >
-        <Label>{t("searchLabel", { store: storeName })}</Label>
+        <Label>{t("productLabel", { store: storeName })}</Label>
         <ComboBox.InputGroup>
-          <Input data-testid="picker-search" placeholder={t("searchPlaceholder")} />
+          <Input
+            data-testid="grocery-product-field"
+            placeholder={t("searchPlaceholder")}
+            onFocus={() => setAsked(true)}
+          />
           <ComboBox.Trigger />
         </ComboBox.InputGroup>
         <ComboBox.Popover UNSTABLE_portalContainer={portalContainer}>
-          <ListBox data-testid="picker-results" renderEmptyState={() => null}>
+          <ListBox renderEmptyState={() => null}>
             {rows.map((row) => (
               <ListBox.Item
                 key={row.key}
-                data-testid="picker-result"
+                data-testid="product-option"
                 id={row.key}
                 textValue={row.name}
               >
@@ -220,14 +199,14 @@ export function ProductPicker({
       </ComboBox>
 
       {isSearching && (
-        <p className="text-muted text-sm" data-testid="picker-searching">
+        <p className="text-muted text-xs" data-testid="product-searching">
           {t("searching", { store: storeName })}
         </p>
       )}
 
       {foundNothing && (
-        <div className="flex flex-col gap-3" data-testid="picker-by-hand">
-          <p className="text-muted text-sm">{t("nothingFound", { store: storeName })}</p>
+        <div className="flex flex-col gap-3 pt-1" data-testid="product-by-hand">
+          <p className="text-muted text-xs">{t("nothingFound", { store: storeName })}</p>
           <TextField value={manualName} onChange={setManualName}>
             <Label>{t("byHandName")}</Label>
             <Input variant="secondary" />
@@ -236,7 +215,7 @@ export function ProductPicker({
             <TextField className="flex-1" value={manualPrice} onChange={setManualPrice}>
               <Label>{t("byHandPrice")}</Label>
               <Input
-                data-testid="picker-by-hand-price"
+                data-testid="product-by-hand-price"
                 inputMode="decimal"
                 placeholder="0.00"
                 variant="secondary"
@@ -245,7 +224,7 @@ export function ProductPicker({
             <TextField className="w-24" value={manualCurrency} onChange={setManualCurrency}>
               <Label>{t("byHandCurrency")}</Label>
               <Input
-                data-testid="picker-by-hand-currency"
+                data-testid="product-by-hand-currency"
                 maxLength={3}
                 placeholder={suggestedCurrency}
                 variant="secondary"
@@ -262,13 +241,21 @@ export function ProductPicker({
             onPress={() => {
               const price = Number(manualPrice.replace(",", "."));
 
-              if (Number.isFinite(price) && price >= 0 && manualPrice.trim()) chooseManual(price);
+              if (!Number.isFinite(price) || price < 0 || !manualPrice.trim()) return;
+              onChoice({
+                kind: "manual",
+                id: crypto.randomUUID(),
+                name: manualName.trim() || groceryName,
+                price,
+                currency,
+              });
+              setTerm(manualName.trim() || groceryName);
             }}
           >
             {t("useThisPrice")}
           </ActionButton>
           {choice?.kind === "manual" && (
-            <p className="text-accent text-sm" data-testid="picker-by-hand-chosen">
+            <p className="text-accent text-xs" data-testid="product-by-hand-chosen">
               {t("byHandChosen", {
                 price: formatShelfPrice(locale, choice.price, choice.currency),
               })}

@@ -70,14 +70,14 @@ test("a name the shop states unmistakably is priced without being asked", async 
   expect((await readStoredLink("kaas"))?.productName).toBe("Oude kaas 500 g");
 });
 
-test("a priced grocery opens on what it is linked to, and the link can be changed", async () => {
-  await page.getByTestId("grocery-price").first().click();
+test("the grocery's own panel says which product it is, and can be pointed at another", async () => {
+  await page.getByText("kaas").first().click();
 
   // The field reads what is linked now rather than opening empty.
-  await expect(page.getByTestId("picker-search")).toHaveValue("Oude kaas 500 g");
+  await expect(page.getByTestId("grocery-product-field")).toHaveValue("Oude kaas 500 g");
 
-  await page.getByTestId("picker-search").click();
-  await page.getByRole("option", { name: /Roomboter/ }).click();
+  await page.getByTestId("grocery-product-field").click();
+  await page.getByRole("option", { name: /Roomboter/ }).click({ timeout: 30_000 });
 
   // Still nothing written: the panel's own Save is what commits a choice.
   expect((await readStoredLink("kaas"))?.productName).toBe("Oude kaas 500 g");
@@ -120,14 +120,14 @@ test("a name the shop does not state is left to the shopper, and priced on Save"
   await addGroceryToShop("beleg");
 
   // A Miss is written, so the name is not searched again every time the list
-  // is opened — and the row offers a way in rather than an error.
+  // is opened, and the row simply carries no price rather than an error.
   await expect
     .poll(async () => (await readStoredLink("beleg"))?.productName ?? "miss", { timeout: 60_000 })
     .toBe("miss");
 
   await page.reload();
-  await page.getByTestId("pick-price").first().click();
-  await page.getByTestId("picker-search").click();
+  await page.getByText("beleg").first().click();
+  await page.getByTestId("grocery-product-field").click();
   await page.getByRole("option", { name: /Bruin brood/ }).click({ timeout: 30_000 });
 
   // Nothing is written until the panel's own Save.
