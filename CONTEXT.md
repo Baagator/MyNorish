@@ -100,6 +100,36 @@ _Avoid_: Unowned (suggests it never had an owner), Deleted user's recipes (names
 A titled set of recipes, owned by the person who made it and seen, edited and deleted under the same policy as a recipe. A recipe may belong to several cookbooks, and a cookbook holding none is an ordinary cookbook rather than a broken one: it may be made empty and filled later, or made from the recipe that prompted it, and taking the last recipe out never destroys the title someone chose. It is a set and not a sequence, so it keeps no order of its own and shows its members in whatever sort the reader is already using. Everything beyond its title is derived from its members at read time rather than supplied — the cover, the description that names what is inside, the members' cooking time added up, the smallest number of people any member serves, and the tags a reader finds their allergens among — so a cookbook has nothing to keep up to date and nothing that can go stale.
 _Avoid_: Collection (names the shape, and collides with the Library), Folder (suggests a recipe lives in exactly one), Album
 
+### Groceries & Stores
+
+**Grocery**:
+A line on the household's shopping list: a name, optionally an amount and unit, optionally assigned to a Store. It is transient by design — it is ticked off and cleared every week — so nothing worth keeping may live on it alone. What a shop sells is a Store Product; the two are never the same thing.
+_Avoid_: Item, Product (a Store Product is the shop's, a Grocery is the household's)
+
+**Store**:
+A place the household shops, named, coloured and ordered by them, that groceries are grouped under. A Store may additionally point at a real shop's website, which is what lets it carry a Search Address and Store Products. A Store without a website is an ordinary Store and always was: pricing is something a Store gains, never something it requires.
+_Avoid_: Shop, Supermarket (a Store may be a market stall, a butcher, or nothing but a heading)
+
+**Search Address**:
+The Store's search page with a `{query}` slot standing where the search term goes — `https://www.ah.nl/zoeken?query={query}`, `https://www.dirk.nl/zoeken/producten/{query}`. It is derived from whatever the user pastes rather than demanded of them: a homepage Norish finds a search form on, or a search the user ran themselves, whose term is replaced by the slot. A Store has at most one, and it is editable, because a guess that reads the wrong slot must be one keystroke from correct.
+_Avoid_: Search template, URL pattern (the user pastes an address they already have, and never authors a template), Query URL
+
+**Store Product**:
+Something a Store sells, as Norish last read it: a name, the page it lives on, and its Shelf Price. It belongs to its Store, so a household shares products through the store it already shares. A Store Product may also be typed by hand for a shop Norish cannot read; a hand-made one has no page, so nothing ever overwrites what its owner typed.
+_Avoid_: Grocery (that is the list line), Article, SKU
+
+**Shelf Price**:
+What one pack of a Store Product costs, in the shop's own currency and the shop's own words for the size ("150 gram", "1,5 l", "per stuk") — the number on the shelf edge, not a comparable price per kilo. Norish keeps only the price it last read and the moment it read it; a Shelf Price has no history, and the one it replaces is gone.
+_Avoid_: Unit price, Price per unit (both mean euros-per-kilo to a shopper, which is a different number Norish does not yet show)
+
+**Product Link**:
+What a Store has learned a grocery name means: a Store, a normalized grocery name, and the Store Product it resolves to. It is deliberately keyed by name rather than by Grocery, so it outlives the list line that prompted it — next week's "melk" is priced without asking the shop again — and so a rename asks a new question instead of carrying the old answer to a name it was never about.
+_Avoid_: Match, Mapping, Assignment (a Grocery is assigned to a Store; it is linked to a Store Product)
+
+**Miss**:
+A Product Link that resolved to nothing, holding when it was last tried. It exists so a name the shop does not stock is not searched again every time the list is opened. A Miss is not an error: it shows the user an unpriced Grocery and an invitation to pick or type a price, and nothing else.
+_Avoid_: Failure, Not found, Unmatched
+
 ### Imports & AI
 
 **Recipe Archive**:

@@ -781,6 +781,20 @@
             recipe.
           </p>
         </li>
+        <li>
+          <a href="groceries/0028-store-pages-are-read-with-a-structured-data-ladder.md"
+            >ADR-0028 &mdash; Store pages are read with a structured-data ladder, not a model</a
+          >
+          <p>
+            <b>Accepted.</b> Results pages are read as JSON-LD <code>ItemList</code> for names and
+            URLs plus a DOM pass for prices, merged on URL; product pages supply the authoritative
+            Shelf Price from <code>Product</code> JSON-LD. Dirk prices only 32 of 198 results in
+            JSON-LD but all 198 in the DOM, and AH's results page has no JSON-LD and is
+            <code>noindex</code>, so neither a purist JSON-LD reader nor a model is the answer.
+            Plain fetch first, Obscura on escalation; Shelf Prices are overwritten with no history.
+            Rejects a model-based reader, per-shop adapters, and JSON-LD only.
+          </p>
+        </li>
       </ul>
 
       <h2>Validation policy</h2>
