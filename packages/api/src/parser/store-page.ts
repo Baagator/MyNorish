@@ -328,12 +328,51 @@ function readJsonLdCandidates($: cheerio.CheerioAPI, pageUrl: string): StoreCand
 
 const NON_PAGE_PROTOCOL = /^(mailto:|tel:|javascript:|#)/i;
 
+/** How many of a group's cards are looked at before the group is judged. */
+const PRICED_SAMPLE = 6;
+
+/** Whether a card states a price at all, however the shop happens to write it. */
+function statesAPrice($: cheerio.CheerioAPI, card: CheerioNode): boolean {
+  return (
+    readPriceInText(cardLabels($, card)) !== null ||
+    readPriceInText(card.text()) !== null ||
+    priceFromDigitRun($, card) !== null
+  );
+}
+
+/**
+ * How many of a group's links have a price beside them, read off a sample and
+ * scaled to the whole group. A menu of sections is priced nowhere and a shelf
+ * is priced almost everywhere, so this separates the two without knowing
+ * anything about either shop.
+ */
+function pricedLinks(
+  $: cheerio.CheerioAPI,
+  pageUrl: string,
+  group: Map<string, CheerioNode>
+): number {
+  const sample = [...group.entries()].slice(0, PRICED_SAMPLE);
+
+  if (sample.length === 0) return 0;
+  const priced = sample.filter(([url, element]) =>
+    statesAPrice($, cardOf($, element, url, pageUrl))
+  ).length;
+
+  return Math.round((priced / sample.length) * group.size);
+}
+
 /**
  * The product anchors of a results page, found by the one thing every results
  * page has in common: it links to many pages of the same shape. Links are
  * grouped by how deep their path runs and what section it starts in, and the
- * largest group is the shelf — no shop name, no selector, nothing to keep up
- * with when a shop restyles its cards.
+ * shelf is the group with the most prices beside it.
+ *
+ * Prices rather than size, because size answers the wrong question: a shop
+ * whose search found one product still puts its whole footer of sections on
+ * the page, and the more exactly a shopper names what they want the more
+ * certainly that footer outnumbers the shelf. A group nothing is priced in
+ * falls back to the largest, which is a guess and is held to three links —
+ * a lone link is indistinguishable from navigation.
  */
 function productAnchorGroup(
   $: cheerio.CheerioAPI,
@@ -364,12 +403,14 @@ function productAnchorGroup(
     groups.set(signature, group);
   });
 
-  let best: Map<string, CheerioNode> | null = null;
+  const scored = [...groups.values()]
+    .map((group) => ({ group, priced: pricedLinks($, pageUrl, group) }))
+    .sort((a, b) => b.priced - a.priced || b.group.size - a.group.size);
+  const shelf = scored[0]?.priced ? scored[0].group : null;
+  const largest = [...groups.values()].sort((a, b) => b.size - a.size)[0] ?? null;
+  const best = shelf ?? (largest && largest.size >= 3 ? largest : null);
 
-  for (const group of groups.values()) {
-    if (!best || group.size > best.size) best = group;
-  }
-  if (!best || best.size < 3) return [];
+  if (!best) return [];
 
   return [...best.entries()].map(([url, element]) => ({ url, element }));
 }

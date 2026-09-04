@@ -89,6 +89,25 @@ describe("readSearchResults: a shop that states no product data at all", () => {
   });
 });
 
+describe("readSearchResults: a shop whose shelf is smaller than its own footer", () => {
+  const candidates = readSearchResults(
+    fixture("ah-search-one-product.html"),
+    "https://www.ah.nl/zoeken?query=AH%20Hamsterchef%20Zuivelspread%20light%20aardbei"
+  );
+
+  it("offers the one product the search found, and nothing else the page links to", () => {
+    expect(candidates).toEqual([
+      {
+        name: "AH Hamsterchef Zuivelspread light aardbei",
+        url: "https://www.ah.nl/producten/product/wi623677/ah-hamsterchef-zuivelspread-light-aardbei",
+        price: 1.39,
+        currency: "EUR",
+        size: "120 gram",
+      },
+    ]);
+  });
+});
+
 describe("readProduct", () => {
   it("reads a Shelf Price a shop writes with a capital P", () => {
     expect(readProduct(fixture("dirk-product-97752.html"), DIRK_PRODUCT)).toEqual({
