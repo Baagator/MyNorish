@@ -109,10 +109,10 @@
     "nothingFound": "Norish fant ingenting hos {store}. Du kan skrive prisen selv.",
     "byHandName": "Produktnavn",
     "byHandPrice": "Pris",
-    "useThisPrice": "Bruk denne prisen",
-    "byHandChosen": "{price} lagres sammen med denne varen.",
     "byHandCurrency": "Valuta",
     "productLabel": "Produkt hos {store}",
-    "costs": "Koster {price}"
+    "costs": "Koster {price}",
+    "cannotSearch": "Denne butikken kan ikke søkes i",
+    "cannotSearchHint": "Gi {store} en butikklenke for å vise priser."
   }
 }

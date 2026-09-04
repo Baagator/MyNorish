@@ -25,23 +25,42 @@ export const FAKE_SHOP_PRODUCTS: FakeShopProduct[] = [
   { slug: "bruin-brood", name: "Bruin brood", price: "1.79", size: "800 g" },
 ];
 
-function resultsPage(): string {
+/** What a shop answers a search with: the products sharing a word with it. */
+function matching(term: string): FakeShopProduct[] {
+  const words = decodeURIComponent(term)
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter(Boolean);
+
+  if (words.length === 0) return FAKE_SHOP_PRODUCTS;
+
+  return FAKE_SHOP_PRODUCTS.filter((product) => {
+    const name = product.name.toLowerCase();
+
+    return words.some((word) => name.split(/[^\p{L}\p{N}]+/u).includes(word));
+  });
+}
+
+function resultsPage(term: string): string {
+  const found = matching(term);
   const itemList = {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    itemListElement: FAKE_SHOP_PRODUCTS.map((product, index) => ({
+    itemListElement: found.map((product, index) => ({
       "@type": "ListItem",
       position: index + 1,
       item: { "@type": "Product", name: product.name, url: `/p/${product.slug}` },
     })),
   };
-  const cards = FAKE_SHOP_PRODUCTS.map(
-    (product) =>
-      `<article><a href="/p/${product.slug}">${product.name}</a><span>€${product.price.replace(
-        ".",
-        ","
-      )}</span><span>${product.size}</span></article>`
-  ).join("");
+  const cards = found
+    .map(
+      (product) =>
+        `<article><a href="/p/${product.slug}">${product.name}</a><span>€${product.price.replace(
+          ".",
+          ","
+        )}</span><span>${product.size}</span></article>`
+    )
+    .join("");
 
   return `<!doctype html><html lang="nl"><head><title>Zoekresultaten</title>
 <script type="application/ld+json">${JSON.stringify(itemList)}</script></head>
@@ -90,7 +109,9 @@ export function createFakeShop(): FakeShop {
           const product = FAKE_SHOP_PRODUCTS.find((candidate) => candidate.slug === slug);
 
           response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-          response.end(product ? productPage(product) : resultsPage());
+          const term = path.includes("?") ? (path.split("q=")[1] ?? "") : "";
+
+          response.end(product ? productPage(product) : resultsPage(term));
         });
 
         created.once("error", reject);

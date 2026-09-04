@@ -109,10 +109,10 @@
     "nothingFound": "Norish no encontró nada en {store}. Puedes escribir el precio tú mismo.",
     "byHandName": "Nombre del producto",
     "byHandPrice": "Precio",
-    "useThisPrice": "Usar este precio",
-    "byHandChosen": "Se guardará {price} con este producto.",
     "byHandCurrency": "Moneda",
     "productLabel": "Producto en {store}",
-    "costs": "Cuesta {price}"
+    "costs": "Cuesta {price}",
+    "cannotSearch": "No se puede buscar en esta tienda",
+    "cannotSearchHint": "Da a {store} un enlace de tienda para ver precios."
   }
 }

@@ -97,8 +97,9 @@ test("captures the product field in the grocery panel", async () => {
   await page.goto("/groceries");
   await addGrocery("beleg");
   await page.getByText("beleg").first().click();
-  await page.getByTestId("grocery-product-field").click();
+  await page.getByTestId("grocery-product-field").fill("kaas");
   await expect(page.getByRole("option").first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId("product-searching")).toBeHidden({ timeout: 30_000 });
   await page.waitForTimeout(400);
   await page.screenshot({ path: path.join(SHOTS, "groceries-picker.png") });
 });

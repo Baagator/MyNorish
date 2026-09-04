@@ -491,10 +491,36 @@ function cardSize(texts: string[], label: string): string | undefined {
   return texts.find((value) => looksLikeSize(value) && !/^\d+$/.test(value));
 }
 
-function readDomCandidates($: cheerio.CheerioAPI, pageUrl: string): StoreCandidate[] {
+/**
+ * The anchors pointing at addresses the page already named as products. When
+ * the page states its shelf outright there is nothing to infer: those are the
+ * products, however few of them there are.
+ */
+function anchorsForUrls(
+  $: cheerio.CheerioAPI,
+  pageUrl: string,
+  wanted: Set<string>
+): { url: string; element: CheerioNode }[] {
+  const found = new Map<string, CheerioNode>();
+
+  $("a[href]").each((_, element) => {
+    const resolved = resolveUrl($(element).attr("href"), pageUrl);
+
+    if (!resolved || !wanted.has(resolved) || found.has(resolved)) return;
+    found.set(resolved, $(element) as unknown as CheerioNode);
+  });
+
+  return [...found.entries()].map(([url, element]) => ({ url, element }));
+}
+
+function readDomCandidates(
+  $: cheerio.CheerioAPI,
+  pageUrl: string,
+  anchors: { url: string; element: CheerioNode }[]
+): StoreCandidate[] {
   const fallbackCurrency = currencyForUrl(pageUrl);
 
-  return productAnchorGroup($, pageUrl)
+  return anchors
     .map(({ url, element }) => {
       const card = cardOf($, element, url, pageUrl);
       const label = cardLabels($, card);
@@ -529,10 +555,19 @@ function readDomCandidates($: cheerio.CheerioAPI, pageUrl: string): StoreCandida
 export function readSearchResults(html: string, baseUrl: string): StoreCandidate[] {
   if (!html.trim()) return [];
   const $ = cheerio.load(html);
+  const stated = readJsonLdCandidates($, baseUrl);
   const merged = new Map<string, StoreCandidate>();
 
-  for (const candidate of readJsonLdCandidates($, baseUrl)) merged.set(candidate.url, candidate);
-  for (const candidate of readDomCandidates($, baseUrl)) {
+  for (const candidate of stated) merged.set(candidate.url, candidate);
+  // A page that names its products needs no guessing about which links they
+  // are — which is the only way a result set of one or two is readable at all,
+  // since a lone link is indistinguishable from navigation.
+  const anchors =
+    stated.length > 0
+      ? anchorsForUrls($, baseUrl, new Set(stated.map((candidate) => candidate.url)))
+      : productAnchorGroup($, baseUrl);
+
+  for (const candidate of readDomCandidates($, baseUrl, anchors)) {
     const existing = merged.get(candidate.url);
 
     if (!existing) {

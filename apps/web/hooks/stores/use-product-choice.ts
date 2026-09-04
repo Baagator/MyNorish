@@ -51,8 +51,6 @@ export function useProductChoice(options: {
     store,
     /** What this grocery is linked to now, if anything. */
     linkedProduct: linked,
-    /** Whether this Store's shop can be asked what the grocery costs. */
-    canPick: Boolean(store?.searchAddress) && groceryName.length > 0,
     commit,
   };
 }

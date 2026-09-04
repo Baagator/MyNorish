@@ -109,10 +109,10 @@
     "nothingFound": "{store}에서 아무것도 찾지 못했습니다. 가격을 직접 입력할 수 있습니다.",
     "byHandName": "상품 이름",
     "byHandPrice": "가격",
-    "useThisPrice": "이 가격 사용",
-    "byHandChosen": "{price}이(가) 이 항목과 함께 저장됩니다.",
     "byHandCurrency": "통화",
     "productLabel": "{store}의 상품",
-    "costs": "가격 {price}"
+    "costs": "가격 {price}",
+    "cannotSearch": "이 상점은 검색할 수 없습니다",
+    "cannotSearchHint": "가격을 보려면 {store}에 상점 링크를 추가하세요."
   }
 }

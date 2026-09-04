@@ -109,10 +109,10 @@
     "nothingFound": "Norish found nothing at {store}. You can type the price yourself.",
     "byHandName": "Product name",
     "byHandPrice": "Price",
-    "useThisPrice": "Use this price",
-    "byHandChosen": "{price} will be saved with this grocery.",
     "byHandCurrency": "Currency",
     "productLabel": "Product at {store}",
-    "costs": "Costs {price}"
+    "costs": "Costs {price}",
+    "cannotSearch": "This shop cannot be searched",
+    "cannotSearchHint": "Give {store} a shop link to price its groceries."
   }
 }

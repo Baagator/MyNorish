@@ -77,18 +77,21 @@ with the products this Store already knows.
 
 ![The product field in a grocery's panel, offering priced results from the shop](/img/screenshots/groceries-picker.png)
 
-Your choice shows in the field immediately and is written when you press
-**Save** or **Add** — nothing you do in the dropdown changes what your
-household sees until then. Norish asks the shop only once you use the field,
-so opening a grocery to rename it sends nobody to a supermarket.
+Your choice shows in the field immediately, with what it costs underneath, and
+is written when you press **Save** or **Add** — nothing you do in the dropdown
+changes what your household sees until then. Norish asks the shop only once
+you use the field, so opening a grocery to rename it sends nobody to a
+supermarket, and a Store with no shop link shows the field greyed out rather
+than pretending it can search.
 
 ### A shop Norish cannot read
 
 Some shops answer with nothing Norish can read. When a search comes back
 empty, the field offers to take a price by hand: a name, prefilled with the
-grocery's, and the price and currency you saw. That makes a Store Product like
-any other, except that nothing Norish reads will ever overwrite it — a price
-you typed is the last word.
+grocery's, and the price and currency you saw. There is nothing to press — a
+price you have typed is your choice, and Save writes it like any other. That
+makes a Store Product like any other, except that nothing Norish reads will
+ever overwrite it: a price you typed is the last word.
 
 ## What this does not do yet
 

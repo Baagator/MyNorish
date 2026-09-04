@@ -136,9 +136,9 @@ test("a name the shop does not state is left to the shopper, and priced on Save"
 
   await page.reload();
   await page.getByText("beleg").first().click();
-  // An unlinked grocery's own name is a question nobody has answered, so the
-  // field asks the shop it on its own.
-  await page.getByTestId("grocery-product-field").click();
+  // The shop has nothing under "beleg", so the shopper searches it for
+  // something it does have.
+  await page.getByTestId("grocery-product-field").fill("brood");
   await page.getByRole("option", { name: /Bruin brood/ }).click({ timeout: 30_000 });
 
   // Nothing is written until the panel's own Save.
@@ -153,6 +153,21 @@ test("a name the shop does not state is left to the shopper, and priced on Save"
   await expect(
     page.getByTestId("grocery-product").filter({ hasText: "Bruin brood" })
   ).toBeVisible();
+});
+
+test("a shop that answers nothing takes a price by hand, with no button to press", async () => {
+  await page.goto("/groceries");
+  await addGroceryToShop("sterrenstof");
+  await page.getByText("sterrenstof").first().click();
+  await page.getByTestId("grocery-product-field").fill("sterrenstof");
+  await expect(page.getByTestId("product-by-hand")).toBeVisible({ timeout: 30_000 });
+
+  await page.getByTestId("product-by-hand-price").fill("3.50");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+
+  await expect
+    .poll(async () => (await readStoredLink("sterrenstof"))?.price, { timeout: 30_000 })
+    .toBe("3.50");
 });
 
 test("a product chosen while adding is not overruled by the lookup queued for it", async () => {

@@ -124,14 +124,12 @@ export default function AddGroceryPanel({
             />
 
             {/* Which of that shop's products this is */}
-            {price.canPick && price.store && (
+            {price.store && (
               <GroceryProductField
                 choice={price.choice}
                 groceryName={price.groceryName}
                 linkedProduct={price.linkedProduct}
-                storeId={price.store.id}
-                storeName={price.store.name}
-                storeWebsite={price.store.website}
+                store={price.store}
                 onChoice={price.setChoice}
               />
             )}

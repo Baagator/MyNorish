@@ -109,10 +109,10 @@
     "nothingFound": "Norish vond niets bij {store}. Je kunt de prijs zelf typen.",
     "byHandName": "Productnaam",
     "byHandPrice": "Prijs",
-    "useThisPrice": "Deze prijs gebruiken",
-    "byHandChosen": "{price} wordt bij deze boodschap opgeslagen.",
     "byHandCurrency": "Valuta",
     "productLabel": "Product bij {store}",
-    "costs": "Kost {price}"
+    "costs": "Kost {price}",
+    "cannotSearch": "Deze winkel kan niet doorzocht worden",
+    "cannotSearchHint": "Geef {store} een winkellink om prijzen te tonen."
   }
 }

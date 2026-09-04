@@ -183,6 +183,42 @@ describe("a bare run of digits, which is how a shop styles a large price", () =>
   });
 });
 
+describe("a results page with only a product or two on it", () => {
+  it("reads the one product a page names, where a lone link would be a guess", () => {
+    const itemList = {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      itemListElement: [
+        {
+          "@type": "ListItem",
+          position: 1,
+          item: { "@type": "Product", name: "Oude kaas 500 g", url: "/p/oude-kaas" },
+        },
+      ],
+    };
+    const html = `<html><head><title>Zoekresultaten</title>
+      <script type="application/ld+json">${JSON.stringify(itemList)}</script></head>
+      <body><article><a href="/p/oude-kaas">Oude kaas 500 g</a><span>€4,99</span><span>500 g</span></article></body></html>`;
+
+    expect(readSearchResults(html, "https://shop.example.nl/zoeken?q=kaas")).toEqual([
+      {
+        name: "Oude kaas 500 g",
+        url: "https://shop.example.nl/p/oude-kaas",
+        price: 4.99,
+        currency: "EUR",
+        size: "500 g",
+      },
+    ]);
+  });
+
+  it("still guesses nothing from a page that names no products at all", () => {
+    const html = `<html><head><title>Zoekresultaten</title></head><body>
+      <a href="/over-ons">Over ons</a><a href="/contact">Contact</a></body></html>`;
+
+    expect(readSearchResults(html, "https://shop.example.nl/zoeken?q=niets")).toEqual([]);
+  });
+});
+
 describe("relative addresses", () => {
   it("resolves a product link against the page it was found on", () => {
     const html = `<html><body>
