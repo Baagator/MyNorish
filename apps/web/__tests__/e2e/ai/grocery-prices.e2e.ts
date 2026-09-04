@@ -78,7 +78,7 @@ test("the grocery's own panel says which product it is, and can be pointed at an
   // The field reads what is linked now rather than opening empty, and says
   // what it costs.
   await expect(page.getByTestId("grocery-product-field")).toHaveValue("Oude kaas 500 g");
-  await expect(page.getByTestId("product-price")).toContainText(/4[.,]99/);
+  await expect(page.getByTestId("product-by-hand-price")).toHaveValue("4.99");
 
   // Opening a grocery whose product is known asks the shop nothing at all.
   expect(shop.visits.length).toBe(visitsBefore);

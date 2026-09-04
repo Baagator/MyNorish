@@ -19,6 +19,9 @@ interface SearchCall {
 
 const searchCalls: SearchCall[] = [];
 
+/** A shop that has been asked and has not answered yet. */
+const SEARCH_IS_SLOW = { current: false };
+
 /** What the shop answers: whatever shares a word with the term. */
 const SHOP: Record<string, { name: string; url: string; price: number; size: string }[]> = {
   "store-a": [
@@ -49,6 +52,7 @@ vi.mock("@/hooks/stores", () => ({
     const on = enabled && Boolean(storeId) && term.trim().length > 0;
 
     if (!on) return { data: undefined, isPending: true, isFetching: false };
+    if (SEARCH_IS_SLOW.current) return { data: undefined, isPending: true, isFetching: true };
 
     return {
       data: {
@@ -236,7 +240,7 @@ describe("GroceryProductField", () => {
     );
 
     expect(field()).toHaveValue("Cola B 1 L");
-    expect(screen.getByTestId("product-price")).toHaveTextContent("1.49");
+    expect(screen.getByTestId("product-by-hand-price")).toHaveValue("1.49");
   });
 
   it("cannot be typed in for a shop Norish cannot read", () => {
@@ -252,6 +256,142 @@ describe("GroceryProductField", () => {
 
     expect(field()).toBeDisabled();
     expect(searchCalls.every((call) => !call.enabled)).toBe(true);
+  });
+
+  it("offers the Store's own products for the term, and not its whole shelf", async () => {
+    KNOWN["store-a"] = [
+      product("known-cola", "store-a", "Cola Light 1 L", 1.89),
+      product("known-kaas", "store-a", "Oude kaas 500 g", 4.99),
+    ];
+
+    render(
+      <GroceryProductField
+        choice={null}
+        groceryName="cola"
+        linkedProduct={null}
+        store={STORE_A}
+        onChoice={() => undefined}
+      />
+    );
+
+    await act(async () => {
+      field().focus();
+    });
+
+    const offered = options().join("|");
+
+    expect(offered).toContain("Cola Light 1 L");
+    expect(offered).toContain("Coca-Cola 1 L");
+    expect(offered).not.toContain("Oude kaas");
+  });
+
+  it("says which rows the Store already knew and which the shop just answered", async () => {
+    KNOWN["store-a"] = [product("known-cola", "store-a", "Cola Light 1 L", 1.89)];
+
+    render(
+      <GroceryProductField
+        choice={null}
+        groceryName="cola"
+        linkedProduct={null}
+        store={STORE_A}
+        onChoice={() => undefined}
+      />
+    );
+
+    await act(async () => {
+      field().focus();
+    });
+
+    expect(screen.getByTestId("product-group-known")).toBeInTheDocument();
+    expect(screen.getByTestId("product-group-shop")).toBeInTheDocument();
+  });
+
+  it("says the shop is being read in the dropdown, where the rows will land", async () => {
+    render(
+      <GroceryProductField
+        choice={null}
+        groceryName="cola"
+        linkedProduct={null}
+        store={STORE_A}
+        onChoice={() => undefined}
+      />
+    );
+
+    // The shop has been asked and has not answered yet: AH takes its time, and
+    // the dropdown is where the shopper is looking.
+    SEARCH_IS_SLOW.current = true;
+    await act(async () => {
+      field().focus();
+    });
+
+    expect(screen.getByTestId("product-group-shop")).toHaveTextContent("searching");
+    SEARCH_IS_SLOW.current = false;
+  });
+
+  it("fills the price fields from the product that was picked", async () => {
+    const onChoice = vi.fn();
+
+    render(
+      <GroceryProductField
+        choice={null}
+        groceryName="cola"
+        linkedProduct={null}
+        store={STORE_A}
+        onChoice={onChoice}
+      />
+    );
+
+    await act(async () => {
+      field().focus();
+    });
+
+    const picked = screen
+      .getAllByTestId("product-option")
+      .find((node) => node.textContent?.includes("Cola Zero"));
+
+    await act(async () => {
+      fireEvent.click(picked as HTMLElement);
+    });
+
+    expect(onChoice).toHaveBeenCalledWith(expect.objectContaining({ kind: "candidate" }));
+    expect(screen.getByTestId("product-by-hand-price")).toHaveValue("2.29");
+    expect(screen.getByTestId("product-by-hand-name")).toHaveValue("Cola Zero 1,5 L");
+  });
+
+  it("turns a price typed over the shop's own into the shopper's price", async () => {
+    const onChoice = vi.fn();
+
+    render(
+      <GroceryProductField
+        choice={null}
+        groceryName="cola"
+        linkedProduct={null}
+        store={STORE_A}
+        onChoice={onChoice}
+      />
+    );
+
+    await act(async () => {
+      field().focus();
+    });
+
+    const picked = screen
+      .getAllByTestId("product-option")
+      .find((node) => node.textContent?.includes("Cola Zero"));
+
+    await act(async () => {
+      fireEvent.click(picked as HTMLElement);
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId("product-by-hand-price"), { target: { value: "1,99" } });
+    });
+
+    expect(onChoice).toHaveBeenLastCalledWith(
+      expect.objectContaining({ kind: "manual", price: 1.99, name: "Cola Zero 1,5 L" })
+    );
+    // The row stays picked: the shopper corrected a price, they did not
+    // un-choose the product.
+    expect(field()).toHaveValue("Cola Zero 1,5 L");
   });
 
   it("asks the shop about what was typed once the typing stops", async () => {

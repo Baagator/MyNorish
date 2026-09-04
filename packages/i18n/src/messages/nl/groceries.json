@@ -106,12 +106,13 @@
   "picker": {
     "searchPlaceholder": "Typ om in de winkel te zoeken",
     "searching": "Bezig met zoeken in {store}…",
+    "knownGroup": "Al bekend",
+    "shopGroup": "Uit de winkel",
     "nothingFound": "Norish vond niets bij {store}. Je kunt de prijs zelf typen.",
     "byHandName": "Productnaam",
     "byHandPrice": "Prijs",
     "byHandCurrency": "Valuta",
     "productLabel": "Product bij {store}",
-    "costs": "Kost {price}",
     "cannotSearch": "Deze winkel kan niet doorzocht worden",
     "cannotSearchHint": "Geef {store} een winkellink om prijzen te tonen."
   }

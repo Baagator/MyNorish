@@ -126,6 +126,9 @@ export default function AddGroceryPanel({
             {/* Which of that shop's products this is */}
             {price.store && (
               <GroceryProductField
+                // A different Store is a different question: the field starts
+                // over rather than carrying the last shop's answers into it.
+                key={price.store.id}
                 choice={price.choice}
                 groceryName={price.groceryName}
                 linkedProduct={price.linkedProduct}

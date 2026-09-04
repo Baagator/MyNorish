@@ -106,12 +106,13 @@
   "picker": {
     "searchPlaceholder": "Skriv for å søke i butikken",
     "searching": "Søker i {store}…",
+    "knownGroup": "Allerede kjent",
+    "shopGroup": "Fra butikken",
     "nothingFound": "Norish fant ingenting hos {store}. Du kan skrive prisen selv.",
     "byHandName": "Produktnavn",
     "byHandPrice": "Pris",
     "byHandCurrency": "Valuta",
     "productLabel": "Produkt hos {store}",
-    "costs": "Koster {price}",
     "cannotSearch": "Denne butikken kan ikke søkes i",
     "cannotSearchHint": "Gi {store} en butikklenke for å vise priser."
   }

@@ -106,12 +106,13 @@
   "picker": {
     "searchPlaceholder": "Пишете, за да търсите в магазина",
     "searching": "Търсим в {store}…",
+    "knownGroup": "Вече известни",
+    "shopGroup": "От магазина",
     "nothingFound": "Norish не намери нищо в {store}. Можете сами да въведете цената.",
     "byHandName": "Име на продукта",
     "byHandPrice": "Цена",
     "byHandCurrency": "Валута",
     "productLabel": "Продукт в {store}",
-    "costs": "Струва {price}",
     "cannotSearch": "В този магазин не може да се търси",
     "cannotSearchHint": "Дайте на {store} връзка към магазина, за да виждате цени."
   }

@@ -184,7 +184,7 @@ describe("EditGroceryPanel, swapping the Store", () => {
     fireEvent.change(screen.getByTestId("store-selector"), { target: { value: "store-b" } });
 
     expect(screen.getByTestId("grocery-product-field")).toHaveValue("Cola B 1 L");
-    expect(screen.getByTestId("product-price")).toHaveTextContent("1.49");
+    expect(screen.getByTestId("product-by-hand-price")).toHaveValue("1.49");
   });
 
   it("never writes a product of the Store that was swapped away from", () => {

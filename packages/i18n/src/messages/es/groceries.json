@@ -106,12 +106,13 @@
   "picker": {
     "searchPlaceholder": "Escribe para buscar en la tienda",
     "searching": "Buscando en {store}…",
+    "knownGroup": "Ya conocidos",
+    "shopGroup": "De la tienda",
     "nothingFound": "Norish no encontró nada en {store}. Puedes escribir el precio tú mismo.",
     "byHandName": "Nombre del producto",
     "byHandPrice": "Precio",
     "byHandCurrency": "Moneda",
     "productLabel": "Producto en {store}",
-    "costs": "Cuesta {price}",
     "cannotSearch": "No se puede buscar en esta tienda",
     "cannotSearchHint": "Da a {store} un enlace de tienda para ver precios."
   }

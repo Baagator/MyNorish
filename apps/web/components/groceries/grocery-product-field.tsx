@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePanelPortalContainer } from "@/components/Panel/Panel";
 import { useShopSearch, useStoreProducts } from "@/hooks/stores";
 import { formatShelfPrice } from "@/lib/format-price";
-import { ComboBox, Input, Label, ListBox, TextField } from "@heroui/react";
+import { ComboBox, Header, Input, Label, ListBox, TextField } from "@heroui/react";
 import { useLocale, useTranslations } from "next-intl";
 
 import type { StoreDto, StoreProductChoice, StoreProductDto } from "@norish/shared/contracts";
@@ -34,6 +34,8 @@ interface ProductRow {
   key: string;
   name: string;
   detail: string;
+  price: number;
+  currency: string;
   choice: StoreProductChoice;
 }
 
@@ -51,6 +53,8 @@ function candidateRow(candidate: PricedCandidate, locale: string): ProductRow {
     key: candidate.url,
     name: candidate.name,
     detail: priceDetail(locale, candidate.price, candidate.currency, candidate.size),
+    price: candidate.price,
+    currency: candidate.currency,
     choice: { kind: "candidate", candidate },
   };
 }
@@ -60,6 +64,8 @@ function productRow(product: StoreProductDto, locale: string): ProductRow {
     key: product.id,
     name: product.name,
     detail: priceDetail(locale, product.price, product.currency, product.size),
+    price: product.price,
+    currency: product.currency,
     choice: { kind: "product", storeProductId: product.id },
   };
 }
@@ -72,17 +78,46 @@ function selectedKey(choice: StoreProductChoice | null): string | null {
   return null;
 }
 
+/** A name's own words, for holding one name against another. */
+function words(text: string): string[] {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter(Boolean);
+}
+
+/**
+ * Whether a product the Store already stored is an answer to this question.
+ * The shop filters its own answers; nothing filters what the Store has lying
+ * around, so a search for "cola" must not hand back last week's cheese.
+ */
+function answers(name: string, term: string): boolean {
+  const asked = words(term);
+
+  if (asked.length === 0) return true;
+  const has = words(name);
+
+  return asked.some((word) => has.some((part) => part.includes(word) || word.includes(part)));
+}
+
 /**
  * Which of the shop's products this grocery is, as a field of the grocery
  * panel like any other: it reads what the grocery is linked to now, asks the
  * shop as you type, and drops down what it answered with the price beside it.
  *
- * The shop has already filtered, so the list is never filtered again here — a
- * search for "beleg" that answers "Oude kaas" must still offer it.
+ * The dropdown says where each row came from, because the two are not the same
+ * kind of fact: what the Store already knows is there instantly and is what
+ * next week's list will be priced from, while the shop's own answers are being
+ * read right now and take as long as that shop takes.
  *
- * What the Store already knows costs nothing to show, so opening the field
- * shows it. The shop itself is visited only for a question nobody has
- * answered: an unlinked grocery's own name, or something typed. Opening a
+ * The shop has already filtered, so its answers are never filtered again here
+ * — a search for "beleg" that answers "Oude kaas" must still offer it. What the
+ * Store has stored was filtered by nobody, so it is held against the question.
+ *
+ * The shop itself is visited only for a question nobody has answered: the
+ * grocery's own name while it is unlinked, or something typed. Opening a
  * grocery to rename it must not send anyone's household to a supermarket.
  *
  * Nothing here writes anything: the choice is held by the panel and committed
@@ -105,16 +140,15 @@ export function GroceryProductField({
   const [searchedTerm, setSearchedTerm] = useState(() => groceryName.trim());
   const [asked, setAsked] = useState(false);
   const [typed, setTyped] = useState(false);
+  const [picked, setPicked] = useState<string | null>(() => selectedKey(choice));
+  // Whether the fields below still show the shop's own numbers, or the
+  // shopper's. Only a shopper who typed over them owns them.
+  const [byHand, setByHand] = useState(false);
   const [manualPrice, setManualPrice] = useState("");
   const [manualName, setManualName] = useState(groceryName);
   const [manualCurrency, setManualCurrency] = useState("");
   const [manualId] = useState(createClientId);
   const heldByHand = useRef("");
-
-  useEffect(() => {
-    setTerm(opensWith);
-    setManualName(groceryName);
-  }, [groceryName, opensWith]);
 
   // Until the shopper types, the question is the grocery's own name, which the
   // panel above may still be being filled in; after they type it is what they
@@ -141,9 +175,9 @@ export function GroceryProductField({
   const search = useShopSearch(store.id, searchedTerm, asking);
   const products = useStoreProducts(store.id, asked);
   const candidates = (search.data?.candidates ?? []).filter(isPriced);
-  const known = products.data ?? [];
+  const stored = products.data ?? [];
   const storedByPage = new Map(
-    known
+    stored
       .filter((product) => product.pageUrl)
       .map((product) => [product.pageUrl ?? "", product] as const)
   );
@@ -151,16 +185,18 @@ export function GroceryProductField({
   // One product, one row. A result the Store already has a product for is that
   // product: it carries the price Norish read from the product's own page, and
   // it is what a link can point at.
-  const rows = [
-    ...candidates.map((candidate) => {
-      const stored = storedByPage.get(candidate.url);
-
-      return stored ? productRow(stored, locale) : candidateRow(candidate, locale);
-    }),
-    ...known
-      .filter((product) => !product.pageUrl || !offered.has(product.pageUrl))
-      .map((product) => productRow(product, locale)),
-  ];
+  const knownRows = stored
+    .filter(
+      (product) =>
+        (product.pageUrl && offered.has(product.pageUrl)) ||
+        product.id === picked ||
+        answers(product.name, searchedTerm || groceryName)
+    )
+    .map((product) => productRow(product, locale));
+  const shopRows = candidates
+    .filter((candidate) => !storedByPage.has(candidate.url))
+    .map((candidate) => candidateRow(candidate, locale));
+  const rows = [...knownRows, ...shopRows];
   // A query nobody enabled sits in `pending` for ever, so a field that reads
   // `isPending` alone says it is searching long after it has stopped.
   const isSearching = asking && (search.isPending || search.isFetching);
@@ -173,7 +209,7 @@ export function GroceryProductField({
   // rather than a question: what this Store's products are already priced in,
   // else what its website's top-level domain implies.
   const suggestedCurrency =
-    known[0]?.currency ?? candidates[0]?.currency ?? currencyForUrl(store.website) ?? "EUR";
+    stored[0]?.currency ?? candidates[0]?.currency ?? currencyForUrl(store.website) ?? "EUR";
   const currency = (manualCurrency.trim() || suggestedCurrency).toUpperCase();
   const typedPrice = Number(manualPrice.replace(",", "."));
   const hasTypedPrice =
@@ -182,11 +218,39 @@ export function GroceryProductField({
     typedPrice >= 0 &&
     currency.length === 3;
 
-  // A price typed by hand is the choice as soon as it is a price. There is
-  // nothing to press: the panel's own Save is what commits it, like every
-  // other choice this field holds.
+  /** The fields below say what this costs, until somebody types over them. */
+  const showAs = (name: string, price: number, priceCurrency: string) => {
+    setByHand(false);
+    setManualName(name);
+    setManualPrice(String(price));
+    setManualCurrency(priceCurrency);
+    heldByHand.current = "";
+  };
+
   useEffect(() => {
-    if (!foundNothing) return;
+    setTerm(opensWith);
+  }, [opensWith]);
+
+  // What the grocery is linked to now is what the fields open reading, so the
+  // panel has its whole shape from the first frame.
+  useEffect(() => {
+    if (byHand) return;
+    if (linkedProduct) {
+      setManualName(linkedProduct.name);
+      setManualPrice(String(linkedProduct.price));
+      setManualCurrency(linkedProduct.currency);
+
+      return;
+    }
+    setManualName(groceryName);
+  }, [byHand, groceryName, linkedProduct]);
+
+  // A price the shopper typed is the choice as soon as it is a price — over a
+  // product they picked as readily as over a shop that found nothing, because
+  // Norish never overwrites a price it read from a shop's own page. There is
+  // nothing to press: the panel's own Save is what commits it.
+  useEffect(() => {
+    if (!byHand) return;
     const held = hasTypedPrice ? `${manualName}|${typedPrice}|${currency}` : "";
 
     if (heldByHand.current === held) return;
@@ -202,26 +266,11 @@ export function GroceryProductField({
           }
         : null
     );
-  }, [
-    foundNothing,
-    hasTypedPrice,
-    manualName,
-    typedPrice,
-    currency,
-    groceryName,
-    manualId,
-    onChoice,
-  ]);
+  }, [byHand, hasTypedPrice, manualName, typedPrice, currency, groceryName, manualId, onChoice]);
 
-  // What the field holds costs this, so the panel says so rather than making
-  // somebody save and go back to the list to find out.
-  const held =
-    rows.find((row) => row.key === selectedKey(choice)) ??
-    (choice?.kind === "manual"
-      ? { detail: formatShelfPrice(locale, choice.price, choice.currency) }
-      : linkedProduct
-        ? productRow(linkedProduct, locale)
-        : null);
+  // The fields are the answer to "what does this cost", so they are there
+  // whenever there is an answer to show or one to be typed.
+  const showsPrice = Boolean(picked) || Boolean(linkedProduct) || foundNothing || byHand;
 
   return (
     <div className="flex flex-col gap-2">
@@ -233,7 +282,7 @@ export function GroceryProductField({
         inputValue={term}
         isDisabled={!canSearch}
         menuTrigger="focus"
-        selectedKey={selectedKey(choice)}
+        selectedKey={picked}
         variant="secondary"
         onInputChange={(value) => {
           setAsked(true);
@@ -243,10 +292,11 @@ export function GroceryProductField({
         onSelectionChange={(key) => {
           const row = rows.find((candidate) => candidate.key === String(key));
 
-          if (row) {
-            onChoice(row.choice);
-            setTerm(row.name);
-          }
+          if (!row) return;
+          setPicked(row.key);
+          setTerm(row.name);
+          showAs(row.name, row.price, row.currency);
+          onChoice(row.choice);
         }}
       >
         <Label>{t("productLabel", { store: store.name })}</Label>
@@ -262,19 +312,46 @@ export function GroceryProductField({
         </ComboBox.InputGroup>
         <ComboBox.Popover UNSTABLE_portalContainer={portalContainer}>
           <ListBox renderEmptyState={() => null}>
-            {rows.map((row) => (
-              <ListBox.Item
-                key={row.key}
-                data-testid="product-option"
-                id={row.key}
-                textValue={row.name}
-              >
-                <div className="flex w-full items-center justify-between gap-3">
-                  <span className="min-w-0 flex-1 truncate">{row.name}</span>
-                  <span className="text-muted shrink-0 text-xs tabular-nums">{row.detail}</span>
-                </div>
-              </ListBox.Item>
-            ))}
+            {knownRows.length > 0 && (
+              <ListBox.Section>
+                <Header className="text-muted px-2 py-1 text-xs" data-testid="product-group-known">
+                  {t("knownGroup")}
+                </Header>
+                {knownRows.map((row) => (
+                  <ListBox.Item
+                    key={row.key}
+                    data-testid="product-option"
+                    id={row.key}
+                    textValue={row.name}
+                  >
+                    <div className="flex w-full items-center justify-between gap-3">
+                      <span className="min-w-0 flex-1 truncate">{row.name}</span>
+                      <span className="text-muted shrink-0 text-xs tabular-nums">{row.detail}</span>
+                    </div>
+                  </ListBox.Item>
+                ))}
+              </ListBox.Section>
+            )}
+            {(isSearching || shopRows.length > 0) && (
+              <ListBox.Section>
+                <Header className="text-muted px-2 py-1 text-xs" data-testid="product-group-shop">
+                  {isSearching ? t("searching", { store: store.name }) : t("shopGroup")}
+                </Header>
+                {shopRows.map((row) => (
+                  <ListBox.Item
+                    key={row.key}
+                    data-testid="product-option"
+                    id={row.key}
+                    textValue={row.name}
+                  >
+                    <div className="flex w-full items-center justify-between gap-3">
+                      <span className="min-w-0 flex-1 truncate">{row.name}</span>
+                      <span className="text-muted shrink-0 text-xs tabular-nums">{row.detail}</span>
+                    </div>
+                  </ListBox.Item>
+                ))}
+              </ListBox.Section>
+            )}
           </ListBox>
         </ComboBox.Popover>
       </ComboBox>
@@ -283,27 +360,41 @@ export function GroceryProductField({
         <p className="text-muted text-xs">{t("cannotSearchHint", { store: store.name })}</p>
       )}
 
-      {held?.detail && (
-        <p className="text-muted text-xs" data-testid="product-price">
-          {t("costs", { price: held.detail })}
-        </p>
-      )}
-
       {isSearching && (
         <p className="text-muted text-xs" data-testid="product-searching">
           {t("searching", { store: store.name })}
         </p>
       )}
 
-      {foundNothing && (
+      {showsPrice && (
         <div className="flex flex-col gap-3 pt-1" data-testid="product-by-hand">
-          <p className="text-muted text-xs">{t("nothingFound", { store: store.name })}</p>
-          <TextField value={manualName} onChange={setManualName}>
+          {foundNothing && !picked && (
+            <p className="text-muted text-xs">{t("nothingFound", { store: store.name })}</p>
+          )}
+          <TextField
+            value={manualName}
+            onChange={(value) => {
+              setByHand(true);
+              setManualName(value);
+            }}
+          >
             <Label>{t("byHandName")}</Label>
-            <Input className={FIELD_CLASS} style={FIELD_STYLE} variant="secondary" />
+            <Input
+              className={FIELD_CLASS}
+              data-testid="product-by-hand-name"
+              style={FIELD_STYLE}
+              variant="secondary"
+            />
           </TextField>
           <div className="flex gap-3">
-            <TextField className="flex-1" value={manualPrice} onChange={setManualPrice}>
+            <TextField
+              className="flex-1"
+              value={manualPrice}
+              onChange={(value) => {
+                setByHand(true);
+                setManualPrice(value);
+              }}
+            >
               <Label>{t("byHandPrice")}</Label>
               <Input
                 className={FIELD_CLASS}
@@ -314,7 +405,14 @@ export function GroceryProductField({
                 variant="secondary"
               />
             </TextField>
-            <TextField className="w-28" value={manualCurrency} onChange={setManualCurrency}>
+            <TextField
+              className="w-28"
+              value={manualCurrency}
+              onChange={(value) => {
+                setByHand(true);
+                setManualCurrency(value);
+              }}
+            >
               <Label>{t("byHandCurrency")}</Label>
               <Input
                 className={FIELD_CLASS}
