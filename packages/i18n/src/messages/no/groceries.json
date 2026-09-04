@@ -112,6 +112,7 @@
     "useThisPrice": "Bruk denne prisen",
     "byHandChosen": "{price} lagres sammen med denne varen.",
     "byHandCurrency": "Valuta",
-    "productLabel": "Produkt hos {store}"
+    "productLabel": "Produkt hos {store}",
+    "costs": "Koster {price}"
   }
 }

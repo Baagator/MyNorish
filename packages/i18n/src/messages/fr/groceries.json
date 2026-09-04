@@ -112,6 +112,7 @@
     "useThisPrice": "Utiliser ce prix",
     "byHandChosen": "{price} sera enregistré avec cette course.",
     "byHandCurrency": "Devise",
-    "productLabel": "Produit chez {store}"
+    "productLabel": "Produit chez {store}",
+    "costs": "Coûte {price}"
   }
 }

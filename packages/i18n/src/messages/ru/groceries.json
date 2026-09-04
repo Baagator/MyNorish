@@ -112,6 +112,7 @@
     "useThisPrice": "Использовать эту цену",
     "byHandChosen": "{price} будет сохранена с этой покупкой.",
     "byHandCurrency": "Валюта",
-    "productLabel": "Товар в {store}"
+    "productLabel": "Товар в {store}",
+    "costs": "Стоит {price}"
   }
 }

@@ -97,6 +97,7 @@ export function GroceryProductField({
   const [term, setTerm] = useState(opensWith);
   const [searchedTerm, setSearchedTerm] = useState(groceryName);
   const [asked, setAsked] = useState(false);
+  const [typed, setTyped] = useState(false);
   const [manualPrice, setManualPrice] = useState("");
   const [manualName, setManualName] = useState(groceryName);
   const [manualCurrency, setManualCurrency] = useState("");
@@ -106,14 +107,20 @@ export function GroceryProductField({
     setManualName(groceryName);
   }, [groceryName, opensWith]);
 
-  // The shop is asked about what was typed, once the typing stops.
+  // The shop is asked about what was typed, once the typing stops. Never
+  // about the linked product's own name: that question is already answered.
   useEffect(() => {
+    if (!typed) return;
     const timer = setTimeout(() => setSearchedTerm(term.trim() || groceryName), SEARCH_DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
-  }, [term, groceryName]);
+  }, [term, groceryName, typed]);
 
-  const search = useShopSearch(storeId, searchedTerm, asked);
+  // What this Store already knows costs nothing to show, so opening the field
+  // shows it. The shop itself is visited only for a question nobody has
+  // answered yet: an unlinked grocery's own name, or something typed.
+  const searches = asked && (typed || !linkedProduct);
+  const search = useShopSearch(storeId, searchedTerm, searches);
   const products = useStoreProducts(storeId, asked);
   const candidates = (search.data?.candidates ?? []).filter(isPriced);
   const known = products.data ?? [];
@@ -136,8 +143,8 @@ export function GroceryProductField({
       .filter((product) => !product.pageUrl || !offered.has(product.pageUrl))
       .map((product) => productRow(product, locale)),
   ];
-  const isSearching = asked && (search.isPending || search.isFetching);
-  const foundNothing = asked && !isSearching && rows.length === 0;
+  const isSearching = searches && (search.isPending || search.isFetching);
+  const foundNothing = searches && !isSearching && rows.length === 0;
 
   // What the shop is most likely to charge in, so the field is a confirmation
   // rather than a question: what this Store's products are already priced in,
@@ -145,6 +152,15 @@ export function GroceryProductField({
   const suggestedCurrency =
     known[0]?.currency ?? candidates[0]?.currency ?? currencyForUrl(storeWebsite) ?? "EUR";
   const currency = (manualCurrency.trim() || suggestedCurrency).toUpperCase();
+  // What the field holds costs this, so the panel says so rather than making
+  // somebody save and go back to the list to find out.
+  const held =
+    rows.find((row) => row.key === selectedKey(choice)) ??
+    (choice?.kind === "manual"
+      ? { detail: formatShelfPrice(locale, choice.price, choice.currency) }
+      : linkedProduct
+        ? productRow(linkedProduct, locale)
+        : null);
 
   return (
     <div className="flex flex-col gap-2">
@@ -159,6 +175,7 @@ export function GroceryProductField({
         variant="secondary"
         onInputChange={(value) => {
           setAsked(true);
+          setTyped(true);
           setTerm(value);
         }}
         onSelectionChange={(key) => {
@@ -197,6 +214,12 @@ export function GroceryProductField({
           </ListBox>
         </ComboBox.Popover>
       </ComboBox>
+
+      {held?.detail && (
+        <p className="text-muted text-xs" data-testid="product-price">
+          {t("costs", { price: held.detail })}
+        </p>
+      )}
 
       {isSearching && (
         <p className="text-muted text-xs" data-testid="product-searching">

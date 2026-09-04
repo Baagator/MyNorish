@@ -112,6 +112,7 @@
     "useThisPrice": "Diesen Preis verwenden",
     "byHandChosen": "{price} wird zu dieser Ware gespeichert.",
     "byHandCurrency": "Währung",
-    "productLabel": "Produkt bei {store}"
+    "productLabel": "Produkt bei {store}",
+    "costs": "Kostet {price}"
   }
 }

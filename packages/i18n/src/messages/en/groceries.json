@@ -112,6 +112,7 @@
     "useThisPrice": "Use this price",
     "byHandChosen": "{price} will be saved with this grocery.",
     "byHandCurrency": "Currency",
-    "productLabel": "Product at {store}"
+    "productLabel": "Product at {store}",
+    "costs": "Costs {price}"
   }
 }

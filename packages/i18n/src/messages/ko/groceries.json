@@ -112,6 +112,7 @@
     "useThisPrice": "이 가격 사용",
     "byHandChosen": "{price}이(가) 이 항목과 함께 저장됩니다.",
     "byHandCurrency": "통화",
-    "productLabel": "{store}의 상품"
+    "productLabel": "{store}의 상품",
+    "costs": "가격 {price}"
   }
 }

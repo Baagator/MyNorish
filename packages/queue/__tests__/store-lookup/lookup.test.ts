@@ -165,6 +165,48 @@ describe("matchGroceryName", () => {
     expect(mocks.upsertProductLink).toHaveBeenCalledExactlyOnceWith(STORE, "oude kaas", null);
   });
 
+  it("leaves alone a name somebody answered while the job was queued", async () => {
+    // The job is only ever queued for a name the Store did not know. By the
+    // time it runs a shopper may have said which product this is — and a
+    // shopper's answer is the answer.
+    mocks.resolveProductLink.mockResolvedValue({
+      storeId: STORE,
+      normalizedName: "oude kaas",
+      triedAt: new Date(),
+      product: { id: "the-shoppers-choice", name: "Roomboter 250 g" },
+    });
+    const visited = useShop({ candidates: [candidate("Oude kaas")] });
+
+    const result = await matchGroceryName({
+      storeId: STORE,
+      name: "oude kaas",
+      householdKey: HOUSEHOLD,
+    });
+
+    expect(result).toEqual({ matched: false });
+    expect(mocks.upsertProductLink).not.toHaveBeenCalled();
+    expect(mocks.upsertReadProduct).not.toHaveBeenCalled();
+    // And it costs the shop nothing: the question was already answered.
+    expect(visited).toEqual([]);
+  });
+
+  it("still answers a name the Store knows only as a Miss", async () => {
+    mocks.resolveProductLink.mockResolvedValue({
+      storeId: STORE,
+      normalizedName: "oude kaas",
+      triedAt: new Date(),
+      product: null,
+    });
+    useShop({
+      candidates: [candidate("Oude kaas")],
+      product: { name: "Oude kaas", price: 7.99, currency: "EUR" },
+    });
+
+    await expect(
+      matchGroceryName({ storeId: STORE, name: "oude kaas", householdKey: HOUSEHOLD })
+    ).resolves.toEqual({ matched: true });
+  });
+
   it("visits nothing at all for a Store with no Search Address", async () => {
     mocks.getStoreById.mockResolvedValue({ id: STORE, searchAddress: null });
     const visited = useShop({ candidates: [candidate("Oude kaas")] });

@@ -71,12 +71,21 @@ test("a name the shop states unmistakably is priced without being asked", async 
 });
 
 test("the grocery's own panel says which product it is, and can be pointed at another", async () => {
+  const visitsBefore = shop.visits.length;
+
   await page.getByText("kaas").first().click();
 
-  // The field reads what is linked now rather than opening empty.
+  // The field reads what is linked now rather than opening empty, and says
+  // what it costs.
   await expect(page.getByTestId("grocery-product-field")).toHaveValue("Oude kaas 500 g");
+  await expect(page.getByTestId("product-price")).toContainText(/4[.,]99/);
 
-  await page.getByTestId("grocery-product-field").click();
+  // Opening a grocery whose product is known asks the shop nothing at all.
+  expect(shop.visits.length).toBe(visitsBefore);
+
+  // Typing is what asks the shop; the field alone shows only what the Store
+  // already knows.
+  await page.getByTestId("grocery-product-field").fill("Roomboter");
   await page.getByRole("option", { name: /Roomboter/ }).click({ timeout: 30_000 });
 
   // Still nothing written: the panel's own Save is what commits a choice.
@@ -127,6 +136,8 @@ test("a name the shop does not state is left to the shopper, and priced on Save"
 
   await page.reload();
   await page.getByText("beleg").first().click();
+  // An unlinked grocery's own name is a question nobody has answered, so the
+  // field asks the shop it on its own.
   await page.getByTestId("grocery-product-field").click();
   await page.getByRole("option", { name: /Bruin brood/ }).click({ timeout: 30_000 });
 
@@ -139,5 +150,27 @@ test("a name the shop does not state is left to the shopper, and priced on Save"
     .poll(async () => (await readStoredLink("beleg"))?.productName, { timeout: 30_000 })
     .toBe("Bruin brood");
 
-  await expect(page.getByTestId("grocery-product").filter({ hasText: "Bruin brood" })).toBeVisible();
+  await expect(
+    page.getByTestId("grocery-product").filter({ hasText: "Bruin brood" })
+  ).toBeVisible();
+});
+
+test("a product chosen while adding is not overruled by the lookup queued for it", async () => {
+  await page.goto("/groceries");
+  await page.getByRole("button", { name: "Add Item" }).click();
+  await page.getByPlaceholder("e.g., 2 lbs chicken breast").fill("kaasplakken");
+  await page.getByRole("button", { name: /Auto-detect from history/ }).click();
+  await page.getByRole("option", { name: STORE_NAME }).click();
+
+  // "kaasplakken" would find nothing and be written off as a Miss; the
+  // shopper says otherwise, and a shopper's answer is the answer.
+  await page.getByTestId("grocery-product-field").fill("Roomboter");
+  await page.getByRole("option", { name: /Roomboter/ }).click({ timeout: 30_000 });
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("button", { name: "Close panel" }).click();
+
+  // Long enough for the always-on lookup queue to have had its say.
+  await page.waitForTimeout(10_000);
+
+  expect((await readStoredLink("kaasplakken"))?.productName).toBe("Roomboter 250 g");
 });

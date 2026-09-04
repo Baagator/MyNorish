@@ -112,6 +112,7 @@
     "useThisPrice": "Deze prijs gebruiken",
     "byHandChosen": "{price} wordt bij deze boodschap opgeslagen.",
     "byHandCurrency": "Valuta",
-    "productLabel": "Product bij {store}"
+    "productLabel": "Product bij {store}",
+    "costs": "Kost {price}"
   }
 }

@@ -80,13 +80,26 @@ export async function matchGroceryName(input: {
 
   if (!store?.searchAddress) return { matched: false };
 
+  // The job is only ever queued for a name the Store did not know. By the time
+  // it runs a shopper may have said which product this is — through the
+  // grocery panel, or from a housemate's screen — and a shopper's answer is
+  // the answer. Asking the shop anyway would cost two visits and end by
+  // pointing the grocery at something nobody chose.
+  const answered = await resolveProductLink(storeId, name);
+
+  if (answered?.product) {
+    log.debug({ storeId, name }, "A shopper answered this name while the lookup was queued");
+
+    return { matched: false };
+  }
+
   const fetchStorePage = requireQueueApiHandler("fetchStorePage");
   const readProduct = requireQueueApiHandler("readProduct");
 
   await input.onStep?.("searching");
-  const { candidates, answered } = await searchStore(store.searchAddress, name);
+  const { candidates, answered: shopAnswered } = await searchStore(store.searchAddress, name);
 
-  if (!answered) {
+  if (!shopAnswered) {
     log.info({ storeId, name }, "The shop did not answer a lookup");
     await upsertProductLink(storeId, name, null);
     await announceLink(householdKey, storeId, name);
