@@ -18,6 +18,7 @@ export { useStoresCacheHelpers, type StoresCacheHelpers } from "./use-stores-cac
 export {
   useChooseProduct,
   useParsedGroceryName,
+  useProductLink,
   useShopSearch,
   useStoreProducts,
 } from "./use-store-picker";

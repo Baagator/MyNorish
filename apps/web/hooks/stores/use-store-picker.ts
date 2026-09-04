@@ -40,6 +40,23 @@ export function useShopSearch(storeId: string | null, term: string, enabled: boo
   );
 }
 
+/**
+ * What this Store has learned this grocery name means. The list's own prices
+ * answer only for the Store each grocery sits under, so a panel where the
+ * shopper has selected another Store reads its link here instead.
+ */
+export function useProductLink(storeId: string | null, name: string) {
+  const trpc = useTRPC();
+  const term = name.trim();
+
+  return useQuery(
+    trpc.stores.linkFor.queryOptions(
+      { storeId: storeId ?? "", name: term },
+      { enabled: Boolean(storeId) && term.length > 0, staleTime: SEARCH_STALE_MS }
+    )
+  );
+}
+
 export function useStoreProducts(storeId: string | null, enabled: boolean) {
   const trpc = useTRPC();
 

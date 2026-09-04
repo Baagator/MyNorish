@@ -16,6 +16,7 @@ import { searchStore } from "@norish/queue/store-lookup/lookup";
 import { trpcLogger as log } from "@norish/shared-server/logger";
 import {
   StoreProductChoiceSchema,
+  StoreProductLinkLookupSchema,
   StoreProductManualCreateSchema,
   StoreProductManualUpdateSchema,
   StoreProductsListInputSchema,
@@ -42,6 +43,20 @@ const listProducts = authedProcedure
     await assertStoreAccess(ctx, input.storeId);
 
     return listStoreProducts(input.storeId);
+  });
+
+/**
+ * What one Store has learned one grocery name means. `groceryPrices` answers
+ * only for the Store each grocery sits under, so a panel where the shopper has
+ * selected another Store has nowhere else to read its link from. A single
+ * indexed row: no shop is visited and no lookup is queued.
+ */
+const linkFor = authedProcedure
+  .input(StoreProductLinkLookupSchema)
+  .query(async ({ ctx, input }): Promise<ResolvedProductLink | null> => {
+    await assertStoreAccess(ctx, input.storeId);
+
+    return resolveProductLink(input.storeId, input.name);
   });
 
 /**
@@ -173,6 +188,7 @@ const chooseProduct = authedProcedure
 
 export const storeProductProcedures = router({
   groceryPrices,
+  linkFor,
   listProducts,
   createProduct,
   updateProduct,

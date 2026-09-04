@@ -92,3 +92,9 @@ export const StoreShopSearchSchema = z.object({
 });
 
 export const StoreProductsListInputSchema = z.object({ storeId: z.uuid() });
+
+/** What one Store has learned one grocery name means, if anything. */
+export const StoreProductLinkLookupSchema = z.object({
+  storeId: z.uuid(),
+  name: z.string().min(1).max(300),
+});
