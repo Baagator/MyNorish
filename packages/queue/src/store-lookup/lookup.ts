@@ -16,11 +16,11 @@ import {
 import { getStoreById } from "@norish/db/repositories/stores";
 import { createLogger } from "@norish/shared-server/logger";
 import { storeEmitter } from "@norish/shared-server/realtime/stores";
+import { chooseUnmistakable } from "@norish/shared/lib/auto-link";
 import { pricedCandidates } from "@norish/shared/lib/currency";
 import { resolveSearchAddress } from "@norish/shared/lib/search-address";
 
 import { requireQueueApiHandler } from "../api-handlers";
-import { chooseCandidate } from "./match";
 import { paceStoreVisit, visitKey } from "./pace";
 
 const log = createLogger("queue:store-lookup");
@@ -107,7 +107,7 @@ export async function matchGroceryName(input: {
     return { matched: false };
   }
 
-  const chosen = chooseCandidate(candidates, name);
+  const chosen = chooseUnmistakable(candidates, name);
 
   if (!chosen) {
     log.info({ storeId, name, candidates: candidates.length }, "No unmistakable match; a Miss");

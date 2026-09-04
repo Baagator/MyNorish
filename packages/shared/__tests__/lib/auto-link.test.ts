@@ -7,7 +7,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { StoreCandidate } from "@norish/shared/contracts";
-import { chooseCandidate } from "@norish/queue/store-lookup/match";
+import { chooseUnmistakable } from "@norish/shared/lib/auto-link";
 
 function candidate(name: string, url = name): StoreCandidate {
   return {
@@ -18,9 +18,9 @@ function candidate(name: string, url = name): StoreCandidate {
   };
 }
 
-describe("chooseCandidate", () => {
+describe("chooseUnmistakable", () => {
   it("links a candidate whose name is the grocery's name", () => {
-    const chosen = chooseCandidate(
+    const chosen = chooseUnmistakable(
       [candidate("Halfvolle melk 1L"), candidate("Oude kaas"), candidate("Roomboter")],
       "oude  KAAS!"
     );
@@ -29,7 +29,7 @@ describe("chooseCandidate", () => {
   });
 
   it("links a candidate whose name holds every word of the grocery's, when only one does", () => {
-    const chosen = chooseCandidate(
+    const chosen = chooseUnmistakable(
       [candidate("Halfvolle melk 1L"), candidate("Melkchocolade reep"), candidate("Roomboter")],
       "melk"
     );
@@ -39,13 +39,13 @@ describe("chooseCandidate", () => {
 
   it("links nothing when the words appear in two candidates", () => {
     expect(
-      chooseCandidate([candidate("Halfvolle melk 1L"), candidate("Volle melk 1L")], "melk")
+      chooseUnmistakable([candidate("Halfvolle melk 1L"), candidate("Volle melk 1L")], "melk")
     ).toBeNull();
   });
 
   it("links nothing when two candidates carry the same name", () => {
     expect(
-      chooseCandidate(
+      chooseUnmistakable(
         [candidate("Oude kaas", "a"), candidate("Oude kaas", "b"), candidate("Jonge kaas")],
         "oude kaas"
       )
@@ -53,16 +53,16 @@ describe("chooseCandidate", () => {
   });
 
   it("links nothing when a word of the grocery's name is missing", () => {
-    expect(chooseCandidate([candidate("Halfvolle melk 1L")], "oude melk")).toBeNull();
+    expect(chooseUnmistakable([candidate("Halfvolle melk 1L")], "oude melk")).toBeNull();
   });
 
   it("links nothing out of nothing", () => {
-    expect(chooseCandidate([], "melk")).toBeNull();
-    expect(chooseCandidate([candidate("Melk")], "   ")).toBeNull();
+    expect(chooseUnmistakable([], "melk")).toBeNull();
+    expect(chooseUnmistakable([candidate("Melk")], "   ")).toBeNull();
   });
 
   it("folds diacritics and punctuation on both sides", () => {
-    expect(chooseCandidate([candidate("Crème fraîche 200g")], "creme fraiche")?.name).toBe(
+    expect(chooseUnmistakable([candidate("Crème fraîche 200g")], "creme fraiche")?.name).toBe(
       "Crème fraîche 200g"
     );
   });
