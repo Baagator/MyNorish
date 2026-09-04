@@ -44,7 +44,7 @@ function MarkedAddress({ address }: { address: string }) {
   return (
     <span className="break-all">
       {before}
-      <span className="bg-primary-100 text-primary-700 rounded px-1 font-medium">
+      <span className="bg-accent/15 text-accent rounded px-1 font-semibold">
         {SEARCH_ADDRESS_PLACEHOLDER}
       </span>
       {after}

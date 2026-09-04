@@ -1,7 +1,7 @@
 import type { z } from "zod";
 
 import type {
-  StoreProductLinkInputSchema,
+  StoreProductChoiceSchema,
   StoreProductLinkSelectSchema,
   StoreProductManualCreateSchema,
   StoreProductManualUpdateSchema,
@@ -14,7 +14,8 @@ export type StoreProductLinkDto = z.output<typeof StoreProductLinkSelectSchema>;
 export type StoreProductReadingInput = z.output<typeof StoreProductReadingSchema>;
 export type StoreProductManualCreateInput = z.output<typeof StoreProductManualCreateSchema>;
 export type StoreProductManualUpdateInput = z.output<typeof StoreProductManualUpdateSchema>;
-export type StoreProductLinkInput = z.output<typeof StoreProductLinkInputSchema>;
+export type StoreProductChoiceInput = z.output<typeof StoreProductChoiceSchema>;
+export type StoreProductChoice = StoreProductChoiceInput["choice"];
 
 /** What a Store knows about one grocery name: its Product Link, and the product it resolves to. */
 export interface ResolvedProductLink {

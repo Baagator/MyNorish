@@ -101,6 +101,23 @@
     "addSelectedToGroceries": "Ajouter aux courses",
     "ingredientsAdded": "Ingrédients ajoutés à la liste de courses.",
     "ingredientsFailed": "Échec de l'ajout des ingrédients à la liste de courses.",
-    "addToGroceries": "Ajouter aux courses"
+    "addToGroceries": "Ajouter aux courses",
+    "priceTitle": "Choisir un prix",
+    "pickPrice": "Ajouter un prix"
+  },
+  "prices": {
+    "pickPrice": "Ajouter un prix"
+  },
+  "picker": {
+    "title": "Prix de {name}",
+    "searchLabel": "Chercher dans {store}",
+    "searchPlaceholder": "Chercher autre chose",
+    "searching": "Recherche dans {store}…",
+    "inThisStore": "Dans cette boutique",
+    "nothingFound": "Norish n'a rien trouvé chez {store}. Vous pouvez saisir le prix vous-même.",
+    "byHandName": "Nom du produit",
+    "byHandPrice": "Prix",
+    "useThisPrice": "Utiliser ce prix",
+    "byHandChosen": "{price} sera enregistré avec cette course."
   }
 }

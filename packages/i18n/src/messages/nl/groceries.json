@@ -101,6 +101,23 @@
     "addSelectedToGroceries": "Voeg toe aan boodschappen",
     "ingredientsAdded": "Ingrediënten toegevoegd aan boodschappenlijst.",
     "ingredientsFailed": "Kan ingrediënten niet toevoegen aan boodschappenlijst.",
-    "addToGroceries": "Toevoegen aan boodschappen"
+    "addToGroceries": "Toevoegen aan boodschappen",
+    "priceTitle": "Kies een prijs",
+    "pickPrice": "Prijs toevoegen"
+  },
+  "prices": {
+    "pickPrice": "Prijs toevoegen"
+  },
+  "picker": {
+    "title": "Prijs voor {name}",
+    "searchLabel": "Zoek in {store}",
+    "searchPlaceholder": "Zoek iets anders",
+    "searching": "Bezig met zoeken in {store}…",
+    "inThisStore": "In deze winkel",
+    "nothingFound": "Norish vond niets bij {store}. Je kunt de prijs zelf typen.",
+    "byHandName": "Productnaam",
+    "byHandPrice": "Prijs",
+    "useThisPrice": "Deze prijs gebruiken",
+    "byHandChosen": "{price} wordt bij deze boodschap opgeslagen."
   }
 }

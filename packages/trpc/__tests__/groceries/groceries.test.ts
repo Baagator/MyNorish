@@ -44,11 +44,20 @@ const storesRepository = vi.hoisted(() => ({
   getStoreOwnerId: vi.fn(),
   normalizeIngredientName: vi.fn((name: string) => name.toLowerCase()),
   upsertIngredientStorePreference: vi.fn(),
+  // A household with no Store that points at a shop: pricing notices the
+  // groceries, finds nothing to ask, and visits nothing.
+  listStoresByUserIds: vi.fn(async () => []),
+}));
+
+const storeProductsRepository = vi.hoisted(() => ({
+  resolveProductLinks: vi.fn(async () => []),
+  listStaleProducts: vi.fn(async () => []),
 }));
 
 // Setup mocks before any imports that use them
 vi.mock("@norish/db", () => import("../mocks/db"));
 vi.mock("@norish/db/repositories/stores", () => storesRepository);
+vi.mock("@norish/db/repositories/store-products", () => storeProductsRepository);
 vi.mock(
   "@norish/db/repositories/recurring-groceries",
   () => import("../mocks/recurring-groceries")

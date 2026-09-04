@@ -135,6 +135,8 @@ describe("stores procedures", () => {
         name: "Pantry",
         color: "primary",
         icon: "ShoppingBagIcon",
+        website: null,
+        searchAddress: null,
         sortOrder: 0,
         version: 1,
       },

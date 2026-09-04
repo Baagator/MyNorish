@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 
-import type { ResolvedProductLink } from "@norish/shared/contracts";
+import type { ResolvedProductLink, StoreCandidate } from "@norish/shared/contracts";
 import { assertHouseholdAccess } from "@norish/auth/permissions";
 import {
   createManualProduct,
@@ -10,15 +10,20 @@ import {
   resolveProductLink,
   updateManualProduct,
   upsertProductLink,
+  upsertReadProduct,
 } from "@norish/db/repositories/store-products";
-import { getStoreOwnerId, listStoresByUserIds } from "@norish/db/repositories/stores";
+import { getStoreById, getStoreOwnerId, listStoresByUserIds } from "@norish/db/repositories/stores";
+import { requireQueueApiHandler } from "@norish/queue/api-handlers";
+import { paceStoreVisit, visitKey } from "@norish/queue/store-lookup/pace";
 import { trpcLogger as log } from "@norish/shared-server/logger";
 import {
-  StoreProductLinkInputSchema,
+  StoreProductChoiceSchema,
   StoreProductManualCreateSchema,
   StoreProductManualUpdateSchema,
   StoreProductsListInputSchema,
+  StoreShopSearchSchema,
 } from "@norish/shared/contracts/zod";
+import { resolveSearchAddress } from "@norish/shared/lib/search-address";
 
 import type { StoreProcedureContext } from "./stores-helpers";
 import { authedProcedure } from "../../middleware";
@@ -93,22 +98,98 @@ const updateProduct = authedProcedure
   });
 
 /**
- * Point a grocery name at a product, or away from every product. Last writer
- * wins: the last human to choose is right.
+ * Search a Store's own shop for a term the user chose, and offer what it
+ * answers. The visit is paced through the same chain the lookup queue uses,
+ * so the picker cannot race the queue at the same shop.
  */
-const linkGrocery = authedProcedure
-  .input(StoreProductLinkInputSchema)
+const searchShop = authedProcedure
+  .input(StoreShopSearchSchema)
+  .query(async ({ ctx, input }): Promise<{ candidates: StoreCandidate[] }> => {
+    await assertStoreAccess(ctx, input.storeId);
+    const store = await getStoreById(input.storeId);
+
+    if (!store?.searchAddress) return { candidates: [] };
+
+    const fetchStorePage = requireQueueApiHandler("fetchStorePage");
+    const readSearchResults = requireQueueApiHandler("readSearchResults");
+    const url = resolveSearchAddress(store.searchAddress, input.term);
+    const visit = await paceStoreVisit(visitKey(url), () =>
+      fetchStorePage(
+        url,
+        (html) =>
+          readSearchResults(html, url).filter((candidate) => candidate.price !== undefined)
+            .length === 0
+      )
+    );
+
+    if (!visit.html) return { candidates: [] };
+
+    // Candidates without a price are never offered: the picker exists to show
+    // what a thing costs.
+    const candidates = readSearchResults(visit.html, url).filter(
+      (candidate) => candidate.price !== undefined && candidate.currency !== undefined
+    );
+
+    log.info(
+      { userId: ctx.user.id, storeId: input.storeId, count: candidates.length },
+      "Searched a shop for the picker"
+    );
+
+    return { candidates };
+  });
+
+/**
+ * What the picker decided a grocery name means. Nothing is written until the
+ * grocery panel's own Save calls this: tapping around in a picker never
+ * changes what the household sees. Last writer wins — the last human to
+ * choose is right.
+ */
+const chooseProduct = authedProcedure
+  .input(StoreProductChoiceSchema)
   .mutation(async ({ ctx, input }): Promise<ResolvedProductLink | null> => {
     await assertStoreAccess(ctx, input.storeId);
-    if (input.storeProductId) {
-      const product = await getStoreProductById(input.storeProductId);
+
+    let storeProductId: string | null = null;
+
+    if (input.choice.kind === "product") {
+      const product = await getStoreProductById(input.choice.storeProductId);
 
       if (!product || product.storeId !== input.storeId) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Product not found in this store" });
       }
+      storeProductId = product.id;
     }
 
-    await upsertProductLink(input.storeId, input.name, input.storeProductId);
+    if (input.choice.kind === "candidate") {
+      const { candidate } = input.choice;
+      const product = await upsertReadProduct({
+        storeId: input.storeId,
+        name: candidate.name,
+        pageUrl: candidate.url,
+        price: candidate.price,
+        currency: candidate.currency,
+        size: candidate.size ?? null,
+      });
+
+      storeProductId = product.id;
+      storeEmitter.emitToHousehold(ctx.householdKey, "productUpdated", { product });
+    }
+
+    if (input.choice.kind === "manual") {
+      const product = await createManualProduct({
+        id: input.choice.id,
+        storeId: input.storeId,
+        name: input.choice.name,
+        price: input.choice.price,
+        currency: input.choice.currency,
+        size: input.choice.size ?? null,
+      });
+
+      storeProductId = product.id;
+      storeEmitter.emitToHousehold(ctx.householdKey, "productUpdated", { product });
+    }
+
+    await upsertProductLink(input.storeId, input.name, storeProductId);
     const link = await resolveProductLink(input.storeId, input.name);
 
     if (link) storeEmitter.emitToHousehold(ctx.householdKey, "linkUpdated", { link });
@@ -122,5 +203,6 @@ export const storeProductProcedures = router({
   listAllProducts,
   createProduct,
   updateProduct,
-  linkGrocery,
+  searchShop,
+  chooseProduct,
 });

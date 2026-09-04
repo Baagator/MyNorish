@@ -101,6 +101,23 @@
     "addSelectedToGroceries": "Adicionar à lista de compras",
     "ingredientsAdded": "Ingredientes adicionados à lista de compras.",
     "ingredientsFailed": "Falha ao adicionar ingredientes à lista de compras.",
-    "addToGroceries": "Adicionar à lista de compras"
+    "addToGroceries": "Adicionar à lista de compras",
+    "priceTitle": "Escolher um preço",
+    "pickPrice": "Adicionar um preço"
+  },
+  "prices": {
+    "pickPrice": "Adicionar um preço"
+  },
+  "picker": {
+    "title": "Preço de {name}",
+    "searchLabel": "Buscar em {store}",
+    "searchPlaceholder": "Buscar outra coisa",
+    "searching": "Buscando em {store}…",
+    "inThisStore": "Nesta loja",
+    "nothingFound": "O Norish não encontrou nada em {store}. Você pode digitar o preço.",
+    "byHandName": "Nome do produto",
+    "byHandPrice": "Preço",
+    "useThisPrice": "Usar este preço",
+    "byHandChosen": "{price} será salvo com este item."
   }
 }

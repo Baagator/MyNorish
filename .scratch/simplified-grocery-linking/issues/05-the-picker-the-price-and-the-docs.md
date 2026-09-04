@@ -1,6 +1,6 @@
 # 05 — The picker, the price on the row, and manual prices
 
-Status: ready-for-agent
+Status: ready-for-human
 Blocked by: 04
 
 Spec: `.scratch/simplified-grocery-linking/spec.md`
@@ -31,16 +31,16 @@ Screenshots come off a running dev server with `reducedMotion`; the docs screens
 
 ## Acceptance criteria
 
-- [ ] A priced Grocery row shows its Shelf Price and the shop's size words, and omits the size where there is none.
-- [ ] No age or "checked … ago" line appears on the row.
-- [ ] An unpriced Grocery in a searchable Store offers a quiet way into the picker; one in a Store with no Search Address offers nothing.
-- [ ] The picker is a stage inside the grocery panel and never a second stacked panel.
-- [ ] Opening the picker searches the Store for the grocery's name and shows a searching state until it answers.
-- [ ] Only priced results are listed; known Store Products appear under "In this store".
-- [ ] A different search term can be run from inside the picker.
-- [ ] A selection is visible immediately and written only on Save or Add, in both the add and edit flows.
-- [ ] An empty result offers a hand-typed price pre-filled with the grocery's name, and linking it works.
-- [ ] All new copy is translated in every locale and `pnpm i18n:check` passes.
-- [ ] E2E covers the auto-link path and the pick-by-hand path against a harness-served fake shop.
-- [ ] A docs page with screenshots exists, and `apps/docs/docs/release-notes/0.23.0-beta.md` is created with this feature's section.
-- [ ] `pnpm lint`, `pnpm test:run`, `pnpm i18n:check` and `pnpm build` pass.
+- [x] A priced Grocery row shows its Shelf Price and the shop's size words, and omits the size where there is none.
+- [x] No age or "checked … ago" line appears on the row.
+- [x] An unpriced Grocery in a searchable Store offers a quiet way into the picker; one in a Store with no Search Address offers nothing.
+- [x] The picker is a stage inside the grocery panel and never a second stacked panel.
+- [x] Opening the picker searches the Store for the grocery's name and shows a searching state until it answers.
+- [x] Only priced results are listed; known Store Products appear under "In this store".
+- [x] A different search term can be run from inside the picker.
+- [x] A selection is visible immediately and written only on Save or Add, in both the add and edit flows.
+- [x] An empty result offers a hand-typed price pre-filled with the grocery's name, and linking it works.
+- [x] All new copy is translated in every locale and `pnpm i18n:check` passes.
+- [x] E2E covers the auto-link path and the pick-by-hand path against a harness-served fake shop.
+- [x] A docs page with screenshots exists, and `apps/docs/docs/release-notes/0.23.0-beta.md` is created with this feature's section.
+- [x] `pnpm lint`, `pnpm test:run`, `pnpm i18n:check` and `pnpm build` pass.

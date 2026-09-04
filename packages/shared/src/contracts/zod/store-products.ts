@@ -54,11 +54,42 @@ export const StoreProductManualUpdateSchema = z.object({
   size: z.string().max(80).nullish(),
 });
 
-/** Pointing a grocery name at a product, or away from every product. */
-export const StoreProductLinkInputSchema = z.object({
+/** One priced result of a shop's own search, as the reader read it. */
+export const StoreCandidateSchema = z.object({
+  name: z.string().min(1).max(300),
+  url: httpUrlSchema,
+  price: z.number().nonnegative(),
+  currency: CurrencyCodeSchema,
+  size: z.string().max(80).nullish(),
+});
+
+/**
+ * What the picker decided a grocery name means: a product this Store already
+ * knows, a result of a search just run, a price typed by hand, or nothing at
+ * all — which is a Miss the user chose.
+ */
+export const StoreProductChoiceSchema = z.object({
   storeId: z.uuid(),
   name: z.string().min(1).max(300),
-  storeProductId: z.uuid().nullable(),
+  choice: z.discriminatedUnion("kind", [
+    z.object({ kind: z.literal("none") }),
+    z.object({ kind: z.literal("product"), storeProductId: z.uuid() }),
+    z.object({ kind: z.literal("candidate"), candidate: StoreCandidateSchema }),
+    z.object({
+      kind: z.literal("manual"),
+      id: clientMintedId,
+      name: z.string().min(1).max(300),
+      price: z.number().nonnegative(),
+      currency: CurrencyCodeSchema,
+      size: z.string().max(80).nullish(),
+    }),
+  ]),
+});
+
+/** Searching a Store's own shop for a term the user chose. */
+export const StoreShopSearchSchema = z.object({
+  storeId: z.uuid(),
+  term: z.string().min(1).max(200),
 });
 
 export const StoreProductsListInputSchema = z.object({ storeId: z.uuid() });

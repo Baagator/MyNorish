@@ -12,6 +12,7 @@ import type { GroceryDto, RecurringGroceryDto } from "@norish/shared/contracts";
 import type { GroceryGroup, GroupedGrocerySource } from "@norish/shared/lib/grocery-grouping";
 
 import { GroceryCheckbox } from "./grocery-checkbox";
+import { GroceryPrice } from "./grocery-price";
 
 /**
  * Format inline source breakdown showing recipe names and amounts.
@@ -170,6 +171,9 @@ function GroupedGroceryItemComponent({
             </span>
           )}
         </button>
+
+        {/* A price belongs to one grocery, so only a lone one shows it */}
+        {isSingleItem && singleSource && <GroceryPrice grocery={singleSource.grocery} />}
 
         {/* Expand/collapse button for groups */}
         {!isSingleItem && (

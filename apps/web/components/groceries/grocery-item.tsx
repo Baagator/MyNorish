@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl";
 import type { GroceryDto, RecurringGroceryDto, StoreDto } from "@norish/shared/contracts";
 
 import { GroceryCheckbox } from "./grocery-checkbox";
+import { GroceryPrice } from "./grocery-price";
 
 interface GroceryItemProps {
   grocery: GroceryDto;
@@ -85,6 +86,9 @@ function GroceryItemComponent({
           <RecurrencePill className="mt-0.5" recurringGrocery={recurringGrocery} />
         )}
       </button>
+
+      {/* What one pack of this costs at its Store, or a way to say so */}
+      <GroceryPrice grocery={grocery} />
     </div>
   );
 }

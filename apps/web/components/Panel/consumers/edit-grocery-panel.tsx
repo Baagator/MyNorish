@@ -2,16 +2,23 @@
 
 import { useEffect, useState } from "react";
 import { RecurrenceSuggestion } from "@/app/(app)/groceries/components/recurrence-suggestion";
+import { ProductPicker } from "@/components/groceries/product-picker";
 import { StoreSelector } from "@/components/groceries/store-selector";
 import { RecurrencePanel } from "@/components/Panel/consumers/recurrence-panel";
 import Panel from "@/components/Panel/Panel";
 import { ActionButton, ActionButtonGroup } from "@/components/shared/action-button";
+import { useChooseProduct, useParsedGroceryName } from "@/hooks/stores";
 import { useRecurrenceDetection } from "@/hooks/use-recurrence-detection";
 import { Input } from "@heroui/react";
 import { AnimatePresence } from "motion/react";
 import { useTranslations } from "next-intl";
 
-import type { GroceryDto, RecurringGroceryDto, StoreDto } from "@norish/shared/contracts";
+import type {
+  GroceryDto,
+  RecurringGroceryDto,
+  StoreDto,
+  StoreProductChoice,
+} from "@norish/shared/contracts";
 import type { RecurrencePattern } from "@norish/shared/contracts/recurrence";
 import { useGroceryFormState } from "@norish/shared-react/hooks";
 
@@ -21,6 +28,8 @@ type EditGroceryPanelProps = {
   grocery: GroceryDto;
   recurringGrocery: RecurringGroceryDto | null;
   stores: StoreDto[];
+  /** Which stage to open on: the form, or the price picker the row asked for. */
+  initialStage?: "form" | "picker";
   onSave: (itemName: string, pattern: RecurrencePattern | null, storeId?: string | null) => void;
   onDelete: () => void;
 };
@@ -30,6 +39,7 @@ export default function EditGroceryPanel({
   grocery,
   recurringGrocery,
   stores,
+  initialStage = "form",
   onSave,
   onDelete,
 }: EditGroceryPanelProps) {
@@ -38,6 +48,9 @@ export default function EditGroceryPanel({
   const [recurrencePanelOpen, setRecurrencePanelOpen] = useState(false);
   const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null);
   const [hasStoreChanged, setHasStoreChanged] = useState(false);
+  const [stage, setStage] = useState<"form" | "picker">(initialStage);
+  const [choice, setChoice] = useState<StoreProductChoice | null>(null);
+  const chooseProduct = useChooseProduct();
   const {
     itemName,
     setItemName,
@@ -59,6 +72,8 @@ export default function EditGroceryPanel({
       setItemName(text);
       setSelectedStoreId(grocery.storeId ?? null);
       setHasStoreChanged(false);
+      setStage(initialStage);
+      setChoice(null);
       if (recurringGrocery) {
         setConfirmedPattern({
           rule: recurringGrocery.recurrenceRule as "day" | "week" | "month",
@@ -71,7 +86,9 @@ export default function EditGroceryPanel({
     } else {
       reset();
     }
-  }, [open, grocery, recurringGrocery, setItemName, setConfirmedPattern, reset]);
+  }, [open, grocery, recurringGrocery, initialStage, setItemName, setConfirmedPattern, reset]);
+  const parsedName = useParsedGroceryName(itemName);
+  const selectedStore = stores.find((store) => store.id === selectedStoreId) ?? null;
   const handleStoreChange = (storeId: string | null) => {
     setSelectedStoreId(storeId);
     setHasStoreChanged(storeId !== (grocery.storeId ?? null));
@@ -85,6 +102,12 @@ export default function EditGroceryPanel({
     // a version-conflict race between two separate mutations).
     onSave(trimmed, confirmedPattern, hasStoreChanged ? selectedStoreId : undefined);
 
+    // The picker's choice is written here and nowhere else, against the name
+    // the grocery is saved under — the Product Link is keyed by that name.
+    if (choice && selectedStoreId && parsedName) {
+      void chooseProduct(selectedStoreId, parsedName, choice);
+    }
+
     onOpenChange(false);
   };
   const handleRecurrenceSave = (pattern: RecurrencePattern | null) => {
@@ -97,76 +120,105 @@ export default function EditGroceryPanel({
   };
   return (
     <>
-      <Panel open={open} title={t("editTitle")} onOpenChange={handlePanelOpenChange}>
+      <Panel
+        open={open}
+        title={stage === "picker" ? t("priceTitle") : t("editTitle")}
+        onOpenChange={handlePanelOpenChange}
+      >
         <Panel.Body>
-          <div className="space-y-3">
-            <Input
-              className="h-12 text-base font-medium"
-              variant="secondary"
-              placeholder={t("editPlaceholder")}
-              style={{
-                fontSize: "16px",
-              }}
-              value={itemName}
-              onChange={(e) => setItemName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleSubmit();
-                }
-              }}
+          {stage === "picker" && selectedStore ? (
+            <ProductPicker
+              choice={choice}
+              groceryName={parsedName}
+              storeId={selectedStore.id}
+              storeName={selectedStore.name}
+              onBack={() => setStage("form")}
+              onChoice={setChoice}
             />
+          ) : (
+            <div className="space-y-3">
+              <Input
+                className="h-12 text-base font-medium"
+                variant="secondary"
+                placeholder={t("editPlaceholder")}
+                style={{
+                  fontSize: "16px",
+                }}
+                value={itemName}
+                onChange={(e) => setItemName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleSubmit();
+                  }
+                }}
+              />
 
-            {/* Store selection */}
-            <StoreSelector
-              showWhenEmpty
-              label={t("selectStore")}
-              selectedStoreId={selectedStoreId}
-              stores={stores}
-              onSelectionChange={handleStoreChange}
-            />
+              {/* Store selection */}
+              <StoreSelector
+                showWhenEmpty
+                label={t("selectStore")}
+                selectedStoreId={selectedStoreId}
+                stores={stores}
+                onSelectionChange={handleStoreChange}
+              />
 
-            {/* Recurrence Pills Container */}
-            <AnimatePresence mode="popLayout">
-              <div className="flex flex-wrap items-center gap-2">
-                {/* Suggested pill  */}
-                {detectedPattern && (
-                  <RecurrenceSuggestion
-                    key="detected"
-                    itemName={itemName}
-                    pattern={detectedPattern.pattern}
-                    type="detected"
-                    onReplace={() => handleConfirmPattern(detectedPattern)}
-                  />
-                )}
+              {/* Recurrence Pills Container */}
+              <AnimatePresence mode="popLayout">
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Suggested pill  */}
+                  {detectedPattern && (
+                    <RecurrenceSuggestion
+                      key="detected"
+                      itemName={itemName}
+                      pattern={detectedPattern.pattern}
+                      type="detected"
+                      onReplace={() => handleConfirmPattern(detectedPattern)}
+                    />
+                  )}
 
-                {/* Active pill */}
-                {confirmedPattern && (
-                  <RecurrenceSuggestion
-                    key="confirmed"
-                    itemName={itemName}
-                    pattern={confirmedPattern}
-                    type="confirmed"
-                    onEdit={() => setRecurrencePanelOpen(true)}
-                    onRemove={handleRemovePattern}
-                  />
-                )}
-              </div>
-            </AnimatePresence>
+                  {/* Active pill */}
+                  {confirmedPattern && (
+                    <RecurrenceSuggestion
+                      key="confirmed"
+                      itemName={itemName}
+                      pattern={confirmedPattern}
+                      type="confirmed"
+                      onEdit={() => setRecurrencePanelOpen(true)}
+                      onRemove={handleRemovePattern}
+                    />
+                  )}
+                </div>
+              </AnimatePresence>
 
-            {/* Link to manual recurrence editor */}
-            {!confirmedPattern && !detectedPattern && (
-              <ActionButton
-                action="add"
-                className="-mt-1 min-w-16 font-medium"
-                size="sm"
-                onPress={() => setRecurrencePanelOpen(true)}
-                variant="tertiary"
-              >
-                {t("addRepeat")}
-              </ActionButton>
-            )}
-          </div>
+              {/* Link to manual recurrence editor */}
+              {!confirmedPattern && !detectedPattern && (
+                <ActionButton
+                  action="add"
+                  className="-mt-1 min-w-16 font-medium"
+                  size="sm"
+                  onPress={() => setRecurrencePanelOpen(true)}
+                  variant="tertiary"
+                >
+                  {t("addRepeat")}
+                </ActionButton>
+              )}
+
+              {/* The shop this Store stands for can be asked what this costs */}
+              {selectedStore?.searchAddress && parsedName && (
+                <ActionButton
+                  action="edit"
+                  className="min-w-16 font-medium"
+                  data-testid="open-price-picker"
+                  size="sm"
+                  variant="tertiary"
+                  onPress={() => setStage("picker")}
+                >
+                  {t("pickPrice")}
+                </ActionButton>
+              )}
+            </div>
+          )}
         </Panel.Body>
         <Panel.Footer>
           <ActionButtonGroup>

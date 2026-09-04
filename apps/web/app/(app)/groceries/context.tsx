@@ -44,6 +44,9 @@ type GroceriesUiContextValue = {
   setAddGroceryPanelOpen: (open: boolean) => void;
   editingGrocery: GroceryDto | null;
   setEditingGrocery: (grocery: GroceryDto | null) => void;
+  /** Which stage of the grocery panel to open on: its form, or the price picker. */
+  editingGroceryStage: "form" | "picker";
+  openGroceryPricePicker: (grocery: GroceryDto) => void;
   // View mode
   viewMode: GroceryViewMode;
   setViewMode: (mode: GroceryViewMode) => void;
@@ -70,7 +73,18 @@ function GroceriesUiProvider({
   const [recurrencePanelOpen, setRecurrencePanelOpen] = useState(false);
   const [recurrencePanelGroceryId, setRecurrencePanelGroceryId] = useState<string | null>(null);
   const [addGroceryPanelOpen, setAddGroceryPanelOpen] = useState(false);
-  const [editingGrocery, setEditingGrocery] = useState<GroceryDto | null>(null);
+  const [editingGrocery, setEditingGroceryState] = useState<GroceryDto | null>(null);
+  const [editingGroceryStage, setEditingGroceryStage] = useState<"form" | "picker">("form");
+
+  const setEditingGrocery = useCallback((grocery: GroceryDto | null) => {
+    setEditingGroceryState(grocery);
+    setEditingGroceryStage("form");
+  }, []);
+
+  const openGroceryPricePicker = useCallback((grocery: GroceryDto) => {
+    setEditingGroceryState(grocery);
+    setEditingGroceryStage("picker");
+  }, []);
 
   // Both device preferences ride cookies so the server renders the page the
   // way the reader left it; the shared state covers the seeded, self-read
@@ -113,6 +127,8 @@ function GroceriesUiProvider({
       setAddGroceryPanelOpen,
       editingGrocery,
       setEditingGrocery,
+      editingGroceryStage,
+      openGroceryPricePicker,
       viewMode,
       setViewMode,
       groupSimilarIngredients,
@@ -125,6 +141,9 @@ function GroceriesUiProvider({
       closeRecurrencePanel,
       addGroceryPanelOpen,
       editingGrocery,
+      setEditingGrocery,
+      editingGroceryStage,
+      openGroceryPricePicker,
       viewMode,
       setViewMode,
       groupSimilarIngredients,
