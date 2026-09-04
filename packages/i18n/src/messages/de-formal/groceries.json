@@ -49,7 +49,16 @@
     "deleteItems": "Einträge löschen",
     "deleteItemsDescription": "Entferne alle Einträge in diesem Geschäft",
     "noItems": "Dieses Geschäft hat keine Einträge.",
-    "create": "Erstellen"
+    "create": "Erstellen",
+    "shopLink": "Shop-Link",
+    "shopLinkPlaceholder": "https://beispiel.de",
+    "shopLinkHint": "Fügen Sie die Website des Shops ein oder eine Suche, die Sie dort gerade ausgeführt haben.",
+    "searchAddressFound": "Norish sucht in diesem Shop mit:",
+    "searchAddressExample": "Zum Beispiel: {url}",
+    "websiteOnly": "Als Website des Shops gespeichert. Norish sucht nach der Suchseite.",
+    "searchAddressManualHint": "Sie können auch selbst eine Suchadresse einfügen, mit {placeholder} an der Stelle des Suchbegriffs.",
+    "linkInvalid": "Das sieht nicht nach einer Webadresse aus.",
+    "sampleTerm": "Milch"
   },
   "panel": {
     "addTitle": "Einkauf hinzufügen",

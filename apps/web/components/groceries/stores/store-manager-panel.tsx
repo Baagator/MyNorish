@@ -19,6 +19,7 @@ import { useTranslations } from "next-intl";
 import type { StoreColor, StoreDto } from "@norish/shared/contracts";
 
 import { DeleteStoreModal } from "./delete-store-modal";
+import { storeLinkFields, StoreSearchAddressField } from "./store-search-address-field";
 
 interface StoreManagerPanelProps {
   open: boolean;
@@ -30,6 +31,8 @@ type EditingStore = {
   name: string;
   color: StoreColor;
   icon: string;
+  /** What the user pasted: the shop's website, or a search they ran there. */
+  link: string;
 };
 export function StoreManagerPanel({ open, onOpenChange, stores }: StoreManagerPanelProps) {
   const { createStore, updateStore, deleteStore, reorderStores } = useStoresMutations();
@@ -49,6 +52,7 @@ export function StoreManagerPanel({ open, onOpenChange, stores }: StoreManagerPa
       name: "",
       color: "primary",
       icon: "ShoppingBagIcon",
+      link: "",
     });
   };
   const handleStartEdit = (store: StoreDto) => {
@@ -57,10 +61,14 @@ export function StoreManagerPanel({ open, onOpenChange, stores }: StoreManagerPa
       name: store.name,
       color: store.color as StoreColor,
       icon: store.icon,
+      link: store.searchAddress ?? store.website ?? "",
     });
   };
   const handleSave = async () => {
     if (!editingStore || !editingStore.name.trim()) return;
+
+    const { website, searchAddress } = storeLinkFields(editingStore.link);
+
     if (editingStore.id) {
       // Update existing store
       updateStore({
@@ -68,6 +76,8 @@ export function StoreManagerPanel({ open, onOpenChange, stores }: StoreManagerPa
         name: editingStore.name.trim(),
         color: editingStore.color,
         icon: editingStore.icon,
+        website,
+        searchAddress,
       });
     } else {
       // Create new store
@@ -75,6 +85,8 @@ export function StoreManagerPanel({ open, onOpenChange, stores }: StoreManagerPa
         name: editingStore.name.trim(),
         color: editingStore.color,
         icon: editingStore.icon,
+        website,
+        searchAddress,
       });
     }
     setEditingStore(null);
@@ -304,6 +316,17 @@ function StoreEditForm({ editing, onChange, onSave, onCancel, translations }: St
           }}
         />
       </TextField>
+
+      {/* The shop this store stands for, from one pasted link */}
+      <StoreSearchAddressField
+        value={editing.link}
+        onChange={(link) =>
+          onChange({
+            ...editing,
+            link,
+          })
+        }
+      />
 
       {/* Color picker */}
       <div>

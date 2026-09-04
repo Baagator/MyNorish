@@ -50,6 +50,8 @@ export function createUseStoresMutations({
           name: data.name,
           color: data.color ?? "primary",
           icon: data.icon ?? "ShoppingBagIcon",
+          website: data.website ?? null,
+          searchAddress: data.searchAddress ?? null,
           sortOrder: stores.length,
           version: 1,
         };

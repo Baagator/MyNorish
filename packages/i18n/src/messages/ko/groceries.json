@@ -49,7 +49,16 @@
     "deleteItems": "항목 삭제",
     "deleteItemsDescription": "이 매장의 모든 항목을 제거합니다",
     "noItems": "이 매장에는 항목이 없습니다.",
-    "create": "만들기"
+    "create": "만들기",
+    "shopLink": "상점 링크",
+    "shopLinkPlaceholder": "https://example.kr",
+    "shopLinkHint": "상점 웹사이트나 방금 상점에서 한 검색 주소를 붙여넣으세요.",
+    "searchAddressFound": "Norish는 이 상점을 다음 주소로 검색합니다:",
+    "searchAddressExample": "예: {url}",
+    "websiteOnly": "상점 웹사이트로 저장했습니다. Norish가 검색 페이지를 찾아봅니다.",
+    "searchAddressManualHint": "검색 주소를 직접 붙여넣을 수도 있습니다. 검색어 자리에 {placeholder}를 넣으세요.",
+    "linkInvalid": "웹 주소처럼 보이지 않습니다.",
+    "sampleTerm": "우유"
   },
   "panel": {
     "addTitle": "장보기 추가",

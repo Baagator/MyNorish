@@ -1,6 +1,6 @@
 # 01 — A Store points at a shop and gets a Search Address
 
-Status: ready-for-agent
+Status: ready-for-human
 Blocked by: None — can start immediately
 
 Spec: `.scratch/simplified-grocery-linking/spec.md`
@@ -29,15 +29,15 @@ Stores are per-user with household access (`ctx.userIds`); these columns inherit
 
 ## Acceptance criteria
 
-- [ ] `stores` gains nullable `website` and `search_address` columns with a migration.
-- [ ] A pure derivation function turns a pasted URL into a Search Address, or reports that the paste is a plain website.
-- [ ] All four real-shop pastes in the Notes derive the correct Search Address.
-- [ ] No parameter name, path segment or search-word vocabulary appears anywhere in the derivation.
-- [ ] Search parameters named in German, French, Polish and Korean derive correctly, as does a term in a trailing path segment.
-- [ ] A Cyrillic and a Hangul search term are both recognised as typed values.
-- [ ] A URL whose parameters are only ids, page numbers, sort keys and locale tags derives nothing and is treated as a plain website.
-- [ ] Where two values qualify, the better-ranked one is offered in the preview rather than the first one found.
-- [ ] Resolving a Search Address URL-encodes the term; spaces, slashes and ampersands round-trip.
-- [ ] The store create and edit forms take one pasted link, show the resolved preview, and keep the field editable.
-- [ ] A Store with neither column behaves exactly as a Store does today, everywhere it is used.
-- [ ] The tRPC surface validates the address (parseable URL, http/https only) and rejects anything else with a typed error.
+- [x] `stores` gains nullable `website` and `search_address` columns with a migration.
+- [x] A pure derivation function turns a pasted URL into a Search Address, or reports that the paste is a plain website.
+- [x] All four real-shop pastes in the Notes derive the correct Search Address.
+- [x] No parameter name, path segment or search-word vocabulary appears anywhere in the derivation.
+- [x] Search parameters named in German, French, Polish and Korean derive correctly, as does a term in a trailing path segment.
+- [x] A Cyrillic and a Hangul search term are both recognised as typed values.
+- [x] A URL whose parameters are only ids, page numbers, sort keys and locale tags derives nothing and is treated as a plain website.
+- [x] Where two values qualify, the better-ranked one is offered in the preview rather than the first one found.
+- [x] Resolving a Search Address URL-encodes the term; spaces, slashes and ampersands round-trip.
+- [x] The store create and edit forms take one pasted link, show the resolved preview, and keep the field editable.
+- [x] A Store with neither column behaves exactly as a Store does today, everywhere it is used.
+- [x] The tRPC surface validates the address (parseable URL, http/https only) and rejects anything else with a typed error.

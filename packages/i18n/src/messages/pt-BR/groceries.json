@@ -49,7 +49,16 @@
     "deleteItems": "Excluir itens",
     "deleteItemsDescription": "Remover todos os itens desta loja",
     "noItems": "Esta loja não tem itens.",
-    "create": "Criar"
+    "create": "Criar",
+    "shopLink": "Link da loja",
+    "shopLinkPlaceholder": "https://exemplo.com.br",
+    "shopLinkHint": "Cole o site da loja, ou uma busca que você acabou de fazer nela.",
+    "searchAddressFound": "O Norish vai buscar nesta loja com:",
+    "searchAddressExample": "Por exemplo: {url}",
+    "websiteOnly": "Salvo como site da loja. O Norish vai procurar a página de busca.",
+    "searchAddressManualHint": "Você também pode colar um endereço de busca, com {placeholder} onde vai o termo.",
+    "linkInvalid": "Isso não parece um endereço da web.",
+    "sampleTerm": "leite"
   },
   "panel": {
     "addTitle": "Adicionar item",

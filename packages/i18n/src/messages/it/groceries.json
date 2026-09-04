@@ -49,7 +49,16 @@
     "deleteItems": "Elimina articoli",
     "deleteItemsDescription": "Rimuovi tutti gli articoli in questo negozio",
     "noItems": "Questo negozio non ha articoli.",
-    "create": "Crea"
+    "create": "Crea",
+    "shopLink": "Link del negozio",
+    "shopLinkPlaceholder": "https://esempio.it",
+    "shopLinkHint": "Incolla il sito del negozio, o una ricerca che hai appena fatto lì.",
+    "searchAddressFound": "Norish cercherà in questo negozio con:",
+    "searchAddressExample": "Per esempio: {url}",
+    "websiteOnly": "Salvato come sito del negozio. Norish cercherà la sua pagina di ricerca.",
+    "searchAddressManualHint": "Puoi anche incollare tu stesso un indirizzo di ricerca, con {placeholder} al posto del termine.",
+    "linkInvalid": "Non sembra un indirizzo web.",
+    "sampleTerm": "latte"
   },
   "panel": {
     "addTitle": "Aggiungi articolo",

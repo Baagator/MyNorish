@@ -49,7 +49,16 @@
     "deleteItems": "Usuń produkty",
     "deleteItemsDescription": "Usuń wszystkie produkty ze sklepu",
     "noItems": "Ten sklep nie ma produktów.",
-    "create": "Utwórz"
+    "create": "Utwórz",
+    "shopLink": "Link do sklepu",
+    "shopLinkPlaceholder": "https://przyklad.pl",
+    "shopLinkHint": "Wklej stronę sklepu albo wyszukiwanie, które właśnie tam wykonano.",
+    "searchAddressFound": "Norish będzie szukać w tym sklepie przez:",
+    "searchAddressExample": "Na przykład: {url}",
+    "websiteOnly": "Zapisano jako stronę sklepu. Norish poszuka jego strony wyszukiwania.",
+    "searchAddressManualHint": "Możesz też sam wkleić adres wyszukiwania, z {placeholder} w miejscu hasła.",
+    "linkInvalid": "To nie wygląda na adres internetowy.",
+    "sampleTerm": "mleko"
   },
   "panel": {
     "addTitle": "Dodaj zakup",

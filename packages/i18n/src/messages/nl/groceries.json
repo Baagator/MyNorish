@@ -49,7 +49,16 @@
     "deleteItems": "Items verwijderen",
     "deleteItemsDescription": "Verwijder alle items in deze winkel",
     "noItems": "Deze winkel heeft geen items.",
-    "create": "Aanmaken"
+    "create": "Aanmaken",
+    "shopLink": "Winkellink",
+    "shopLinkPlaceholder": "https://voorbeeld.nl",
+    "shopLinkHint": "Plak de website van de winkel, of een zoekopdracht die je er net deed.",
+    "searchAddressFound": "Norish zoekt in deze winkel met:",
+    "searchAddressExample": "Bijvoorbeeld: {url}",
+    "websiteOnly": "Opgeslagen als de website van de winkel. Norish zoekt de zoekpagina op.",
+    "searchAddressManualHint": "Je kunt ook zelf een zoekadres plakken, met {placeholder} waar de zoekterm komt.",
+    "linkInvalid": "Dat lijkt geen webadres.",
+    "sampleTerm": "melk"
   },
   "panel": {
     "addTitle": "Boodschap toevoegen",

@@ -50,6 +50,8 @@ export async function createStoreData(
     color: input.color ?? "primary",
     icon: input.icon ?? "ShoppingBagIcon",
     sortOrder: 0,
+    website: input.website ?? null,
+    searchAddress: input.searchAddress ?? null,
   };
 
   const createdStore = await createStore(storeId, storeData);

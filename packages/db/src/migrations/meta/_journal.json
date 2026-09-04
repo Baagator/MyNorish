@@ -309,6 +309,13 @@
       "when": 1788354876718,
       "tag": "0043_site_auth_token_account",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1788517874841,
+      "tag": "0044_store_search_address",
+      "breakpoints": true
     }
   ]
 }

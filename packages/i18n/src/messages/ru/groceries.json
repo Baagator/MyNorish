@@ -49,7 +49,16 @@
     "deleteItems": "Удалить позиции",
     "deleteItemsDescription": "Удалить все позиции из этого магазина",
     "noItems": "В этом магазине нет позиций.",
-    "create": "Создать"
+    "create": "Создать",
+    "shopLink": "Ссылка на магазин",
+    "shopLinkPlaceholder": "https://primer.ru",
+    "shopLinkHint": "Вставьте сайт магазина или поиск, который вы там только что сделали.",
+    "searchAddressFound": "Norish будет искать в этом магазине по адресу:",
+    "searchAddressExample": "Например: {url}",
+    "websiteOnly": "Сохранено как сайт магазина. Norish поищет страницу поиска.",
+    "searchAddressManualHint": "Вы также можете сами вставить адрес поиска, поставив {placeholder} на месте запроса.",
+    "linkInvalid": "Это не похоже на веб-адрес.",
+    "sampleTerm": "молоко"
   },
   "panel": {
     "addTitle": "Добавить позицию",

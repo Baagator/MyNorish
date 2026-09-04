@@ -49,7 +49,16 @@
     "deleteItems": "Slett varer",
     "deleteItemsDescription": "Fjern alle varer i denne butikken",
     "noItems": "Denne butikken har ingen varer.",
-    "create": "Opprett"
+    "create": "Opprett",
+    "shopLink": "Butikklenke",
+    "shopLinkPlaceholder": "https://eksempel.no",
+    "shopLinkHint": "Lim inn butikkens nettsted, eller et søk du nettopp gjorde der.",
+    "searchAddressFound": "Norish søker i denne butikken med:",
+    "searchAddressExample": "For eksempel: {url}",
+    "websiteOnly": "Lagret som butikkens nettsted. Norish leter etter søkesiden.",
+    "searchAddressManualHint": "Du kan også lime inn en søkeadresse selv, med {placeholder} der søkeordet skal stå.",
+    "linkInvalid": "Det ser ikke ut som en nettadresse.",
+    "sampleTerm": "melk"
   },
   "panel": {
     "addTitle": "Legg til handlevare",

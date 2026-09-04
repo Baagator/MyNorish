@@ -49,7 +49,16 @@
     "deleteItems": "Eliminar productos",
     "deleteItemsDescription": "Eliminar todos los productos de esta tienda",
     "noItems": "Esta tienda no tiene productos.",
-    "create": "Crear"
+    "create": "Crear",
+    "shopLink": "Enlace de la tienda",
+    "shopLinkPlaceholder": "https://ejemplo.es",
+    "shopLinkHint": "Pega el sitio web de la tienda, o una búsqueda que acabas de hacer allí.",
+    "searchAddressFound": "Norish buscará en esta tienda con:",
+    "searchAddressExample": "Por ejemplo: {url}",
+    "websiteOnly": "Guardado como el sitio web de la tienda. Norish buscará su página de búsqueda.",
+    "searchAddressManualHint": "También puedes pegar tú mismo una dirección de búsqueda, con {placeholder} donde va el término.",
+    "linkInvalid": "Eso no parece una dirección web.",
+    "sampleTerm": "leche"
   },
   "panel": {
     "addTitle": "Añadir producto",

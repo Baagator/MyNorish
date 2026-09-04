@@ -49,7 +49,16 @@
     "deleteItems": "Изтрий продуктите",
     "deleteItemsDescription": "Премахни всички продукти в този магазин",
     "noItems": "Този магазин няма продукти.",
-    "create": "Създай"
+    "create": "Създай",
+    "shopLink": "Връзка към магазина",
+    "shopLinkPlaceholder": "https://primer.bg",
+    "shopLinkHint": "Поставете сайта на магазина или търсене, което току-що направихте там.",
+    "searchAddressFound": "Norish ще търси в този магазин чрез:",
+    "searchAddressExample": "Например: {url}",
+    "websiteOnly": "Запазено като сайт на магазина. Norish ще потърси страницата за търсене.",
+    "searchAddressManualHint": "Можете и сами да поставите адрес за търсене, с {placeholder} на мястото на думата.",
+    "linkInvalid": "Това не прилича на уеб адрес.",
+    "sampleTerm": "мляко"
   },
   "panel": {
     "addTitle": "Добавяне на продукт",

@@ -49,7 +49,16 @@
     "deleteItems": "Supprimer les articles",
     "deleteItemsDescription": "Supprimer tous les articles de ce magasin",
     "noItems": "Ce magasin n'a aucun article.",
-    "create": "Créer"
+    "create": "Créer",
+    "shopLink": "Lien de la boutique",
+    "shopLinkPlaceholder": "https://exemple.fr",
+    "shopLinkHint": "Collez le site de la boutique, ou une recherche que vous venez d'y faire.",
+    "searchAddressFound": "Norish cherchera dans cette boutique avec :",
+    "searchAddressExample": "Par exemple : {url}",
+    "websiteOnly": "Enregistré comme site de la boutique. Norish cherchera sa page de recherche.",
+    "searchAddressManualHint": "Vous pouvez aussi coller vous-même une adresse de recherche, avec {placeholder} à la place du terme.",
+    "linkInvalid": "Cela ne ressemble pas à une adresse web.",
+    "sampleTerm": "lait"
   },
   "panel": {
     "addTitle": "Ajouter un article",
