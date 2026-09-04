@@ -58,7 +58,13 @@
     "websiteOnly": "Запазено като сайт на магазина. Norish ще потърси страницата за търсене.",
     "searchAddressManualHint": "Можете и сами да поставите адрес за търсене, с {placeholder} на мястото на думата.",
     "linkInvalid": "Това не прилича на уеб адрес.",
-    "sampleTerm": "мляко"
+    "sampleTerm": "мляко",
+    "checkingShop": "Проверяваме {store}…",
+    "checkFoundProducts": "{store} отговори с {count, plural, one {# продукт с цена} other {# продукта с цена}}.",
+    "checkNoProducts": "{store} отговори, но Norish не намери цени там.",
+    "checkAnswered": "{store} отговори. Norish ще търси там, когато добавите покупка.",
+    "checkNoAnswer": "{store} не отговори. Адресът за търсене може да е грешен.",
+    "checkNoAddress": "Norish не намери страница за търсене за {store}. Поставете търсене, което сте направили там."
   },
   "panel": {
     "addTitle": "Добавяне на продукт",

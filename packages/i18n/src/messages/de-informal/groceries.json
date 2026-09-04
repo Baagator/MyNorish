@@ -58,7 +58,13 @@
     "websiteOnly": "Als Website des Shops gespeichert. Norish sucht nach der Suchseite.",
     "searchAddressManualHint": "Du kannst auch selbst eine Suchadresse einfügen, mit {placeholder} an der Stelle des Suchbegriffs.",
     "linkInvalid": "Das sieht nicht nach einer Webadresse aus.",
-    "sampleTerm": "Milch"
+    "sampleTerm": "Milch",
+    "checkingShop": "{store} wird geprüft…",
+    "checkFoundProducts": "{store} antwortete mit {count, plural, one {# Produkt mit Preis} other {# Produkten mit Preis}}.",
+    "checkNoProducts": "{store} antwortete, aber Norish fand dort keine Preise.",
+    "checkAnswered": "{store} antwortete. Norish sucht dort, sobald du eine Ware hinzufügst.",
+    "checkNoAnswer": "{store} antwortete nicht. Die Suchadresse stimmt möglicherweise nicht.",
+    "checkNoAddress": "Norish fand keine Suchseite für {store}. Füge eine Suche ein, die du dort ausgeführt hast."
   },
   "panel": {
     "addTitle": "Einkauf hinzufügen",

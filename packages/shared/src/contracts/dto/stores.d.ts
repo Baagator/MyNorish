@@ -8,6 +8,7 @@ import type {
   StoreDeleteSchema,
   StoreInsertBaseSchema,
   StoreReorderSchema,
+  StoreSearchAddressCheckSchema,
   StoreSelectBaseSchema,
   StoreUpdateBaseSchema,
   StoreUpdateInputSchema,
@@ -22,6 +23,7 @@ export type StoreDeleteInput = z.infer<typeof StoreDeleteSchema> & {
   grocerySnapshot: Array<{ id: string; version: number }>;
 };
 export type StoreReorderInput = z.infer<typeof StoreReorderSchema>;
+export type StoreSearchAddressCheckInput = z.infer<typeof StoreSearchAddressCheckSchema>;
 export type StoreColor = z.infer<typeof StoreColorSchema>;
 
 export type IngredientStorePreferenceDto = z.output<typeof IngredientStorePreferenceSelectSchema>;

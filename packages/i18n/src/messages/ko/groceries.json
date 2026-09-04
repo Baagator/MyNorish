@@ -58,7 +58,13 @@
     "websiteOnly": "상점 웹사이트로 저장했습니다. Norish가 검색 페이지를 찾아봅니다.",
     "searchAddressManualHint": "검색 주소를 직접 붙여넣을 수도 있습니다. 검색어 자리에 {placeholder}를 넣으세요.",
     "linkInvalid": "웹 주소처럼 보이지 않습니다.",
-    "sampleTerm": "우유"
+    "sampleTerm": "우유",
+    "checkingShop": "{store} 확인 중…",
+    "checkFoundProducts": "{store}에서 가격이 있는 상품 {count}개를 찾았습니다.",
+    "checkNoProducts": "{store}는 응답했지만 Norish가 가격을 찾지 못했습니다.",
+    "checkAnswered": "{store}가 응답했습니다. 장보기를 추가하면 Norish가 검색합니다.",
+    "checkNoAnswer": "{store}가 응답하지 않았습니다. 검색 주소가 틀렸을 수 있습니다.",
+    "checkNoAddress": "{store}의 검색 페이지를 찾지 못했습니다. 그곳에서 한 검색을 붙여넣으세요."
   },
   "panel": {
     "addTitle": "장보기 추가",

@@ -58,7 +58,13 @@
     "websiteOnly": "Lagret som butikkens nettsted. Norish leter etter søkesiden.",
     "searchAddressManualHint": "Du kan også lime inn en søkeadresse selv, med {placeholder} der søkeordet skal stå.",
     "linkInvalid": "Det ser ikke ut som en nettadresse.",
-    "sampleTerm": "melk"
+    "sampleTerm": "melk",
+    "checkingShop": "Sjekker {store}…",
+    "checkFoundProducts": "{store} svarte med {count, plural, one {# produkt med pris} other {# produkter med pris}}.",
+    "checkNoProducts": "{store} svarte, men Norish fant ingen priser der.",
+    "checkAnswered": "{store} svarte. Norish søker der når du legger til en vare.",
+    "checkNoAnswer": "{store} svarte ikke. Søkeadressen kan være feil.",
+    "checkNoAddress": "Norish fant ingen søkeside for {store}. Lim inn et søk du gjorde der."
   },
   "panel": {
     "addTitle": "Legg til handlevare",

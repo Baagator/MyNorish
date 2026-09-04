@@ -58,7 +58,13 @@
     "websiteOnly": "Сохранено как сайт магазина. Norish поищет страницу поиска.",
     "searchAddressManualHint": "Вы также можете сами вставить адрес поиска, поставив {placeholder} на месте запроса.",
     "linkInvalid": "Это не похоже на веб-адрес.",
-    "sampleTerm": "молоко"
+    "sampleTerm": "молоко",
+    "checkingShop": "Проверяем {store}…",
+    "checkFoundProducts": "{store} ответил: {count, plural, one {# товар с ценой} few {# товара с ценой} many {# товаров с ценой} other {# товара с ценой}}.",
+    "checkNoProducts": "{store} ответил, но Norish не нашёл там цен.",
+    "checkAnswered": "{store} ответил. Norish поищет там, когда вы добавите покупку.",
+    "checkNoAnswer": "{store} не ответил. Адрес поиска может быть неверным.",
+    "checkNoAddress": "Norish не нашёл страницу поиска для {store}. Вставьте поиск, который вы там сделали."
   },
   "panel": {
     "addTitle": "Добавить позицию",

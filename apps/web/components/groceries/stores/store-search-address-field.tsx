@@ -24,13 +24,17 @@ interface StoreSearchAddressFieldProps {
 export function storeLinkFields(value: string): {
   website: string | null;
   searchAddress: string | null;
+  /** The term the paste carried, which is what the shop is probed with. */
+  term: string | null;
 } {
   const derived = deriveSearchAddress(value);
 
-  if (!derived) return { website: null, searchAddress: null };
-  if (derived.kind === "website") return { website: derived.website, searchAddress: null };
+  if (!derived) return { website: null, searchAddress: null, term: null };
+  if (derived.kind === "website") {
+    return { website: derived.website, searchAddress: null, term: null };
+  }
 
-  return { website: derived.website, searchAddress: derived.searchAddress };
+  return { website: derived.website, searchAddress: derived.searchAddress, term: derived.term };
 }
 
 /** The Search Address with its slot set apart from the address around it. */

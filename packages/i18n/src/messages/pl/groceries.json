@@ -58,7 +58,13 @@
     "websiteOnly": "Zapisano jako stronę sklepu. Norish poszuka jego strony wyszukiwania.",
     "searchAddressManualHint": "Możesz też sam wkleić adres wyszukiwania, z {placeholder} w miejscu hasła.",
     "linkInvalid": "To nie wygląda na adres internetowy.",
-    "sampleTerm": "mleko"
+    "sampleTerm": "mleko",
+    "checkingShop": "Sprawdzanie {store}…",
+    "checkFoundProducts": "{store} odpowiedział: {count, plural, one {# produkt z ceną} few {# produkty z ceną} many {# produktów z ceną} other {# produktu z ceną}}.",
+    "checkNoProducts": "{store} odpowiedział, ale Norish nie znalazł tam cen.",
+    "checkAnswered": "{store} odpowiedział. Norish poszuka tam, gdy dodasz zakup.",
+    "checkNoAnswer": "{store} nie odpowiedział. Adres wyszukiwania może być błędny.",
+    "checkNoAddress": "Norish nie znalazł strony wyszukiwania dla {store}. Wklej wyszukiwanie, które tam wykonano."
   },
   "panel": {
     "addTitle": "Dodaj zakup",

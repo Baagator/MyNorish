@@ -1,6 +1,11 @@
 import { useMutation } from "@tanstack/react-query";
 
-import type { StoreCreateDto, StoreDeleteInput, StoreDto } from "@norish/shared/contracts";
+import type {
+  StoreCreateDto,
+  StoreDeleteInput,
+  StoreDto,
+  StoreSearchAddressResult,
+} from "@norish/shared/contracts";
 import { createClientId } from "@norish/shared/lib/operation-helpers";
 
 import type {
@@ -37,6 +42,7 @@ export function createUseStoresMutations({
     const updateMutation = useMutation(trpc.stores.update.mutationOptions());
     const deleteMutation = useMutation(trpc.stores.delete.mutationOptions());
     const reorderMutation = useMutation(trpc.stores.reorder.mutationOptions());
+    const checkMutation = useMutation(trpc.stores.checkSearchAddress.mutationOptions());
 
     const createStore = (data: StoreCreateDto): Promise<string> => {
       // Client-minted id, honoured on insert so a queued offline create stays
@@ -149,11 +155,27 @@ export function createUseStoresMutations({
       );
     };
 
+    /**
+     * Ask a Store's shop whether Norish can search it. It never gates a save:
+     * the Store is already stored by the time this is asked, and the answer
+     * is something to tell the user rather than something to act on.
+     */
+    const checkSearchAddress = (
+      storeId: string,
+      term: string | null
+    ): Promise<StoreSearchAddressResult> =>
+      checkMutation.mutateAsync({ storeId, term }).then((result) => {
+        invalidate();
+
+        return result;
+      });
+
     return {
       createStore,
       updateStore,
       deleteStore,
       reorderStores,
+      checkSearchAddress,
       isCreating: createMutation.isPending,
       isUpdating: updateMutation.isPending,
       isDeleting: deleteMutation.isPending,

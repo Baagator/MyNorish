@@ -58,7 +58,13 @@
     "websiteOnly": "Enregistré comme site de la boutique. Norish cherchera sa page de recherche.",
     "searchAddressManualHint": "Vous pouvez aussi coller vous-même une adresse de recherche, avec {placeholder} à la place du terme.",
     "linkInvalid": "Cela ne ressemble pas à une adresse web.",
-    "sampleTerm": "lait"
+    "sampleTerm": "lait",
+    "checkingShop": "Vérification de {store}…",
+    "checkFoundProducts": "{store} a répondu avec {count, plural, one {# produit avec un prix} other {# produits avec un prix}}.",
+    "checkNoProducts": "{store} a répondu, mais Norish n'y a trouvé aucun prix.",
+    "checkAnswered": "{store} a répondu. Norish y cherchera dès que vous ajouterez une course.",
+    "checkNoAnswer": "{store} n'a pas répondu. L'adresse de recherche est peut-être fausse.",
+    "checkNoAddress": "Norish n'a pas trouvé de page de recherche pour {store}. Collez une recherche que vous y avez faite."
   },
   "panel": {
     "addTitle": "Ajouter un article",

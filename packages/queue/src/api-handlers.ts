@@ -1,4 +1,4 @@
-import type { RecipeCategory, Slot } from "@norish/shared/contracts";
+import type { RecipeCategory, SearchAddressCheck, Slot } from "@norish/shared/contracts";
 import type { FullRecipeInsertDTO } from "@norish/shared/contracts/dto/recipe";
 import type { SiteAuthTokenDecryptedDto } from "@norish/shared/contracts/dto/site-auth-tokens";
 
@@ -58,6 +58,10 @@ export interface QueueApiHandlers {
   cleanupOrphanedAvatars(): Promise<QueueMediaCleanupResult>;
   cleanupOrphanedStepImages(): Promise<QueueMediaCleanupResult>;
   cleanupOldTempFiles(maxAgeMs?: number): Promise<void>;
+  /** The Search Address a shop's own homepage states, or nothing. */
+  discoverSearchAddress(website: string): Promise<string | null>;
+  /** Whether a Search Address works, asked with the user's own term. */
+  verifySearchAddress(searchAddress: string, term: string | null): Promise<SearchAddressCheck>;
 }
 
 const globalForQueueApiHandlers = globalThis as typeof globalThis & {

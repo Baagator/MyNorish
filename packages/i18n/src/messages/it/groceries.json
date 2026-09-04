@@ -58,7 +58,13 @@
     "websiteOnly": "Salvato come sito del negozio. Norish cercherà la sua pagina di ricerca.",
     "searchAddressManualHint": "Puoi anche incollare tu stesso un indirizzo di ricerca, con {placeholder} al posto del termine.",
     "linkInvalid": "Non sembra un indirizzo web.",
-    "sampleTerm": "latte"
+    "sampleTerm": "latte",
+    "checkingShop": "Controllo di {store}…",
+    "checkFoundProducts": "{store} ha risposto con {count, plural, one {# prodotto con prezzo} other {# prodotti con prezzo}}.",
+    "checkNoProducts": "{store} ha risposto, ma Norish non ci ha trovato prezzi.",
+    "checkAnswered": "{store} ha risposto. Norish cercherà lì quando aggiungi una spesa.",
+    "checkNoAnswer": "{store} non ha risposto. L'indirizzo di ricerca potrebbe essere sbagliato.",
+    "checkNoAddress": "Norish non ha trovato una pagina di ricerca per {store}. Incolla una ricerca che hai fatto lì."
   },
   "panel": {
     "addTitle": "Aggiungi articolo",

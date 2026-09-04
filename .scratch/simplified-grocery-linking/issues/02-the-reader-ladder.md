@@ -1,6 +1,6 @@
 # 02 — Reading a shop page without a model
 
-Status: ready-for-agent
+Status: ready-for-human
 Blocked by: 01
 
 Spec: `.scratch/simplified-grocery-linking/spec.md`
@@ -37,15 +37,15 @@ Obscura is reached exactly as the import path reaches it; do not add a second co
 
 ## Acceptance criteria
 
-- [ ] `readSearchResults` returns 198 priced candidates from the Dirk fixture, each with a name, an absolute URL and a price.
-- [ ] `readSearchResults` returns 36 candidates from the AH fixture with prices taken from `aria-label`.
-- [ ] `readProduct` reads `7.99` and `EUR` from the Dirk product fixture, proving case-insensitive key matching.
-- [ ] European price formats and a thousands separator all parse to the right number.
-- [ ] Relative product URLs resolve against the page's base URL.
-- [ ] The fetcher escalates to Obscura on 403, on a challenge-shaped body, and on zero candidates, and not otherwise.
-- [ ] With Obscura unconfigured, a plain-fetchable shop still reads and an Obscura-only shop fails without throwing.
-- [ ] Pasting a homepage discovers a Search Address via OpenSearch or a search form, and reports failure as a normal outcome.
-- [ ] Discovery finds the slot in a form whose input name is in a language the code has no word for, via `role="search"` or `type="search"`.
-- [ ] Verification probes with the term the user's own paste contained, and never with a hardcoded English word.
-- [ ] An address discovered from a homepage, with no known term, verifies as "the shop answered" rather than reporting a count of zero.
-- [ ] Saving a Search Address verifies it and reports a candidate count, no products, or no answer — and saves either way.
+- [x] `readSearchResults` returns 198 priced candidates from the Dirk fixture, each with a name, an absolute URL and a price.
+- [x] `readSearchResults` returns 36 candidates from the AH fixture with prices taken from `aria-label`.
+- [x] `readProduct` reads `7.99` and `EUR` from the Dirk product fixture, proving case-insensitive key matching.
+- [x] European price formats and a thousands separator all parse to the right number.
+- [x] Relative product URLs resolve against the page's base URL.
+- [x] The fetcher escalates to Obscura on 403, on a challenge-shaped body, and on zero candidates, and not otherwise.
+- [x] With Obscura unconfigured, a plain-fetchable shop still reads and an Obscura-only shop fails without throwing.
+- [x] Pasting a homepage discovers a Search Address via OpenSearch or a search form, and reports failure as a normal outcome.
+- [x] Discovery finds the slot in a form whose input name is in a language the code has no word for, via `role="search"` or `type="search"`.
+- [x] Verification probes with the term the user's own paste contained, and never with a hardcoded English word.
+- [x] An address discovered from a homepage, with no known term, verifies as "the shop answered" rather than reporting a count of zero.
+- [x] Saving a Search Address verifies it and reports a candidate count, no products, or no answer — and saves either way.

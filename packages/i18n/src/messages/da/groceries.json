@@ -58,7 +58,13 @@
     "websiteOnly": "Gemt som butikkens hjemmeside. Norish leder efter søgesiden.",
     "searchAddressManualHint": "Du kan også selv indsætte en søgeadresse, med {placeholder} hvor søgeordet skal stå.",
     "linkInvalid": "Det ligner ikke en webadresse.",
-    "sampleTerm": "mælk"
+    "sampleTerm": "mælk",
+    "checkingShop": "Tjekker {store}…",
+    "checkFoundProducts": "{store} svarede med {count, plural, one {# produkt med pris} other {# produkter med pris}}.",
+    "checkNoProducts": "{store} svarede, men Norish fandt ingen priser der.",
+    "checkAnswered": "{store} svarede. Norish søger der, når du tilføjer en vare.",
+    "checkNoAnswer": "{store} svarede ikke. Søgeadressen er måske forkert.",
+    "checkNoAddress": "Norish fandt ingen søgeside for {store}. Indsæt en søgning, du har lavet der."
   },
   "panel": {
     "addTitle": "Tilføj indkøbsvare",

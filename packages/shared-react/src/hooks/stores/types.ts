@@ -1,7 +1,12 @@
 import type { QueryKey } from "@tanstack/react-query";
 import type { createTRPCContext } from "@trpc/tanstack-react-query";
 
-import type { StoreCreateDto, StoreDto, StoreUpdateInput } from "@norish/shared/contracts";
+import type {
+  StoreCreateDto,
+  StoreDto,
+  StoreSearchAddressResult,
+  StoreUpdateInput,
+} from "@norish/shared/contracts";
 import type { AppRouter } from "@norish/trpc/client";
 
 type TrpcContext = ReturnType<typeof createTRPCContext<AppRouter>>;
@@ -35,6 +40,7 @@ export type StoresMutationsResult = {
     grocerySnapshot: StoreGrocerySnapshot
   ) => void;
   reorderStores: (storeIds: string[]) => void;
+  checkSearchAddress: (storeId: string, term: string | null) => Promise<StoreSearchAddressResult>;
   isCreating: boolean;
   isUpdating: boolean;
   isDeleting: boolean;

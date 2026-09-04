@@ -16,7 +16,7 @@ import { Input, Label, TextField } from "@heroui/react";
 import { Reorder, useDragControls } from "motion/react";
 import { useTranslations } from "next-intl";
 
-import type { StoreColor, StoreDto } from "@norish/shared/contracts";
+import type { StoreColor, StoreDto, StoreSearchAddressResult } from "@norish/shared/contracts";
 
 import { DeleteStoreModal } from "./delete-store-modal";
 import { storeLinkFields, StoreSearchAddressField } from "./store-search-address-field";
@@ -34,12 +34,17 @@ type EditingStore = {
   /** What the user pasted: the shop's website, or a search they ran there. */
   link: string;
 };
+/** What the shop said when its Search Address was last tried, if it was. */
+type ShopCheck = { storeName: string; result: StoreSearchAddressResult | null };
+
 export function StoreManagerPanel({ open, onOpenChange, stores }: StoreManagerPanelProps) {
-  const { createStore, updateStore, deleteStore, reorderStores } = useStoresMutations();
+  const { createStore, updateStore, deleteStore, reorderStores, checkSearchAddress } =
+    useStoresMutations();
   const { groceries } = useGroceriesQuery();
   const t = useTranslations("groceries.storeManager");
   const tActions = useTranslations("common.actions");
   const [editingStore, setEditingStore] = useState<EditingStore | null>(null);
+  const [shopCheck, setShopCheck] = useState<ShopCheck | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [storeToDelete, setStoreToDelete] = useState<{
     id: string;
@@ -67,13 +72,16 @@ export function StoreManagerPanel({ open, onOpenChange, stores }: StoreManagerPa
   const handleSave = async () => {
     if (!editingStore || !editingStore.name.trim()) return;
 
-    const { website, searchAddress } = storeLinkFields(editingStore.link);
+    const { website, searchAddress, term } = storeLinkFields(editingStore.link);
+    const storeName = editingStore.name.trim();
+
+    let savedId = editingStore.id;
 
     if (editingStore.id) {
       // Update existing store
       updateStore({
         id: editingStore.id,
-        name: editingStore.name.trim(),
+        name: storeName,
         color: editingStore.color,
         icon: editingStore.icon,
         website,
@@ -81,8 +89,8 @@ export function StoreManagerPanel({ open, onOpenChange, stores }: StoreManagerPa
       });
     } else {
       // Create new store
-      await createStore({
-        name: editingStore.name.trim(),
+      savedId = await createStore({
+        name: storeName,
         color: editingStore.color,
         icon: editingStore.icon,
         website,
@@ -90,6 +98,14 @@ export function StoreManagerPanel({ open, onOpenChange, stores }: StoreManagerPa
       });
     }
     setEditingStore(null);
+    // Verification informs, it never gates: the Store is stored by now, and
+    // this only tells the user what the address it was given actually found.
+    if (savedId && (website ?? searchAddress)) {
+      setShopCheck({ storeName, result: null });
+      checkSearchAddress(savedId, term)
+        .then((result) => setShopCheck({ storeName, result }))
+        .catch(() => setShopCheck(null));
+    }
   };
   const handleCancel = () => {
     setEditingStore(null);
@@ -119,6 +135,8 @@ export function StoreManagerPanel({ open, onOpenChange, stores }: StoreManagerPa
     <>
       <Panel open={open} title={t("title")} onOpenChange={onOpenChange}>
         <Panel.Body>
+          {shopCheck && <ShopCheckLine check={shopCheck} />}
+
           {/* Store list */}
           <div ref={dragConstraintsRef} className="min-h-0 flex-1">
             {stores.length === 0 && !editingStore && (
@@ -205,6 +223,32 @@ export function StoreManagerPanel({ open, onOpenChange, stores }: StoreManagerPa
         onConfirm={handleDeleteConfirm}
       />
     </>
+  );
+}
+
+/** What the shop answered, in the user's own words rather than an error. */
+function ShopCheckLine({ check }: { check: ShopCheck }) {
+  const t = useTranslations("groceries.storeManager");
+  const { result } = check;
+  const message = !result
+    ? t("checkingShop", { store: check.storeName })
+    : result.outcome === "products"
+      ? t("checkFoundProducts", { store: check.storeName, count: result.count ?? 0 })
+      : result.outcome === "no-products"
+        ? t("checkNoProducts", { store: check.storeName })
+        : result.outcome === "answered"
+          ? t("checkAnswered", { store: check.storeName })
+          : result.outcome === "no-address"
+            ? t("checkNoAddress", { store: check.storeName })
+            : t("checkNoAnswer", { store: check.storeName });
+
+  return (
+    <p
+      className="text-muted bg-surface-secondary mb-2 rounded-lg p-3 text-sm"
+      data-testid="shop-check"
+    >
+      {message}
+    </p>
   );
 }
 

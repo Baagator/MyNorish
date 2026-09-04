@@ -82,6 +82,12 @@ export const StoreUpdateInputSchema = z.object({
   searchAddress: StoreSearchAddressSchema.nullish(),
 });
 
+// Asking a Store's shop whether its Search Address works, with the user's own term
+export const StoreSearchAddressCheckSchema = z.object({
+  storeId: z.uuid(),
+  term: z.string().max(200).nullish(),
+});
+
 // Store delete schema with snapshot-based grocery handling
 export const StoreDeleteSchema = z.object({
   storeId: z.uuid(),

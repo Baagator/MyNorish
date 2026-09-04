@@ -58,7 +58,13 @@
     "websiteOnly": "Opgeslagen als de website van de winkel. Norish zoekt de zoekpagina op.",
     "searchAddressManualHint": "Je kunt ook zelf een zoekadres plakken, met {placeholder} waar de zoekterm komt.",
     "linkInvalid": "Dat lijkt geen webadres.",
-    "sampleTerm": "melk"
+    "sampleTerm": "melk",
+    "checkingShop": "{store} wordt gecontroleerd…",
+    "checkFoundProducts": "{store} gaf {count, plural, one {# product met een prijs} other {# producten met een prijs}}.",
+    "checkNoProducts": "{store} antwoordde, maar Norish vond er geen prijzen.",
+    "checkAnswered": "{store} antwoordde. Norish zoekt er zodra je een boodschap toevoegt.",
+    "checkNoAnswer": "{store} antwoordde niet. Het zoekadres klopt misschien niet.",
+    "checkNoAddress": "Norish vond geen zoekpagina voor {store}. Plak een zoekopdracht die je er deed."
   },
   "panel": {
     "addTitle": "Boodschap toevoegen",

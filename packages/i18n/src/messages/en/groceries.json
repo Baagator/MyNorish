@@ -58,7 +58,13 @@
     "websiteOnly": "Saved as the shop's website. Norish will look for its search page.",
     "searchAddressManualHint": "You can also paste a search address yourself, with {placeholder} where the term goes.",
     "linkInvalid": "That does not look like a web address.",
-    "sampleTerm": "milk"
+    "sampleTerm": "milk",
+    "checkingShop": "Checking {store}…",
+    "checkFoundProducts": "{store} answered with {count, plural, one {# priced product} other {# priced products}}.",
+    "checkNoProducts": "{store} answered, but Norish found no prices there.",
+    "checkAnswered": "{store} answered. Norish will search it when you add a grocery.",
+    "checkNoAnswer": "{store} did not answer. The search address may be wrong.",
+    "checkNoAddress": "Norish could not find a search page for {store}. Paste a search you ran there."
   },
   "panel": {
     "addTitle": "Add Grocery",
