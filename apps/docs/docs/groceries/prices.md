@@ -71,18 +71,29 @@ exactly one product's name. Anything less certain is left to you.
 
 Which of the shop's products a grocery is, is a field of the grocery's own
 panel — beside its store, where it belongs. Open a grocery and the **Product**
-field reads whatever it is linked to now; type in it and Norish searches the
-shop, dropping down what came back with the price beside each one, together
-with the products this Store already knows.
+field reads whatever it is linked to now; open the dropdown and Norish asks the
+shop about the grocery's own name, or about whatever you type instead.
+
+The dropdown answers in two groups, because the two are not the same kind of
+fact. **Already known** is what this Store has stored from earlier — there
+instantly, no shop involved. **From the shop** is what the shop is answering
+right now, and while a slow supermarket is still being read that group says
+so, so you can see it working rather than guess.
 
 ![The product field in a grocery's panel, offering priced results from the shop](/img/screenshots/groceries-picker.png)
 
-Your choice shows in the field immediately, with what it costs underneath, and
-is written when you press **Save** or **Add** — nothing you do in the dropdown
-changes what your household sees until then. Norish asks the shop only once
+Picking one fills in the **Product name**, **Price** and **Currency** beneath
+it, so the panel says what this costs where it says everything else. Nothing is
+written until you press **Save** or **Add** — what you do in the dropdown
+changes nothing your household sees until then. Norish asks the shop only once
 you use the field, so opening a grocery to rename it sends nobody to a
 supermarket, and a Store with no shop link shows the field greyed out rather
 than pretending it can search.
+
+Those three fields are yours to correct. Type over the price and it becomes
+**your** price for that name at that Store: Norish never writes over a price it
+read from a shop's own page, so a correction sits beside what the shop said
+rather than through it.
 
 ### A shop Norish cannot read
 
@@ -97,7 +108,8 @@ ever overwrite it: a price you typed is the last word.
 
 Deliberately, for now:
 
-- no line totals or store totals, and no amount × price arithmetic;
+- no amount × price arithmetic: a Store's heading adds up one Shelf Price per
+  line still to buy, and a line the Store cannot price is left out of it;
 - no comparable unit prices (€/kg) and no pack-size conversion;
 - no sale badges, stock or availability;
 - no price history — a Shelf Price is overwritten and the one it replaces is
