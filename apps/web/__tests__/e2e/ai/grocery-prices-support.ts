@@ -55,3 +55,26 @@ export async function readStoredLink(
     await database.end();
   }
 }
+
+/** Which Store a grocery sits under, as the database has it. */
+export async function readGroceryStore(name: string): Promise<string | null> {
+  const database = new Client({ connectionString: databaseUrl() });
+
+  await database.connect();
+
+  try {
+    const rows = await database.query<{ name: string | null }>(
+      `select s.name
+         from groceries g
+         left join stores s on s.id = g.store_id
+        where g.name = $1
+        order by g.created_at desc
+        limit 1`,
+      [name]
+    );
+
+    return rows.rows[0]?.name ?? null;
+  } finally {
+    await database.end();
+  }
+}

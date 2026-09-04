@@ -42,6 +42,8 @@ function GroceryItemComponent({
   return (
     <div
       className={`bg-surface flex items-center gap-3 px-4 py-3 pl-10 ${roundedClass} ${hasSubtitle ? "min-h-[72px]" : "min-h-14"}`}
+      data-grocery-name={grocery.name ?? ""}
+      data-testid="grocery-row"
     >
       <GroceryCheckbox
         aria-label={grocery.name || t("unnamedItem")}

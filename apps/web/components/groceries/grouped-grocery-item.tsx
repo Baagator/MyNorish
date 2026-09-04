@@ -108,7 +108,11 @@ function GroupedGroceryItemComponent({
     : null;
 
   return (
-    <div className={`bg-surface ${roundedClass}`}>
+    <div
+      className={`bg-surface ${roundedClass}`}
+      data-grocery-name={group.displayName ?? ""}
+      data-testid="grocery-row"
+    >
       {/* Main row */}
       <div
         className={`flex items-center gap-3 px-4 py-3 ${

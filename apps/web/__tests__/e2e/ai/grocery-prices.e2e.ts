@@ -13,7 +13,7 @@ import type { Page } from "@playwright/test";
 import type { FakeShop } from "../harness/fake-shop";
 import { createFakeShop } from "../harness/fake-shop";
 import { expect, test } from "./fixture";
-import { createShopStore, readStoredLink } from "./grocery-prices-support";
+import { createShopStore, readGroceryStore, readStoredLink } from "./grocery-prices-support";
 
 test.describe.configure({ mode: "serial" });
 
@@ -53,6 +53,45 @@ async function addGroceryToShop(name: string): Promise<void> {
   // every assertion here is about.
   await page.getByRole("button", { name: "Close panel" }).click();
   await expect(page.getByRole("dialog")).toBeHidden();
+}
+
+/** One grocery's own row, whichever Store's section it is sitting in. */
+function rowFor(name: string) {
+  return page.locator(`[data-grocery-name="${name}"]`).first();
+}
+
+/** Move a grocery into another Store's section the way a shopper does. */
+async function dragGroceryToStore(name: string, storeName: string): Promise<void> {
+  // dnd-kit marks its own activator, which sits inside the row in the grouped
+  // list and just outside it in the plain one.
+  const row = rowFor(name);
+  const inside = row.locator("button[aria-roledescription]");
+  const handle =
+    (await inside.count()) > 0
+      ? inside.first()
+      : row.locator("xpath=..").locator("button[aria-roledescription]").first();
+  const target = page.locator(`[data-store-drop-target]`).filter({ hasText: storeName }).first();
+
+  // Both ends of the drag have to be on screen at once for the pointer to
+  // travel between them, and this list is longer than the default viewport.
+  await page.setViewportSize({ width: 1280, height: 1600 });
+  await handle.scrollIntoViewIfNeeded();
+
+  const from = await handle.boundingBox();
+  const to = await target.boundingBox();
+
+  if (!from || !to) throw new Error("The row or the Store's heading is not on screen");
+
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  // dnd-kit's pointer sensor waits for 8px before it calls this a drag.
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2 + 20, { steps: 5 });
+  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 25 });
+  await page.waitForTimeout(200);
+  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2 + 6, { steps: 5 });
+  await page.waitForTimeout(200);
+  await page.mouse.up();
+  await page.waitForTimeout(300);
 }
 
 test("a name the shop states unmistakably is priced without being asked", async () => {
@@ -188,4 +227,51 @@ test("a product chosen while adding is not overruled by the lookup queued for it
   await page.waitForTimeout(10_000);
 
   expect((await readStoredLink("kaasplakken"))?.productName).toBe("Roomboter 250 g");
+});
+
+test("a grocery dragged into another Store is priced there, on the list", async () => {
+  const second = "Second Shop";
+
+  await createShopStore(second, shop.url);
+  // A name no other scenario on this list uses, so every locator below is
+  // about one row and one grocery.
+  await page.goto("/groceries");
+  await addGroceryToShop("roomboter");
+
+  await expect(rowFor("roomboter").getByTestId("grocery-product")).toHaveText("Roomboter 250 g", {
+    timeout: 60_000,
+  });
+
+  // The same name means a different product at the other shop, chosen by hand
+  // there, so the two Stores hold different answers for one grocery name.
+  await page.getByText("roomboter", { exact: true }).first().click();
+  await page.locator("[data-slot='select-trigger']").click();
+  await page.getByRole("option", { name: second }).click();
+  await page.getByTestId("grocery-product-field").fill("brood");
+  await page.getByRole("option", { name: /Bruin brood/ }).click({ timeout: 30_000 });
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+
+  await expect(rowFor("roomboter").getByTestId("grocery-product")).toHaveText("Bruin brood", {
+    timeout: 30_000,
+  });
+
+  // A fresh list, which is how a shopper actually arrives at one: it carries
+  // what the Stores its groceries sit under know, and nothing about the Store
+  // this one is about to be dragged into.
+  await page.reload();
+  await expect(rowFor("roomboter").getByTestId("grocery-product")).toHaveText("Bruin brood", {
+    timeout: 30_000,
+  });
+
+  // Dragged back, the list must say what the first Store knows — without the
+  // shopper opening anything to make it look.
+  await dragGroceryToStore("roomboter", STORE_NAME);
+
+  await expect(page.getByRole("dialog")).toBeHidden();
+  await expect
+    .poll(async () => readGroceryStore("roomboter"), { timeout: 30_000 })
+    .toBe(STORE_NAME);
+  await expect(rowFor("roomboter").getByTestId("grocery-product")).toHaveText("Roomboter 250 g", {
+    timeout: 30_000,
+  });
 });
