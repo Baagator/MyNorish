@@ -26,7 +26,8 @@
     "storeActions": "Действия с магазином",
     "markAllDone": "Отметить всё как выполненное",
     "deleteDone": "Удалить выполненные",
-    "done": "{count, plural, one {# выполнено} few {# выполнено} many {# выполнено} other {# выполнено}}"
+    "done": "{count, plural, one {# выполнено} few {# выполнено} many {# выполнено} other {# выполнено}}",
+    "total": "Ещё купить"
   },
   "storeManager": {
     "title": "Управление магазинами",

@@ -26,7 +26,8 @@
     "storeActions": "Ações da loja",
     "markAllDone": "Marcar tudo como concluído",
     "deleteDone": "Excluir concluídos",
-    "done": "{count} concluído(s)"
+    "done": "{count} concluído(s)",
+    "total": "Ainda por comprar"
   },
   "storeManager": {
     "title": "Gerenciar lojas",

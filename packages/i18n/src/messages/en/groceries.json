@@ -26,7 +26,8 @@
     "storeActions": "Store actions",
     "markAllDone": "Mark all done",
     "deleteDone": "Delete done",
-    "done": "{count} done"
+    "done": "{count} done",
+    "total": "Still to buy"
   },
   "storeManager": {
     "title": "Manage Stores",

@@ -26,7 +26,8 @@
     "storeActions": "Actions du magasin",
     "markAllDone": "Tout marquer comme fait",
     "deleteDone": "Supprimer les articles faits",
-    "done": "{count} effectués"
+    "done": "{count} effectués",
+    "total": "Reste à acheter"
   },
   "storeManager": {
     "title": "Gérer les magasins",

@@ -26,7 +26,8 @@
     "storeActions": "Butikkhandlinger",
     "markAllDone": "Merk alle som ferdige",
     "deleteDone": "Slett ferdige",
-    "done": "{count} ferdige"
+    "done": "{count} ferdige",
+    "total": "Igjen å kjøpe"
   },
   "storeManager": {
     "title": "Administrer butikker",
