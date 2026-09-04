@@ -105,14 +105,14 @@
     "priceTitle": "Choisir un prix"
   },
   "prices": {
-    "pickPrice": "Ajouter un prix"
+    "pickPrice": "Ajouter un prix",
+    "changeProduct": "Lié à {product}. Choisissez un autre produit."
   },
   "picker": {
     "title": "Prix de {name}",
     "searchLabel": "Chercher dans {store}",
-    "searchPlaceholder": "Chercher autre chose",
+    "searchPlaceholder": "Tapez pour chercher dans la boutique",
     "searching": "Recherche dans {store}…",
-    "inThisStore": "Dans cette boutique",
     "nothingFound": "Norish n'a rien trouvé chez {store}. Vous pouvez saisir le prix vous-même.",
     "byHandName": "Nom du produit",
     "byHandPrice": "Prix",

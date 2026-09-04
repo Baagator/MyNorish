@@ -105,14 +105,14 @@
     "priceTitle": "Изберете цена"
   },
   "prices": {
-    "pickPrice": "Добавяне на цена"
+    "pickPrice": "Добавяне на цена",
+    "changeProduct": "Свързано с {product}. Изберете друг продукт."
   },
   "picker": {
     "title": "Цена за {name}",
     "searchLabel": "Търсене в {store}",
-    "searchPlaceholder": "Търсене на нещо друго",
+    "searchPlaceholder": "Пишете, за да търсите в магазина",
     "searching": "Търсим в {store}…",
-    "inThisStore": "В този магазин",
     "nothingFound": "Norish не намери нищо в {store}. Можете сами да въведете цената.",
     "byHandName": "Име на продукта",
     "byHandPrice": "Цена",

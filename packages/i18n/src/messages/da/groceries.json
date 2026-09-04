@@ -105,14 +105,14 @@
     "priceTitle": "Vælg en pris"
   },
   "prices": {
-    "pickPrice": "Tilføj en pris"
+    "pickPrice": "Tilføj en pris",
+    "changeProduct": "Knyttet til {product}. Vælg et andet produkt."
   },
   "picker": {
     "title": "Pris for {name}",
     "searchLabel": "Søg i {store}",
-    "searchPlaceholder": "Søg efter noget andet",
+    "searchPlaceholder": "Skriv for at søge i butikken",
     "searching": "Søger i {store}…",
-    "inThisStore": "I denne butik",
     "nothingFound": "Norish fandt intet hos {store}. Du kan selv skrive prisen.",
     "byHandName": "Produktnavn",
     "byHandPrice": "Pris",

@@ -98,6 +98,8 @@ test("captures the picker", async () => {
   await addGrocery("beleg");
   await expect(page.getByTestId("pick-price").first()).toBeVisible({ timeout: 90_000 });
   await page.getByTestId("pick-price").first().click();
-  await expect(page.getByTestId("picker-results")).toBeVisible({ timeout: 30_000 });
+  await page.getByTestId("picker-search").click();
+  await expect(page.getByRole("option").first()).toBeVisible({ timeout: 30_000 });
+  await page.waitForTimeout(400);
   await page.screenshot({ path: path.join(SHOTS, "groceries-picker.png") });
 });

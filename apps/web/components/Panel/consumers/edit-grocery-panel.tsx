@@ -123,6 +123,7 @@ export default function EditGroceryPanel({
             <ProductPicker
               choice={price.choice}
               groceryName={price.groceryName}
+              linkedProduct={price.linkedProduct}
               storeId={price.store.id}
               storeName={price.store.name}
               storeWebsite={price.store.website}

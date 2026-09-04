@@ -105,14 +105,14 @@
     "priceTitle": "Kies een prijs"
   },
   "prices": {
-    "pickPrice": "Prijs toevoegen"
+    "pickPrice": "Prijs toevoegen",
+    "changeProduct": "Gekoppeld aan {product}. Kies een ander product."
   },
   "picker": {
     "title": "Prijs voor {name}",
     "searchLabel": "Zoek in {store}",
-    "searchPlaceholder": "Zoek iets anders",
+    "searchPlaceholder": "Typ om in de winkel te zoeken",
     "searching": "Bezig met zoeken in {store}…",
-    "inThisStore": "In deze winkel",
     "nothingFound": "Norish vond niets bij {store}. Je kunt de prijs zelf typen.",
     "byHandName": "Productnaam",
     "byHandPrice": "Prijs",

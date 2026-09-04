@@ -9,12 +9,12 @@ import type { GroceryDto } from "@norish/shared/contracts";
 
 /**
  * What one pack of this grocery costs at its Store, as the shop last stated
- * it: "€2.99 · 150 gram", with the size left out where the shop states none.
- * There is no age line — at a twelve-hour ceiling the age is never
- * interesting.
+ * it, and which of the shop's products that price is for. There is no age line
+ * — at a twelve-hour ceiling the age is never interesting.
  *
- * An unpriced grocery in a Store Norish can search offers a way into the
- * picker instead. A Miss is not a failure, so it never reads as an error.
+ * Both states are a way into the picker: an unpriced Grocery to choose a
+ * product, a priced one to see what was chosen and change it. A Miss is not a
+ * failure, so neither ever reads as an error.
  */
 export function GroceryPrice({ grocery }: { grocery: GroceryDto }) {
   const { priceFor, stores } = useStoresContext();
@@ -22,32 +22,39 @@ export function GroceryPrice({ grocery }: { grocery: GroceryDto }) {
   const t = useTranslations("groceries.prices");
   const locale = useLocale();
   const product = priceFor(grocery.storeId, grocery.name);
-
-  if (product) {
-    return (
-      <span
-        className="text-muted shrink-0 text-xs tabular-nums"
-        data-grocery-price={product.id}
-        data-testid="grocery-price"
-      >
-        {formatShelfPrice(locale, product.price, product.currency)}
-        {product.size ? ` · ${product.size}` : ""}
-      </span>
-    );
-  }
-
   const store = stores.find((candidate) => candidate.id === grocery.storeId);
 
   if (!store?.searchAddress || !grocery.name) return null;
 
+  if (!product) {
+    return (
+      <button
+        className="text-muted hover:text-foreground shrink-0 text-xs underline-offset-2 hover:underline"
+        data-testid="pick-price"
+        type="button"
+        onClick={() => openGroceryPricePicker(grocery)}
+      >
+        {t("pickPrice")}
+      </button>
+    );
+  }
+
   return (
     <button
-      className="text-muted hover:text-foreground shrink-0 text-xs underline-offset-2 hover:underline"
-      data-testid="pick-price"
+      aria-label={t("changeProduct", { product: product.name })}
+      className="flex max-w-[45%] shrink-0 flex-col items-end gap-0.5 text-right"
+      data-grocery-price={product.id}
+      data-testid="grocery-price"
       type="button"
       onClick={() => openGroceryPricePicker(grocery)}
     >
-      {t("pickPrice")}
+      <span className="text-foreground text-sm tabular-nums">
+        {formatShelfPrice(locale, product.price, product.currency)}
+        {product.size ? ` · ${product.size}` : ""}
+      </span>
+      <span className="text-muted w-full truncate text-xs" data-testid="grocery-product">
+        {product.name}
+      </span>
     </button>
   );
 }

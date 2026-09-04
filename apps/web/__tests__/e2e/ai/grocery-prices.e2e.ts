@@ -65,7 +65,29 @@ test("a name the shop states unmistakably is priced without being asked", async 
 
   await expect(price).toContainText(/4[.,]99/, { timeout: 60_000 });
   await expect(price).toContainText("500 g");
+  // The row says which of the shop's products that price is for.
+  await expect(page.getByTestId("grocery-product").first()).toHaveText("Oude kaas 500 g");
   expect((await readStoredLink("kaas"))?.productName).toBe("Oude kaas 500 g");
+});
+
+test("a priced grocery opens on what it is linked to, and the link can be changed", async () => {
+  await page.getByTestId("grocery-price").first().click();
+
+  // The field reads what is linked now rather than opening empty.
+  await expect(page.getByTestId("picker-search")).toHaveValue("Oude kaas 500 g");
+
+  await page.getByTestId("picker-search").click();
+  await page.getByRole("option", { name: /Roomboter/ }).click();
+
+  // Still nothing written: the panel's own Save is what commits a choice.
+  expect((await readStoredLink("kaas"))?.productName).toBe("Oude kaas 500 g");
+
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+
+  await expect
+    .poll(async () => (await readStoredLink("kaas"))?.productName, { timeout: 30_000 })
+    .toBe("Roomboter 250 g");
+  await expect(page.getByTestId("grocery-product").first()).toHaveText("Roomboter 250 g");
 });
 
 test("the shop was visited once for the search and once for the product's own page", () => {
@@ -105,9 +127,8 @@ test("a name the shop does not state is left to the shopper, and priced on Save"
 
   await page.reload();
   await page.getByTestId("pick-price").first().click();
-
-  await expect(page.getByTestId("picker-results")).toBeVisible({ timeout: 30_000 });
-  await page.getByTestId("picker-result").filter({ hasText: "Roomboter" }).click();
+  await page.getByTestId("picker-search").click();
+  await page.getByRole("option", { name: /Bruin brood/ }).click({ timeout: 30_000 });
 
   // Nothing is written until the panel's own Save.
   expect((await readStoredLink("beleg"))?.productName ?? null).toBeNull();
@@ -116,7 +137,7 @@ test("a name the shop does not state is left to the shopper, and priced on Save"
 
   await expect
     .poll(async () => (await readStoredLink("beleg"))?.productName, { timeout: 30_000 })
-    .toBe("Roomboter 250 g");
+    .toBe("Bruin brood");
 
-  await expect(page.getByTestId("grocery-price").filter({ hasText: /2[.,]49/ })).toBeVisible();
+  await expect(page.getByTestId("grocery-product").filter({ hasText: "Bruin brood" })).toBeVisible();
 });

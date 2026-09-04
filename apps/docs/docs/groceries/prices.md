@@ -46,8 +46,9 @@ perfectly.
 ## What a grocery costs
 
 A priced grocery shows its **Shelf Price** on the row, with the shop's own
-words for the pack beside it: `€2.99 · 150 gram`. The size is left out when
-the shop states none.
+words for the pack beside it — `€2.99 · 150 gram` — and, underneath, which of
+the shop's products that price is for. The size is left out when the shop
+states none.
 
 ![A shopping list with prices on its rows](/img/screenshots/groceries-prices.png)
 
@@ -69,15 +70,20 @@ exactly one product's name. Anything less certain is left to you.
 ## Choosing the price yourself
 
 An unpriced grocery in a Store with a Search Address offers **Add a price** on
-its row. That opens the picker inside the grocery's own panel: it searches the
-shop for the grocery's name, says so while it works, and offers what came
-back. Products this Store already knows are listed underneath, and you can
-search the shop for a different term.
+its row; a priced one opens the same picker when you tap its price, so a link
+you want to change is one tap away.
 
-![The picker, offering priced results from the shop](/img/screenshots/groceries-picker.png)
+The picker is a stage inside the grocery's own panel, and its field is a
+search box over the shop. It opens reading whatever the grocery is linked to
+now, or the grocery's own name when it is linked to nothing, and it asks the
+shop as you type. Everything the shop answered drops down with its price
+beside it, together with the products this Store already knows.
 
-Your choice is marked immediately and written when you press **Save** or
-**Add** — tapping around in the picker never changes what your household sees.
+![The picker, searching the shop and offering priced results](/img/screenshots/groceries-picker.png)
+
+Your choice is shown in the field immediately and written when you press
+**Save** or **Add** — tapping around in the picker never changes what your
+household sees.
 
 ### A shop Norish cannot read
 
