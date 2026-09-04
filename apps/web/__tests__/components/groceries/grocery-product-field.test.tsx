@@ -246,6 +246,133 @@ describe("GroceryProductField", () => {
     expect(screen.getByTestId("product-by-hand-price")).toHaveValue("1.49");
   });
 
+  it("takes the one product a shopper would not hesitate over, without being asked", async () => {
+    const chosen: unknown[] = [];
+
+    render(
+      <GroceryProductField
+        choice={null}
+        groceryName="Cola B 1 L"
+        linkedProduct={null}
+        store={STORE_B}
+        onChoice={(choice) => chosen.push(choice)}
+      />
+    );
+
+    await act(async () => {
+      field().focus();
+    });
+
+    expect(chosen).toEqual([
+      {
+        kind: "candidate",
+        candidate: {
+          name: "Cola B 1 L",
+          url: "https://b.example/p/cola-1l",
+          price: 1.49,
+          currency: "EUR",
+          size: "1 L",
+        },
+      },
+    ]);
+    expect(field()).toHaveValue("Cola B 1 L");
+    expect(screen.getByTestId("product-by-hand-price")).toHaveValue("1.49");
+  });
+
+  it("takes the one product a typed term found, and does not ask the shop about it again", () => {
+    vi.useFakeTimers();
+    try {
+      const onChoice = vi.fn();
+
+      render(
+        <GroceryProductField
+          choice={null}
+          groceryName="cola"
+          linkedProduct={null}
+          store={STORE_A}
+          onChoice={onChoice}
+        />
+      );
+
+      act(() => {
+        field().focus();
+      });
+      // Two colas answer "cola", so nothing has been chosen yet.
+      expect(onChoice).not.toHaveBeenCalled();
+
+      act(() => {
+        fireEvent.change(field(), { target: { value: "zero" } });
+      });
+      act(() => {
+        vi.advanceTimersByTime(500);
+      });
+
+      expect(onChoice).toHaveBeenCalledWith(
+        expect.objectContaining({
+          kind: "candidate",
+          candidate: expect.objectContaining({ name: "Cola Zero 1,5 L" }),
+        })
+      );
+      expect(field()).toHaveValue("Cola Zero 1,5 L");
+
+      // The name it wrote into the box is that answer, not a new question:
+      // the shop is not visited again for the product it has just chosen.
+      act(() => {
+        vi.advanceTimersByTime(500);
+      });
+
+      expect(lastAskedTerm()).toBe("zero");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("chooses nothing where two of the shop's products answer equally well", async () => {
+    const chosen: unknown[] = [];
+
+    render(
+      <GroceryProductField
+        choice={null}
+        groceryName="cola"
+        linkedProduct={null}
+        store={STORE_A}
+        onChoice={(choice) => chosen.push(choice)}
+      />
+    );
+
+    await act(async () => {
+      field().focus();
+    });
+
+    expect(options()).toHaveLength(2);
+    expect(chosen).toEqual([]);
+    expect(field()).toHaveValue("");
+  });
+
+  it("leaves a grocery that is already linked exactly as it is", async () => {
+    const linked = product("prod-b", "store-b", "Cola B 1 L", 1.49);
+    const chosen: unknown[] = [];
+
+    KNOWN["store-b"] = [linked];
+
+    render(
+      <GroceryProductField
+        choice={null}
+        groceryName="Cola B 1 L"
+        linkedProduct={linked}
+        store={STORE_B}
+        onChoice={(choice) => chosen.push(choice)}
+      />
+    );
+
+    await act(async () => {
+      field().focus();
+    });
+
+    expect(chosen).toEqual([]);
+    expect(field()).toHaveValue("Cola B 1 L");
+  });
+
   it("is not there at all for a Store with no shop behind it", () => {
     const { container } = render(
       <GroceryProductField

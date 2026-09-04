@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePanelPortalContainer } from "@/components/Panel/Panel";
 import { useShopSearch, useStoreProducts } from "@/hooks/stores";
 import { formatShelfPrice } from "@/lib/format-price";
@@ -9,6 +9,7 @@ import { useLocale, useTranslations } from "next-intl";
 
 import type { StoreDto, StoreProductChoice, StoreProductDto } from "@norish/shared/contracts";
 import type { PricedCandidate } from "@norish/shared/lib/currency";
+import { chooseUnmistakable } from "@norish/shared/lib/auto-link";
 import { currencyForUrl, isPriced } from "@norish/shared/lib/currency";
 import { createClientId } from "@norish/shared/lib/operation-helpers";
 
@@ -160,6 +161,10 @@ export function GroceryProductField({
   const [manualCurrency, setManualCurrency] = useState("");
   const [manualId] = useState(createClientId);
   const heldByHand = useRef("");
+  // The name the field itself put in the box. That is an answer, not a
+  // question: writing a choice into the input must never send the household
+  // back to the shop to ask about the product they have just chosen.
+  const answeredWith = useRef<string | null>(null);
 
   // Until the shopper types, the question is the grocery's own name, which the
   // panel above may still be being filled in; after they type it is what they
@@ -171,6 +176,7 @@ export function GroceryProductField({
 
       return;
     }
+    if (answeredWith.current === term) return;
     const timer = setTimeout(
       () => setSearchedTerm(term.trim() || groceryName.trim()),
       SEARCH_DEBOUNCE_MS
@@ -230,13 +236,40 @@ export function GroceryProductField({
     currency.length === 3;
 
   /** The fields below say what this costs, until somebody types over them. */
-  const showAs = (name: string, price: number, priceCurrency: string) => {
+  const showAs = useCallback((name: string, price: number, priceCurrency: string) => {
     setByHand(false);
     setManualName(name);
     setManualPrice(String(price));
     setManualCurrency(priceCurrency);
     heldByHand.current = "";
-  };
+  }, []);
+
+  /** This row is the answer, however it came to be: tapped, or unmistakable. */
+  const take = useCallback(
+    (row: ProductRow) => {
+      answeredWith.current = row.name;
+      setPicked(row.key);
+      setTerm(row.name);
+      showAs(row.name, row.price, row.currency);
+      onChoice(row.choice);
+    },
+    [onChoice, showAs]
+  );
+
+  // The one row a human would not hesitate over, by the rule the lookup queue
+  // applies at the shop. A shopper who typed the product's own name has made
+  // the choice already, and offering it back as a row to tap is asking them to
+  // make it twice. Only where nobody has answered yet: a grocery with nothing
+  // linked, no row picked and no price typed over the top. Nothing is written
+  // either way — the panel's own Save is still what commits it.
+  const unmistakable =
+    !picked && !byHand && !linkedProduct && !isSearching
+      ? chooseUnmistakable(rows, searchedTerm || groceryName)
+      : null;
+
+  useEffect(() => {
+    if (unmistakable) take(unmistakable);
+  }, [unmistakable, take]);
 
   useEffect(() => {
     setTerm(opensWith);
@@ -309,11 +342,7 @@ export function GroceryProductField({
         onSelectionChange={(key) => {
           const row = rows.find((candidate) => candidate.key === String(key));
 
-          if (!row) return;
-          setPicked(row.key);
-          setTerm(row.name);
-          showAs(row.name, row.price, row.currency);
-          onChoice(row.choice);
+          if (row) take(row);
         }}
       >
         <Label>{t("productLabel", { store: store.name })}</Label>
