@@ -102,8 +102,7 @@
     "ingredientsAdded": "Съставките са добавени в списъка с продукти.",
     "ingredientsFailed": "Добавянето на съставките в списъка с продукти не бе успешно.",
     "addToGroceries": "Добави в продуктите",
-    "priceTitle": "Изберете цена",
-    "pickPrice": "Добавяне на цена"
+    "priceTitle": "Изберете цена"
   },
   "prices": {
     "pickPrice": "Добавяне на цена"
@@ -118,6 +117,7 @@
     "byHandName": "Име на продукта",
     "byHandPrice": "Цена",
     "useThisPrice": "Използване на тази цена",
-    "byHandChosen": "{price} ще бъде запазена с тази покупка."
+    "byHandChosen": "{price} ще бъде запазена с тази покупка.",
+    "byHandCurrency": "Валута"
   }
 }

@@ -16,11 +16,14 @@ export function priceKey(storeId: string | null, name: string | null): string | 
   return storeId && normalized ? `${storeId}|${normalized}` : null;
 }
 
+/** The same key, for a link that already carries its normalized name. */
+function linkKey(link: Pick<ResolvedProductLink, "storeId" | "normalizedName">): string {
+  return `${link.storeId}|${link.normalizedName}`;
+}
+
 export interface StorePricesResult {
   /** The Store Product a grocery resolves to, or null where the Store knows it as a Miss. */
   priceFor: (storeId: string | null, name: string | null) => StoreProductDto | null;
-  /** Whether this Store has an answer at all for this name yet. */
-  hasAnswer: (storeId: string | null, name: string | null) => boolean;
   isLoading: boolean;
 }
 
@@ -31,7 +34,7 @@ export function createUseStorePrices({ useTRPC }: CreateStoresHooksOptions) {
     const byKey = useMemo(() => {
       const map = new Map<string, ResolvedProductLink>();
 
-      for (const link of data ?? []) map.set(`${link.storeId}|${link.normalizedName}`, link);
+      for (const link of data ?? []) map.set(linkKey(link), link);
 
       return map;
     }, [data]);
@@ -45,16 +48,7 @@ export function createUseStorePrices({ useTRPC }: CreateStoresHooksOptions) {
       [byKey]
     );
 
-    const hasAnswer = useCallback(
-      (storeId: string | null, name: string | null) => {
-        const key = priceKey(storeId, name);
-
-        return key ? byKey.has(key) : false;
-      },
-      [byKey]
-    );
-
-    return { priceFor, hasAnswer, isLoading };
+    return { priceFor, isLoading };
   };
 }
 
@@ -96,8 +90,8 @@ export function createUseStorePricesSubscription({ useTRPC }: CreateStoresHooksO
           const updated = payload.link as ResolvedProductLink;
 
           setPrices((prev) => {
-            const key = `${updated.storeId}|${updated.normalizedName}`;
-            const without = prev.filter((link) => `${link.storeId}|${link.normalizedName}` !== key);
+            const key = linkKey(updated);
+            const without = prev.filter((link) => linkKey(link) !== key);
 
             return [...without, updated];
           });

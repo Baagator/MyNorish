@@ -6,15 +6,13 @@ import {
   createManualProduct,
   getStoreProductById,
   listStoreProducts,
-  listStoreProductsByStoreIds,
   resolveProductLink,
   updateManualProduct,
   upsertProductLink,
   upsertReadProduct,
 } from "@norish/db/repositories/store-products";
-import { getStoreById, getStoreOwnerId, listStoresByUserIds } from "@norish/db/repositories/stores";
-import { requireQueueApiHandler } from "@norish/queue/api-handlers";
-import { paceStoreVisit, visitKey } from "@norish/queue/store-lookup/pace";
+import { getStoreById, getStoreOwnerId } from "@norish/db/repositories/stores";
+import { searchStore } from "@norish/queue/store-lookup/lookup";
 import { trpcLogger as log } from "@norish/shared-server/logger";
 import {
   StoreProductChoiceSchema,
@@ -23,7 +21,6 @@ import {
   StoreProductsListInputSchema,
   StoreShopSearchSchema,
 } from "@norish/shared/contracts/zod";
-import { resolveSearchAddress } from "@norish/shared/lib/search-address";
 
 import type { StoreProcedureContext } from "./stores-helpers";
 import { authedProcedure } from "../../middleware";
@@ -46,13 +43,6 @@ const listProducts = authedProcedure
 
     return listStoreProducts(input.storeId);
   });
-
-/** Every product the household's stores know, so a list can be priced in one round trip. */
-const listAllProducts = authedProcedure.query(async ({ ctx }) => {
-  const stores = await listStoresByUserIds(ctx.userIds);
-
-  return listStoreProductsByStoreIds(stores.map((store) => store.id));
-});
 
 /**
  * What every Grocery on the household's list costs, as its Store last knew.
@@ -110,25 +100,9 @@ const searchShop = authedProcedure
 
     if (!store?.searchAddress) return { candidates: [] };
 
-    const fetchStorePage = requireQueueApiHandler("fetchStorePage");
-    const readSearchResults = requireQueueApiHandler("readSearchResults");
-    const url = resolveSearchAddress(store.searchAddress, input.term);
-    const visit = await paceStoreVisit(visitKey(url), () =>
-      fetchStorePage(
-        url,
-        (html) =>
-          readSearchResults(html, url).filter((candidate) => candidate.price !== undefined)
-            .length === 0
-      )
-    );
-
-    if (!visit.html) return { candidates: [] };
-
-    // Candidates without a price are never offered: the picker exists to show
-    // what a thing costs.
-    const candidates = readSearchResults(visit.html, url).filter(
-      (candidate) => candidate.price !== undefined && candidate.currency !== undefined
-    );
+    // The same paced visit the lookup queue makes, so the picker cannot race
+    // the queue at the same shop.
+    const { candidates } = await searchStore(store.searchAddress, input.term);
 
     log.info(
       { userId: ctx.user.id, storeId: input.storeId, count: candidates.length },
@@ -200,7 +174,6 @@ const chooseProduct = authedProcedure
 export const storeProductProcedures = router({
   groceryPrices,
   listProducts,
-  listAllProducts,
   createProduct,
   updateProduct,
   searchShop,

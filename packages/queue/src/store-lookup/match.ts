@@ -1,4 +1,4 @@
-import type { StoreCandidate } from "@norish/shared/contracts";
+import type { PricedCandidate } from "@norish/shared/lib/currency";
 import { nameWords, normalizeGroceryName } from "@norish/shared/lib/normalized-name";
 
 /**
@@ -12,9 +12,9 @@ import { nameWords, normalizeGroceryName } from "@norish/shared/lib/normalized-n
  * re-guess when it misjudges.
  */
 export function chooseCandidate(
-  candidates: StoreCandidate[],
+  candidates: PricedCandidate[],
   groceryName: string
-): StoreCandidate | null {
+): PricedCandidate | null {
   const wanted = normalizeGroceryName(groceryName);
 
   if (!wanted || candidates.length === 0) return null;

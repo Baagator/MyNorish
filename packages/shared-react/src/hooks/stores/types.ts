@@ -40,7 +40,11 @@ export type StoresMutationsResult = {
     grocerySnapshot: StoreGrocerySnapshot
   ) => void;
   reorderStores: (storeIds: string[]) => void;
-  checkSearchAddress: (storeId: string, term: string | null) => Promise<StoreSearchAddressResult>;
+  checkSearchAddress: (
+    storeId: string,
+    term: string | null,
+    searchAddress: string | null
+  ) => Promise<StoreSearchAddressResult>;
   isCreating: boolean;
   isUpdating: boolean;
   isDeleting: boolean;

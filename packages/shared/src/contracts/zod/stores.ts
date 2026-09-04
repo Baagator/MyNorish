@@ -86,6 +86,12 @@ export const StoreUpdateInputSchema = z.object({
 export const StoreSearchAddressCheckSchema = z.object({
   storeId: z.uuid(),
   term: z.string().max(200).nullish(),
+  /**
+   * The address the client just saved. A store update is optimistic and may
+   * still be in flight, so without this the check can probe the address the
+   * user has just replaced.
+   */
+  searchAddress: StoreSearchAddressSchema.nullish(),
 });
 
 // Store delete schema with snapshot-based grocery handling

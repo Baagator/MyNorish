@@ -10,9 +10,10 @@ import { listGroceriesByUsers } from "@norish/db/repositories/groceries";
 import { listStaleProducts, resolveProductLinks } from "@norish/db/repositories/store-products";
 import { listStoresByUserIds } from "@norish/db/repositories/stores";
 import { getQueues } from "@norish/queue/registry";
-import { SHELF_PRICE_MAX_AGE_MS } from "@norish/queue/store-lookup/lookup";
+import { staleBefore } from "@norish/queue/store-lookup/lookup";
 import { addStoreMatchJob, addStoreRefreshJob } from "@norish/queue/store-lookup/producer";
 import { trpcLogger as log } from "@norish/shared-server/logger";
+import { storeEmitter } from "@norish/shared-server/realtime/stores";
 import { normalizeGroceryName } from "@norish/shared/lib/normalized-name";
 
 /**
@@ -50,7 +51,7 @@ function priceablePairs(groceries: PriceableGrocery[]): { storeId: string; name:
  * lookup job for every name they do not. A Miss counts as knowing: a name no
  * shop stocks is not searched again every time the list is opened.
  */
-export async function noticeGroceries(
+async function resolveAndQueue(
   ctx: PricingContext,
   groceries: PriceableGrocery[]
 ): Promise<ResolvedProductLink[]> {
@@ -93,6 +94,25 @@ export async function noticeGroceries(
 }
 
 /**
+ * A Grocery has just been created, renamed, or moved to another Store. What
+ * its Store already knows is pushed to the household there and then, so a
+ * known name is priced on the screen in the same breath and with no outbound
+ * request; a name the Store does not know goes to the lookup queue instead.
+ */
+export async function noticeGroceries(
+  ctx: PricingContext,
+  groceries: PriceableGrocery[]
+): Promise<ResolvedProductLink[]> {
+  const links = await resolveAndQueue(ctx, groceries);
+
+  for (const link of links) {
+    storeEmitter.emitToHousehold(ctx.householdKey, "linkUpdated", { link });
+  }
+
+  return links;
+}
+
+/**
  * Everything the household's Stores know about the list as it stands, plus a
  * capped nudge for the Shelf Prices that have gone stale. Staleness is noticed
  * while serving the list and nowhere else: a self-hosted instance must never
@@ -100,14 +120,16 @@ export async function noticeGroceries(
  */
 export async function priceTheList(ctx: PricingContext): Promise<ResolvedProductLink[]> {
   const groceries = await listGroceriesByUsers(ctx.userIds, { includeDone: true });
-  const links = await noticeGroceries(ctx, groceries);
+  // The list is the answer here; nothing is announced, because everyone
+  // reading it is asking for exactly this.
+  const links = await resolveAndQueue(ctx, groceries);
   const productIds = links
     .map((link) => link.product?.id)
     .filter((id): id is string => id !== undefined);
 
   if (productIds.length === 0) return links;
 
-  const stale = await listStaleProducts(productIds, new Date(Date.now() - SHELF_PRICE_MAX_AGE_MS));
+  const stale = await listStaleProducts(productIds, staleBefore());
 
   if (stale.length === 0) return links;
 

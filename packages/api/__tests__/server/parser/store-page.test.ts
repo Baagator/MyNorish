@@ -148,6 +148,41 @@ describe("prices as Europe writes them", () => {
   });
 });
 
+describe("a bare run of digits, which is how a shop styles a large price", () => {
+  const links = ["1", "2", "3"]
+    .map((n) => `<article><a href="/p/${n}/kaas">Kaas ${n}</a>SIZE</article>`)
+    .join("");
+
+  it("reads euros and cents split across two elements as one number", () => {
+    const html = `<html><body>${links.replaceAll(
+      "SIZE",
+      "<div><span>7</span><span>99</span></div>"
+    )}</body></html>`;
+
+    expect(readSearchResults(html, "https://shop.example.nl/zoeken")[0]).toMatchObject({
+      price: 7.99,
+      currency: "EUR",
+    });
+  });
+
+  it("reads a price under a euro, which a shop states as bare cents", () => {
+    const html = `<html><body>${links.replaceAll("SIZE", "<div><span>88</span></div>")}</body></html>`;
+
+    expect(readSearchResults(html, "https://shop.example.nl/zoeken")[0]).toMatchObject({
+      price: 0.88,
+    });
+  });
+
+  it("never reads a pack size as a price", () => {
+    const html = `<html><body>${links.replaceAll(
+      "SIZE",
+      "<p><span>500</span> g</p>"
+    )}</body></html>`;
+
+    expect(readSearchResults(html, "https://shop.example.nl/zoeken")[0]?.price).toBeUndefined();
+  });
+});
+
 describe("relative addresses", () => {
   it("resolves a product link against the page it was found on", () => {
     const html = `<html><body>

@@ -7,18 +7,13 @@ import { StoreSelector } from "@/components/groceries/store-selector";
 import { RecurrencePanel } from "@/components/Panel/consumers/recurrence-panel";
 import Panel from "@/components/Panel/Panel";
 import { ActionButton, ActionButtonGroup } from "@/components/shared/action-button";
-import { useChooseProduct, useParsedGroceryName } from "@/hooks/stores";
+import { useProductChoice } from "@/hooks/stores";
 import { useRecurrenceDetection } from "@/hooks/use-recurrence-detection";
 import { Input } from "@heroui/react";
 import { AnimatePresence } from "motion/react";
 import { useTranslations } from "next-intl";
 
-import type {
-  GroceryDto,
-  RecurringGroceryDto,
-  StoreDto,
-  StoreProductChoice,
-} from "@norish/shared/contracts";
+import type { GroceryDto, RecurringGroceryDto, StoreDto } from "@norish/shared/contracts";
 import type { RecurrencePattern } from "@norish/shared/contracts/recurrence";
 import { useGroceryFormState } from "@norish/shared-react/hooks";
 
@@ -45,12 +40,10 @@ export default function EditGroceryPanel({
 }: EditGroceryPanelProps) {
   const t = useTranslations("groceries.panel");
   const tActions = useTranslations("common.actions");
+  const tPrices = useTranslations("groceries.prices");
   const [recurrencePanelOpen, setRecurrencePanelOpen] = useState(false);
   const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null);
   const [hasStoreChanged, setHasStoreChanged] = useState(false);
-  const [stage, setStage] = useState<"form" | "picker">(initialStage);
-  const [choice, setChoice] = useState<StoreProductChoice | null>(null);
-  const chooseProduct = useChooseProduct();
   const {
     itemName,
     setItemName,
@@ -72,8 +65,6 @@ export default function EditGroceryPanel({
       setItemName(text);
       setSelectedStoreId(grocery.storeId ?? null);
       setHasStoreChanged(false);
-      setStage(initialStage);
-      setChoice(null);
       if (recurringGrocery) {
         setConfirmedPattern({
           rule: recurringGrocery.recurrenceRule as "day" | "week" | "month",
@@ -87,8 +78,13 @@ export default function EditGroceryPanel({
       reset();
     }
   }, [open, grocery, recurringGrocery, initialStage, setItemName, setConfirmedPattern, reset]);
-  const parsedName = useParsedGroceryName(itemName);
-  const selectedStore = stores.find((store) => store.id === selectedStoreId) ?? null;
+  const price = useProductChoice({
+    itemName,
+    stores,
+    selectedStoreId,
+    initialStage,
+    resetOn: grocery.id,
+  });
   const handleStoreChange = (storeId: string | null) => {
     setSelectedStoreId(storeId);
     setHasStoreChanged(storeId !== (grocery.storeId ?? null));
@@ -102,11 +98,8 @@ export default function EditGroceryPanel({
     // a version-conflict race between two separate mutations).
     onSave(trimmed, confirmedPattern, hasStoreChanged ? selectedStoreId : undefined);
 
-    // The picker's choice is written here and nowhere else, against the name
-    // the grocery is saved under — the Product Link is keyed by that name.
-    if (choice && selectedStoreId && parsedName) {
-      void chooseProduct(selectedStoreId, parsedName, choice);
-    }
+    // The picker's choice is written here and nowhere else.
+    price.commit();
 
     onOpenChange(false);
   };
@@ -122,18 +115,19 @@ export default function EditGroceryPanel({
     <>
       <Panel
         open={open}
-        title={stage === "picker" ? t("priceTitle") : t("editTitle")}
+        title={price.stage === "picker" ? t("priceTitle") : t("editTitle")}
         onOpenChange={handlePanelOpenChange}
       >
         <Panel.Body>
-          {stage === "picker" && selectedStore ? (
+          {price.stage === "picker" && price.store ? (
             <ProductPicker
-              choice={choice}
-              groceryName={parsedName}
-              storeId={selectedStore.id}
-              storeName={selectedStore.name}
-              onBack={() => setStage("form")}
-              onChoice={setChoice}
+              choice={price.choice}
+              groceryName={price.groceryName}
+              storeId={price.store.id}
+              storeName={price.store.name}
+              storeWebsite={price.store.website}
+              onBack={price.closePicker}
+              onChoice={price.setChoice}
             />
           ) : (
             <div className="space-y-3">
@@ -205,16 +199,16 @@ export default function EditGroceryPanel({
               )}
 
               {/* The shop this Store stands for can be asked what this costs */}
-              {selectedStore?.searchAddress && parsedName && (
+              {price.canPick && (
                 <ActionButton
                   action="edit"
                   className="min-w-16 font-medium"
                   data-testid="open-price-picker"
                   size="sm"
                   variant="tertiary"
-                  onPress={() => setStage("picker")}
+                  onPress={price.openPicker}
                 >
-                  {t("pickPrice")}
+                  {tPrices("pickPrice")}
                 </ActionButton>
               )}
             </div>

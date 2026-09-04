@@ -5,17 +5,13 @@
  * the probe is the user's own term rather than a word this repo happens to
  * know (see ADR-0028 and the spec's note on the fourteen locales).
  */
-import type { SearchAddressCheck, StoreCandidate } from "@norish/shared/contracts";
+import type { SearchAddressCheck } from "@norish/shared/contracts";
 import { parserLogger as log } from "@norish/shared-server/logger";
+import { pricedCandidates } from "@norish/shared/lib/currency";
 import { resolveSearchAddress } from "@norish/shared/lib/search-address";
 
 import { fetchStorePage } from "./store-fetch";
 import { readOpenSearchTemplate, readSearchAddressFromPage, readSearchResults } from "./store-page";
-
-/** The products a results page offers, priced — the only ones anything downstream sees. */
-export function pricedCandidates(candidates: StoreCandidate[]): StoreCandidate[] {
-  return candidates.filter((candidate) => candidate.price !== undefined);
-}
 
 /**
  * The Search Address a shop's own homepage states, or nothing. Finding

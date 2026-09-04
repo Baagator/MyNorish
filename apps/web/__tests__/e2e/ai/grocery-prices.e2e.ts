@@ -49,24 +49,49 @@ async function addGroceryToShop(name: string): Promise<void> {
   await page.getByRole("option", { name: STORE_NAME }).click();
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await expect(page.getByText(name).first()).toBeVisible();
+  // The add panel stays open for batch adding; the list underneath is what
+  // every assertion here is about.
+  await page.getByRole("button", { name: "Close panel" }).click();
+  await expect(page.getByRole("dialog")).toBeHidden();
 }
 
 test("a name the shop states unmistakably is priced without being asked", async () => {
   await addGroceryToShop("kaas");
 
-  // The lookup is a queue job: the add returned long before the shop answered.
-  await expect
-    .poll(async () => (await readStoredLink("kaas"))?.productName, { timeout: 60_000 })
-    .toBe("Oude kaas 500 g");
+  // The lookup is a queue job — the add returned long before the shop answered
+  // — and the price it landed reaches this already-open page over the Store
+  // subscription, with no reload anywhere in this assertion.
+  const price = page.getByTestId("grocery-price").first();
 
-  await page.reload();
-  await expect(page.getByTestId("grocery-price").first()).toContainText(/4[.,]99/);
-  await expect(page.getByTestId("grocery-price").first()).toContainText("500 g");
+  await expect(price).toContainText(/4[.,]99/, { timeout: 60_000 });
+  await expect(price).toContainText("500 g");
+  expect((await readStoredLink("kaas"))?.productName).toBe("Oude kaas 500 g");
 });
 
 test("the shop was visited once for the search and once for the product's own page", () => {
   expect(shop.visits.some((path) => path.startsWith("/search"))).toBe(true);
   expect(shop.visits).toContain("/p/oude-kaas");
+});
+
+test("a name the Store already knows is priced with no outbound request at all", async () => {
+  await addGroceryToShop("melk");
+
+  const priced = page.getByTestId("grocery-price").filter({ hasText: /1[.,]29/ });
+
+  await expect(priced).toBeVisible({ timeout: 60_000 });
+
+  // The Product Link is keyed by name, so it outlives the list line that
+  // prompted it: next week's "melk" is priced without asking the shop again.
+  await page.getByText("melk").first().click();
+  await page.getByRole("button", { name: "Delete", exact: true }).click();
+  await expect(priced).toBeHidden();
+
+  const visitsBefore = shop.visits.length;
+
+  await addGroceryToShop("melk");
+
+  await expect(priced).toBeVisible();
+  expect(shop.visits.length).toBe(visitsBefore);
 });
 
 test("a name the shop does not state is left to the shopper, and priced on Save", async () => {
@@ -93,6 +118,5 @@ test("a name the shop does not state is left to the shopper, and priced on Save"
     .poll(async () => (await readStoredLink("beleg"))?.productName, { timeout: 30_000 })
     .toBe("Roomboter 250 g");
 
-  await page.reload();
   await expect(page.getByTestId("grocery-price").filter({ hasText: /2[.,]49/ })).toBeVisible();
 });

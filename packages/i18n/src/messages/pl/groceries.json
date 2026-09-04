@@ -102,8 +102,7 @@
     "ingredientsAdded": "Składniki dodane do listy zakupów.",
     "ingredientsFailed": "Nie udało się dodać składników do listy zakupów.",
     "addToGroceries": "Dodaj do zakupów",
-    "priceTitle": "Wybierz cenę",
-    "pickPrice": "Dodaj cenę"
+    "priceTitle": "Wybierz cenę"
   },
   "prices": {
     "pickPrice": "Dodaj cenę"
@@ -118,6 +117,7 @@
     "byHandName": "Nazwa produktu",
     "byHandPrice": "Cena",
     "useThisPrice": "Użyj tej ceny",
-    "byHandChosen": "{price} zostanie zapisana przy tym zakupie."
+    "byHandChosen": "{price} zostanie zapisana przy tym zakupie.",
+    "byHandCurrency": "Waluta"
   }
 }

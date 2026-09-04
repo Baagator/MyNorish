@@ -21,3 +21,4 @@ export {
   useShopSearch,
   useStoreProducts,
 } from "./use-store-picker";
+export { useProductChoice } from "./use-product-choice";

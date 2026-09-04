@@ -102,8 +102,7 @@
     "ingredientsAdded": "Ingredients added to grocery list.",
     "ingredientsFailed": "Failed to add ingredients to grocery list.",
     "addToGroceries": "Add to Groceries",
-    "priceTitle": "Choose a price",
-    "pickPrice": "Add a price"
+    "priceTitle": "Choose a price"
   },
   "prices": {
     "pickPrice": "Add a price"
@@ -118,6 +117,7 @@
     "byHandName": "Product name",
     "byHandPrice": "Price",
     "useThisPrice": "Use this price",
-    "byHandChosen": "{price} will be saved with this grocery."
+    "byHandChosen": "{price} will be saved with this grocery.",
+    "byHandCurrency": "Currency"
   }
 }

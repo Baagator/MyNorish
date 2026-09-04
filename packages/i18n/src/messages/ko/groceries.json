@@ -102,8 +102,7 @@
     "ingredientsAdded": "장보기 목록에 재료가 추가되었습니다.",
     "ingredientsFailed": "장보기 목록에 재료를 추가하지 못했습니다.",
     "addToGroceries": "장보기에 추가",
-    "priceTitle": "가격 선택",
-    "pickPrice": "가격 추가"
+    "priceTitle": "가격 선택"
   },
   "prices": {
     "pickPrice": "가격 추가"
@@ -118,6 +117,7 @@
     "byHandName": "상품 이름",
     "byHandPrice": "가격",
     "useThisPrice": "이 가격 사용",
-    "byHandChosen": "{price}이(가) 이 항목과 함께 저장됩니다."
+    "byHandChosen": "{price}이(가) 이 항목과 함께 저장됩니다.",
+    "byHandCurrency": "통화"
   }
 }

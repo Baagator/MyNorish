@@ -7,13 +7,13 @@ import { StoreSelector } from "@/components/groceries/store-selector";
 import { RecurrencePanel } from "@/components/Panel/consumers/recurrence-panel";
 import Panel from "@/components/Panel/Panel";
 import { ActionButton, ActionButtonGroup } from "@/components/shared/action-button";
-import { useChooseProduct, useParsedGroceryName } from "@/hooks/stores";
+import { useProductChoice } from "@/hooks/stores";
 import { useRecurrenceDetection } from "@/hooks/use-recurrence-detection";
 import { Input } from "@heroui/react";
 import { AnimatePresence } from "motion/react";
 import { useTranslations } from "next-intl";
 
-import type { StoreDto, StoreProductChoice } from "@norish/shared/contracts";
+import type { StoreDto } from "@norish/shared/contracts";
 import type { RecurrencePattern } from "@norish/shared/contracts/recurrence";
 import { useGroceryFormState } from "@norish/shared-react/hooks";
 
@@ -37,11 +37,9 @@ export default function AddGroceryPanel({
 }: AddGroceryPanelProps) {
   const t = useTranslations("groceries.panel");
   const tActions = useTranslations("common.actions");
+  const tPrices = useTranslations("groceries.prices");
   const [recurrencePanelOpen, setRecurrencePanelOpen] = useState(false);
   const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null);
-  const [stage, setStage] = useState<"form" | "picker">("form");
-  const [choice, setChoice] = useState<StoreProductChoice | null>(null);
-  const chooseProduct = useChooseProduct();
   const {
     itemName,
     setItemName,
@@ -61,12 +59,14 @@ export default function AddGroceryPanel({
     if (!open) {
       reset();
       setSelectedStoreId(null);
-      setStage("form");
-      setChoice(null);
     }
   }, [open, reset]);
-  const parsedName = useParsedGroceryName(itemName);
-  const selectedStore = stores.find((store) => store.id === selectedStoreId) ?? null;
+  const price = useProductChoice({
+    itemName,
+    stores,
+    selectedStoreId,
+    resetOn: open,
+  });
   const handleSubmit = () => {
     const trimmed = itemName.trim();
     if (!trimmed) return;
@@ -76,16 +76,12 @@ export default function AddGroceryPanel({
       onCreate(trimmed, selectedStoreId);
     }
 
-    // The picker's choice is written here and nowhere else, against the name
-    // the grocery is saved under — the Product Link is keyed by that name.
-    if (choice && selectedStoreId && parsedName) {
-      void chooseProduct(selectedStoreId, parsedName, choice);
-    }
+    // The picker's choice is written here and nowhere else.
+    price.commit();
 
-    // Reset form but keep panel open for batch adding
+    // Reset form but keep panel open for batch adding; `commit` has already
+    // put the price stage back.
     reset();
-    setStage("form");
-    setChoice(null);
     // Keep the store selection for batch adding to same store
   };
   const handleRecurrenceSave = (pattern: RecurrencePattern | null) => {
@@ -100,18 +96,19 @@ export default function AddGroceryPanel({
     <>
       <Panel
         open={open}
-        title={stage === "picker" ? t("priceTitle") : t("addTitle")}
+        title={price.stage === "picker" ? t("priceTitle") : t("addTitle")}
         onOpenChange={handlePanelOpenChange}
       >
         <Panel.Body>
-          {stage === "picker" && selectedStore ? (
+          {price.stage === "picker" && price.store ? (
             <ProductPicker
-              choice={choice}
-              groceryName={parsedName}
-              storeId={selectedStore.id}
-              storeName={selectedStore.name}
-              onBack={() => setStage("form")}
-              onChoice={setChoice}
+              choice={price.choice}
+              groceryName={price.groceryName}
+              storeId={price.store.id}
+              storeName={price.store.name}
+              storeWebsite={price.store.website}
+              onBack={price.closePicker}
+              onChoice={price.setChoice}
             />
           ) : (
             <div className="space-y-3">
@@ -184,16 +181,16 @@ export default function AddGroceryPanel({
               )}
 
               {/* The shop this Store stands for can be asked what this costs */}
-              {selectedStore?.searchAddress && parsedName && (
+              {price.canPick && (
                 <ActionButton
                   action="edit"
                   className="min-w-16 font-medium"
                   data-testid="open-price-picker"
                   size="sm"
                   variant="tertiary"
-                  onPress={() => setStage("picker")}
+                  onPress={price.openPicker}
                 >
-                  {t("pickPrice")}
+                  {tPrices("pickPrice")}
                 </ActionButton>
               )}
             </div>

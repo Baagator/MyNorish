@@ -16,7 +16,12 @@ import { Input, Label, TextField } from "@heroui/react";
 import { Reorder, useDragControls } from "motion/react";
 import { useTranslations } from "next-intl";
 
-import type { StoreColor, StoreDto, StoreSearchAddressResult } from "@norish/shared/contracts";
+import type {
+  SearchAddressOutcome,
+  StoreColor,
+  StoreDto,
+  StoreSearchAddressResult,
+} from "@norish/shared/contracts";
 
 import { DeleteStoreModal } from "./delete-store-modal";
 import { storeLinkFields, StoreSearchAddressField } from "./store-search-address-field";
@@ -102,7 +107,7 @@ export function StoreManagerPanel({ open, onOpenChange, stores }: StoreManagerPa
     // this only tells the user what the address it was given actually found.
     if (savedId && (website ?? searchAddress)) {
       setShopCheck({ storeName, result: null });
-      checkSearchAddress(savedId, term)
+      checkSearchAddress(savedId, term, searchAddress)
         .then((result) => setShopCheck({ storeName, result }))
         .catch(() => setShopCheck(null));
     }
@@ -226,21 +231,22 @@ export function StoreManagerPanel({ open, onOpenChange, stores }: StoreManagerPa
   );
 }
 
+/** One line of copy per thing a shop can answer, so no outcome goes unworded. */
+const CHECK_MESSAGES: Record<SearchAddressOutcome, string> = {
+  products: "checkFoundProducts",
+  "no-products": "checkNoProducts",
+  answered: "checkAnswered",
+  "no-answer": "checkNoAnswer",
+  "no-address": "checkNoAddress",
+};
+
 /** What the shop answered, in the user's own words rather than an error. */
 function ShopCheckLine({ check }: { check: ShopCheck }) {
   const t = useTranslations("groceries.storeManager");
   const { result } = check;
-  const message = !result
-    ? t("checkingShop", { store: check.storeName })
-    : result.outcome === "products"
-      ? t("checkFoundProducts", { store: check.storeName, count: result.count ?? 0 })
-      : result.outcome === "no-products"
-        ? t("checkNoProducts", { store: check.storeName })
-        : result.outcome === "answered"
-          ? t("checkAnswered", { store: check.storeName })
-          : result.outcome === "no-address"
-            ? t("checkNoAddress", { store: check.storeName })
-            : t("checkNoAnswer", { store: check.storeName });
+  const message = result
+    ? t(CHECK_MESSAGES[result.outcome], { store: check.storeName, count: result.count ?? 0 })
+    : t("checkingShop", { store: check.storeName });
 
   return (
     <p

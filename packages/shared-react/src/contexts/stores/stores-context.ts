@@ -28,12 +28,14 @@ export type StoresContextValue = {
     grocerySnapshot: StoreGrocerySnapshot
   ) => void;
   reorderStores: (storeIds: string[]) => void;
-  checkSearchAddress: (storeId: string, term: string | null) => Promise<StoreSearchAddressResult>;
+  checkSearchAddress: (
+    storeId: string,
+    term: string | null,
+    searchAddress: string | null
+  ) => Promise<StoreSearchAddressResult>;
   // Prices
   /** The Store Product a grocery resolves to, or null where its Store answered with a Miss. */
   priceFor: (storeId: string | null, name: string | null) => StoreProductDto | null;
-  /** Whether the grocery's Store has any answer for this name yet. */
-  hasAnswer: (storeId: string | null, name: string | null) => boolean;
   // UI
   storeManagerOpen: boolean;
   setStoreManagerOpen: (open: boolean) => void;
@@ -48,11 +50,7 @@ type CreateStoresContextOptions = {
   useStorePricesSubscription?: () => void;
 };
 
-const useNoPrices = (): StorePricesResult => ({
-  priceFor: () => null,
-  hasAnswer: () => false,
-  isLoading: false,
-});
+const useNoPrices = (): StorePricesResult => ({ priceFor: () => null, isLoading: false });
 const useNoPricesSubscription = () => undefined;
 
 export function createStoresContext({
@@ -73,7 +71,7 @@ export function createStoresContext({
     useStoresSubscription();
 
     // A price a housemate just linked lands here without a reload.
-    const { priceFor, hasAnswer } = useStorePrices();
+    const { priceFor } = useStorePrices();
 
     useStorePricesSubscription();
 
@@ -86,11 +84,10 @@ export function createStoresContext({
         isLoading,
         ...storeMutations,
         priceFor,
-        hasAnswer,
         storeManagerOpen,
         setStoreManagerOpen,
       }),
-      [stores, isLoading, storeMutations, priceFor, hasAnswer, storeManagerOpen]
+      [stores, isLoading, storeMutations, priceFor, storeManagerOpen]
     );
 
     return createElement(StoresContext.Provider, { value }, children);

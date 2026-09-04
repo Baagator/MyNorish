@@ -102,8 +102,7 @@
     "ingredientsAdded": "Ingredienser lagt til i handlelisten.",
     "ingredientsFailed": "Kunne ikke legge til ingredienser i handlelisten.",
     "addToGroceries": "Legg til i handleliste",
-    "priceTitle": "Velg en pris",
-    "pickPrice": "Legg til en pris"
+    "priceTitle": "Velg en pris"
   },
   "prices": {
     "pickPrice": "Legg til en pris"
@@ -118,6 +117,7 @@
     "byHandName": "Produktnavn",
     "byHandPrice": "Pris",
     "useThisPrice": "Bruk denne prisen",
-    "byHandChosen": "{price} lagres sammen med denne varen."
+    "byHandChosen": "{price} lagres sammen med denne varen.",
+    "byHandCurrency": "Valuta"
   }
 }

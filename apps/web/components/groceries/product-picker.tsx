@@ -8,14 +8,15 @@ import { ChevronLeftIcon } from "@heroicons/react/24/solid";
 import { Input, Label, TextField } from "@heroui/react";
 import { useLocale, useTranslations } from "next-intl";
 
-import type { StoreCandidate, StoreProductChoice, StoreProductDto } from "@norish/shared/contracts";
-
-/** Only priced results are ever offered: the picker exists to show what a thing costs. */
-type PricedCandidate = StoreCandidate & { price: number; currency: string };
+import type { StoreProductChoice, StoreProductDto } from "@norish/shared/contracts";
+import type { PricedCandidate } from "@norish/shared/lib/currency";
+import { currencyForUrl, isPriced } from "@norish/shared/lib/currency";
 
 interface ProductPickerProps {
   storeId: string;
   storeName: string;
+  /** The shop's own website, which is what its currency is guessed from. */
+  storeWebsite: string | null;
   /** The grocery's name as it will be stored; the Product Link is keyed by it. */
   groceryName: string;
   choice: StoreProductChoice | null;
@@ -73,6 +74,7 @@ function PickerRow({
 export function ProductPicker({
   storeId,
   storeName,
+  storeWebsite,
   groceryName,
   choice,
   onChoice,
@@ -85,6 +87,7 @@ export function ProductPicker({
   const [searchedTerm, setSearchedTerm] = useState(groceryName);
   const [manualPrice, setManualPrice] = useState("");
   const [manualName, setManualName] = useState(groceryName);
+  const [manualCurrency, setManualCurrency] = useState("");
 
   useEffect(() => {
     setTerm(groceryName);
@@ -94,10 +97,7 @@ export function ProductPicker({
 
   const search = useShopSearch(storeId, searchedTerm, true);
   const products = useStoreProducts(storeId, true);
-  const candidates = (search.data?.candidates ?? []).filter(
-    (candidate): candidate is PricedCandidate =>
-      candidate.price !== undefined && candidate.currency !== undefined
-  );
+  const candidates = (search.data?.candidates ?? []).filter(isPriced);
   const offered = new Set(candidates.map((candidate) => candidate.url));
   // What the search already offered is not also "in this store": one product,
   // one row.
@@ -107,9 +107,13 @@ export function ProductPicker({
   const isSearching = search.isPending || search.isFetching;
   const foundNothing = !isSearching && candidates.length === 0;
 
+  // What the shop is most likely to charge in, so the field is a confirmation
+  // rather than a question: what this Store's products are already priced in,
+  // else what its website's top-level domain implies.
+  const suggestedCurrency =
+    known[0]?.currency ?? candidates[0]?.currency ?? currencyForUrl(storeWebsite) ?? "EUR";
+  const currency = (manualCurrency.trim() || suggestedCurrency).toUpperCase();
   const chooseManual = (price: number) => {
-    const currency = known[0]?.currency ?? candidates[0]?.currency ?? "EUR";
-
     onChoice({
       kind: "manual",
       id: crypto.randomUUID(),
@@ -200,18 +204,31 @@ export function ProductPicker({
             <Label>{t("byHandName")}</Label>
             <Input variant="secondary" />
           </TextField>
-          <TextField value={manualPrice} onChange={setManualPrice}>
-            <Label>{t("byHandPrice")}</Label>
-            <Input
-              data-testid="picker-by-hand-price"
-              inputMode="decimal"
-              placeholder="0.00"
-              variant="secondary"
-            />
-          </TextField>
+          <div className="flex gap-3">
+            <TextField className="flex-1" value={manualPrice} onChange={setManualPrice}>
+              <Label>{t("byHandPrice")}</Label>
+              <Input
+                data-testid="picker-by-hand-price"
+                inputMode="decimal"
+                placeholder="0.00"
+                variant="secondary"
+              />
+            </TextField>
+            <TextField className="w-24" value={manualCurrency} onChange={setManualCurrency}>
+              <Label>{t("byHandCurrency")}</Label>
+              <Input
+                data-testid="picker-by-hand-currency"
+                maxLength={3}
+                placeholder={suggestedCurrency}
+                variant="secondary"
+              />
+            </TextField>
+          </div>
           <ActionButton
             action="add"
-            isDisabled={Number.isNaN(Number(manualPrice.replace(",", ".")))}
+            isDisabled={
+              Number.isNaN(Number(manualPrice.replace(",", "."))) || currency.length !== 3
+            }
             size="sm"
             variant="tertiary"
             onPress={() => {

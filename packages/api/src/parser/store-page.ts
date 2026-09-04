@@ -16,10 +16,12 @@ import type {
   SearchAddressReading,
   StoreCandidate,
 } from "@norish/shared/contracts";
+import { currencyForUrl } from "@norish/shared/lib/currency";
 import { parseJsonWithRepair } from "@norish/shared/lib/helpers";
 import { SEARCH_ADDRESS_PLACEHOLDER } from "@norish/shared/lib/search-address";
 
 export type { ProductReading, SearchAddressReading, StoreCandidate };
+export { currencyForUrl } from "@norish/shared/lib/currency";
 
 /** A selection of one element, as cheerio hands it back. */
 type CheerioNode = Cheerio<AnyNode>;
@@ -66,7 +68,7 @@ function hasType(node: Node, ...types: string[]): boolean {
   return types.some((type) => own.includes(type.toLowerCase()));
 }
 
-function text(value: unknown): string | null {
+function readText(value: unknown): string | null {
   if (typeof value === "string") return value.trim() || null;
   if (typeof value === "number") return String(value);
   if (isObject(value)) {
@@ -136,52 +138,8 @@ const CURRENCY_CODES = new Set([
   "BRL",
 ]);
 
-/** What a shop's top-level domain implies it charges in, when the page states nothing. */
-const TLD_CURRENCIES: Record<string, string> = {
-  nl: "EUR",
-  be: "EUR",
-  de: "EUR",
-  at: "EUR",
-  fr: "EUR",
-  es: "EUR",
-  it: "EUR",
-  pt: "EUR",
-  ie: "EUR",
-  fi: "EUR",
-  gr: "EUR",
-  uk: "GBP",
-  ch: "CHF",
-  dk: "DKK",
-  no: "NOK",
-  se: "SEK",
-  pl: "PLN",
-  cz: "CZK",
-  hu: "HUF",
-  ro: "RON",
-  bg: "BGN",
-  ru: "RUB",
-  kr: "KRW",
-  jp: "JPY",
-  ca: "CAD",
-  au: "AUD",
-  nz: "NZD",
-  br: "BRL",
-  us: "USD",
-  com: "USD",
-};
-
-export function currencyForUrl(pageUrl: string): string | null {
-  try {
-    const tld = new URL(pageUrl).hostname.split(".").pop() ?? "";
-
-    return TLD_CURRENCIES[tld.toLowerCase()] ?? null;
-  } catch {
-    return null;
-  }
-}
-
 function currencyCode(value: unknown): string | null {
-  const raw = text(value);
+  const raw = readText(value);
 
   if (!raw) return null;
   const code = raw.toUpperCase();
@@ -189,8 +147,16 @@ function currencyCode(value: unknown): string | null {
   return CURRENCY_CODES.has(code) ? code : (CURRENCY_SYMBOLS[raw] ?? null);
 }
 
-const MONEY_BEFORE = /(€|£|\$|₽|₩|zł|\b[A-Z]{3}\b)\s?(\d{1,6}(?:[.,]\d{3})*[.,]\d{2})(?!\d)/g;
-const MONEY_AFTER = /(?<![\d.,])(\d{1,6}(?:[.,]\d{3})*[.,]\d{2})\s?(€|£|\$|₽|₩|zł|\b[A-Z]{3}\b)/g;
+/** The marks a shop writes a price with, wherever the price sits beside them. */
+const CURRENCY_MARK = "€|£|\\$|₽|₩|zł";
+const MONEY_BEFORE = new RegExp(
+  `(${CURRENCY_MARK}|\\b[A-Z]{3}\\b)\\s?(\\d{1,6}(?:[.,]\\d{3})*[.,]\\d{2})(?!\\d)`,
+  "g"
+);
+const MONEY_AFTER = new RegExp(
+  `(?<![\\d.,])(\\d{1,6}(?:[.,]\\d{3})*[.,]\\d{2})\\s?(${CURRENCY_MARK}|\\b[A-Z]{3}\\b)`,
+  "g"
+);
 
 /** The first price a piece of text states with its currency; nothing without one. */
 export function readPriceInText(value: string): { price: number; currency: string } | null {
@@ -211,7 +177,7 @@ export function readPriceInText(value: string): { price: number; currency: strin
 }
 
 function resolveUrl(candidate: unknown, pageUrl: string): string | null {
-  const raw = text(candidate);
+  const raw = readText(candidate);
 
   if (!raw) return null;
   try {
@@ -253,11 +219,11 @@ function looksLikeSize(value: string): boolean {
 function readSize(value: unknown): string | null {
   if (typeof value === "string") return looksLikeSize(value) ? collapse(value) : null;
   if (!isObject(value)) return null;
-  const amount = text(prop(value, "value") ?? prop(value, "amount"));
+  const amount = readText(prop(value, "value") ?? prop(value, "amount"));
 
   if (!amount) return null;
-  const unitCode = text(prop(value, "unitCode"));
-  const unitText = text(prop(value, "unitText"));
+  const unitCode = readText(prop(value, "unitCode"));
+  const unitText = readText(prop(value, "unitText"));
   const word = (unitCode && UNIT_WORDS[unitCode.toUpperCase()]) ?? unitText ?? null;
 
   // A size written as "1,5 l" with no unit beside it carries its unit in the text.
@@ -326,7 +292,7 @@ function jsonLdNodes($: cheerio.CheerioAPI): Node[] {
 }
 
 function productCandidate(node: Node, pageUrl: string): StoreCandidate | null {
-  const name = text(prop(node, "name"));
+  const name = readText(prop(node, "name"));
   const url = resolveUrl(prop(node, "url"), pageUrl) ?? resolveUrl(prop(node, "@id"), pageUrl);
 
   if (!name || !url) return null;
@@ -468,7 +434,11 @@ function priceFromDigitRun($: cheerio.CheerioAPI, card: CheerioNode): number | n
   card.find("*").each((_, element) => {
     const value = collapse($(element).text());
 
-    if (/^\d{2,6}$/.test(value) && value.length > longest.length) longest = value;
+    if (!/^\d{2,6}$/.test(value) || value.length <= longest.length) return;
+    // "500" inside "500 g" is a pack size, not five euros. A run whose
+    // surroundings read as a size is left alone.
+    if (looksLikeSize(collapse($(element).parent().text()))) return;
+    longest = value;
   });
 
   return longest ? Number(longest) / 100 : null;
@@ -662,42 +632,54 @@ export function readProduct(html: string, url: string): ProductReading | null {
   const heading = collapse($("h1").first().text());
   const fallbackCurrency = currencyForUrl(url);
 
+  /**
+   * One reading, however the page happened to state it: named for people
+   * rather than for search engines, sized by whatever the page says, and
+   * refused outright without a currency — a price without one is not a
+   * reading.
+   */
+  const reading = (
+    name: string | null,
+    price: number | null,
+    currency: string | null,
+    size: string | undefined
+  ): ProductReading | null => {
+    const named = name ? byPageHeading(withoutSiteSuffix(name, title), heading) : "";
+    const inCurrency = currency ?? fallbackCurrency;
+
+    if (!named || price === null || !inCurrency) return null;
+    const packed = size ?? sizeNearHeading($);
+
+    return { name: named, price, currency: inCurrency, ...(packed ? { size: packed } : {}) };
+  };
+
   for (const node of jsonLdNodes($)) {
     if (!hasType(node, "Product", "IndividualProduct", "ProductModel")) continue;
-    const name = text(prop(node, "name"));
     const offer = offerOf(node);
 
-    if (!name || !offer) continue;
-    const currency = offer.currency ?? readPriceInText($.text())?.currency ?? fallbackCurrency;
+    if (!offer) continue;
+    const found = reading(
+      readText(prop(node, "name")),
+      offer.price,
+      offer.currency ?? readPriceInText($.text())?.currency,
+      sizeOf(node)
+    );
 
-    if (!currency) continue;
-    const size = sizeOf(node) ?? sizeNearHeading($);
-
-    return {
-      name: byPageHeading(withoutSiteSuffix(name, title), heading),
-      price: offer.price,
-      currency,
-      ...(size ? { size } : {}),
-    };
+    if (found) return found;
   }
 
   const microdata = readMicrodataProduct($);
 
   if (microdata) {
     const money = readPriceInText(microdata.money);
-    const price = money?.price ?? parsePriceText(microdata.money);
-    const currency = money?.currency ?? fallbackCurrency;
+    const found = reading(
+      microdata.name,
+      money?.price ?? parsePriceText(microdata.money),
+      money?.currency ?? null,
+      undefined
+    );
 
-    if (price !== null && currency) {
-      const size = sizeNearHeading($);
-
-      return {
-        name: byPageHeading(withoutSiteSuffix(microdata.name, title), heading),
-        price,
-        currency,
-        ...(size ? { size } : {}),
-      };
-    }
+    if (found) return found;
   }
 
   const metaPrice =
@@ -706,16 +688,13 @@ export function readProduct(html: string, url: string): ProductReading | null {
   const metaCurrency =
     $('meta[property="product:price:currency"]').attr("content") ??
     $('meta[property="og:price:currency"]').attr("content");
-  const price = parsePriceText(metaPrice);
-  const name = heading || withoutSiteSuffix(title, title);
 
-  if (price === null || !name) return null;
-  const currency = currencyCode(metaCurrency) ?? fallbackCurrency;
-
-  if (!currency) return null;
-  const size = sizeNearHeading($);
-
-  return { name, price, currency, ...(size ? { size } : {}) };
+  return reading(
+    heading || title,
+    parsePriceText(metaPrice),
+    currencyCode(metaCurrency),
+    undefined
+  );
 }
 
 /**
@@ -840,13 +819,18 @@ export function readSearchAddressFromPage(
   }
 
   for (const form of forms) {
-    const action = (form.attr("action") ?? "").toLowerCase();
+    // Whole segments only: `action.includes("s")` would make a search form of
+    // every `/products` and `/newsletter` on the web.
+    const actionWords = (form.attr("action") ?? "")
+      .toLowerCase()
+      .split(/[^\p{L}\p{N}]+/u)
+      .filter(Boolean);
     const named = form
       .find("input[name]")
       .toArray()
       .map((element) => $(element).attr("name") ?? "")
       .find((name) => SEARCH_WORDS.includes(name.toLowerCase()));
-    const byAction = SEARCH_WORDS.some((word) => action.includes(word));
+    const byAction = actionWords.some((word) => SEARCH_WORDS.includes(word));
     const name = named ?? (byAction ? termInputName($, form) : null);
     const address = name ? formAddress($, form, name, pageUrl) : null;
 

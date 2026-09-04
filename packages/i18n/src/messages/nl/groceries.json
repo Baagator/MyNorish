@@ -102,8 +102,7 @@
     "ingredientsAdded": "Ingrediënten toegevoegd aan boodschappenlijst.",
     "ingredientsFailed": "Kan ingrediënten niet toevoegen aan boodschappenlijst.",
     "addToGroceries": "Toevoegen aan boodschappen",
-    "priceTitle": "Kies een prijs",
-    "pickPrice": "Prijs toevoegen"
+    "priceTitle": "Kies een prijs"
   },
   "prices": {
     "pickPrice": "Prijs toevoegen"
@@ -118,6 +117,7 @@
     "byHandName": "Productnaam",
     "byHandPrice": "Prijs",
     "useThisPrice": "Deze prijs gebruiken",
-    "byHandChosen": "{price} wordt bij deze boodschap opgeslagen."
+    "byHandChosen": "{price} wordt bij deze boodschap opgeslagen.",
+    "byHandCurrency": "Valuta"
   }
 }

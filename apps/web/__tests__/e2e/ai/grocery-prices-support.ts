@@ -13,16 +13,16 @@ export async function createShopStore(name: string, shopUrl: string): Promise<st
   await database.connect();
 
   try {
-    const [{ id: userId }] = (
-      await database.query<{ id: string }>(
-        `select id from "user" order by "createdAt" asc limit 1`
-      )
-    ).rows;
+    const owner = (
+      await database.query<{ id: string }>(`select id from "user" order by "createdAt" asc limit 1`)
+    ).rows[0];
+
+    if (!owner) throw new Error("The harness has provisioned no accounts");
     const inserted = await database.query<{ id: string }>(
       `insert into stores (user_id, name, website, search_address)
        values ($1, $2, $3, $4)
        returning id`,
-      [userId, name, shopUrl, `${shopUrl}/search?q={query}`]
+      [owner.id, name, shopUrl, `${shopUrl}/search?q={query}`]
     );
 
     return inserted.rows[0]!.id;

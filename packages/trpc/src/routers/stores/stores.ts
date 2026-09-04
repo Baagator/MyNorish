@@ -249,7 +249,7 @@ const checkSearchAddress = authedProcedure
     if (!store) throw new TRPCError({ code: "NOT_FOUND", message: "Store not found" });
     await assertHouseholdAccess(ctx.user.id, store.userId);
 
-    let searchAddress = store.searchAddress;
+    let searchAddress = input.searchAddress ?? store.searchAddress;
 
     if (!searchAddress && store.website) {
       searchAddress = await requireQueueApiHandler("discoverSearchAddress")(store.website);

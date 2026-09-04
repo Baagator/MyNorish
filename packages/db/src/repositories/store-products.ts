@@ -255,17 +255,6 @@ export async function listStoreProducts(storeId: string): Promise<StoreProductDt
   return parseProducts(rows);
 }
 
-export async function listStoreProductsByStoreIds(storeIds: string[]): Promise<StoreProductDto[]> {
-  if (storeIds.length === 0) return [];
-  const rows = await db
-    .select()
-    .from(storeProducts)
-    .where(inArray(storeProducts.storeId, storeIds))
-    .orderBy(storeProducts.name);
-
-  return parseProducts(rows);
-}
-
 /**
  * The read products among these whose Shelf Price is older than the ceiling. A
  * by-hand product is never stale: nothing read it, and nothing may refresh it.

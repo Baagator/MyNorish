@@ -5,7 +5,8 @@
  * the only thing standing between a household's shopping list and somebody
  * else's supermarket.
  */
-import type { StoreCandidate, StoreProductDto } from "@norish/shared/contracts";
+import type { StoreProductDto } from "@norish/shared/contracts";
+import type { PricedCandidate } from "@norish/shared/lib/currency";
 import {
   listStaleProducts,
   resolveProductLink,
@@ -15,6 +16,7 @@ import {
 import { getStoreById } from "@norish/db/repositories/stores";
 import { createLogger } from "@norish/shared-server/logger";
 import { storeEmitter } from "@norish/shared-server/realtime/stores";
+import { pricedCandidates } from "@norish/shared/lib/currency";
 import { resolveSearchAddress } from "@norish/shared/lib/search-address";
 
 import { requireQueueApiHandler } from "../api-handlers";
@@ -26,10 +28,9 @@ const log = createLogger("queue:store-lookup");
 /** A Shelf Price older than this is worth asking the shop about again. */
 export const SHELF_PRICE_MAX_AGE_MS = 12 * 60 * 60 * 1000;
 
-function priced(candidates: StoreCandidate[]): StoreCandidate[] {
-  return candidates.filter(
-    (candidate) => candidate.price !== undefined && candidate.currency !== undefined
-  );
+/** The moment a Shelf Price read before is worth asking the shop about again. */
+export function staleBefore(now: Date = new Date()): Date {
+  return new Date(now.getTime() - SHELF_PRICE_MAX_AGE_MS);
 }
 
 async function announceLink(householdKey: string, storeId: string, name: string): Promise<void> {
@@ -40,6 +41,27 @@ async function announceLink(householdKey: string, storeId: string, name: string)
 
 function announceProduct(householdKey: string, product: StoreProductDto): void {
   storeEmitter.emitToHousehold(householdKey, "productUpdated", { product });
+}
+
+/**
+ * Search one Store's own shop for a term, paced. The only way anything in
+ * Norish visits a shop's search page: the queue's match jobs and the picker's
+ * searches share this, and therefore share one pacing chain per host.
+ */
+export async function searchStore(
+  searchAddress: string,
+  term: string
+): Promise<{ candidates: PricedCandidate[]; answered: boolean }> {
+  const fetchStorePage = requireQueueApiHandler("fetchStorePage");
+  const readSearchResults = requireQueueApiHandler("readSearchResults");
+  const url = resolveSearchAddress(searchAddress, term);
+  const visit = await paceStoreVisit(visitKey(url), () =>
+    fetchStorePage(url, (html) => pricedCandidates(readSearchResults(html, url)).length === 0)
+  );
+
+  if (!visit.html) return { candidates: [], answered: false };
+
+  return { candidates: pricedCandidates(readSearchResults(visit.html, url)), answered: true };
 }
 
 /**
@@ -59,16 +81,12 @@ export async function matchGroceryName(input: {
   if (!store?.searchAddress) return { matched: false };
 
   const fetchStorePage = requireQueueApiHandler("fetchStorePage");
-  const readSearchResults = requireQueueApiHandler("readSearchResults");
   const readProduct = requireQueueApiHandler("readProduct");
 
   await input.onStep?.("searching");
-  const searchUrl = resolveSearchAddress(store.searchAddress, name);
-  const results = await paceStoreVisit(visitKey(searchUrl), () =>
-    fetchStorePage(searchUrl, (html) => priced(readSearchResults(html, searchUrl)).length === 0)
-  );
+  const { candidates, answered } = await searchStore(store.searchAddress, name);
 
-  if (!results.html) {
+  if (!answered) {
     log.info({ storeId, name }, "The shop did not answer a lookup");
     await upsertProductLink(storeId, name, null);
     await announceLink(householdKey, storeId, name);
@@ -76,10 +94,9 @@ export async function matchGroceryName(input: {
     return { matched: false };
   }
 
-  const candidates = priced(readSearchResults(results.html, searchUrl));
   const chosen = chooseCandidate(candidates, name);
 
-  if (!chosen || chosen.price === undefined || chosen.currency === undefined) {
+  if (!chosen) {
     log.info({ storeId, name, candidates: candidates.length }, "No unmistakable match; a Miss");
     await upsertProductLink(storeId, name, null);
     await announceLink(householdKey, storeId, name);
@@ -120,10 +137,7 @@ export async function refreshProducts(input: {
   now?: Date;
 }): Promise<{ refreshed: number }> {
   const now = input.now ?? new Date();
-  const stale = await listStaleProducts(
-    input.productIds,
-    new Date(now.getTime() - SHELF_PRICE_MAX_AGE_MS)
-  );
+  const stale = await listStaleProducts(input.productIds, staleBefore(now));
 
   if (stale.length === 0) return { refreshed: 0 };
 

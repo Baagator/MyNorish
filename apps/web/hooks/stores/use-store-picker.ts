@@ -30,9 +30,11 @@ export function useParsedGroceryName(raw: string): string {
 export function useShopSearch(storeId: string | null, term: string, enabled: boolean) {
   const trpc = useTRPC();
 
+  // The input is only ever sent when both parts are real; the placeholders
+  // below satisfy the input's type while the query is disabled.
   return useQuery(
     trpc.stores.searchShop.queryOptions(
-      { storeId: storeId ?? "", term: term || "x" },
+      { storeId: storeId ?? "", term: term.trim() },
       { enabled: enabled && Boolean(storeId) && term.trim().length > 0, staleTime: SEARCH_STALE_MS }
     )
   );
