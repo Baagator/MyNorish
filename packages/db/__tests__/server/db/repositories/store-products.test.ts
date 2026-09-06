@@ -6,8 +6,10 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   createManualProduct,
   getStoreProductById,
+  linkIfUnanswered,
   listStaleProducts,
   listStoreProducts,
+  noteProductUnreadable,
   resolveProductLink,
   resolveProductLinks,
   updateManualProduct,
@@ -129,6 +131,34 @@ describe("store products, product links and misses", () => {
       expect(after.name).toBe("Kaas van de markt");
     });
 
+    it("refreshes what it has not tried for longest first, and a dead page steps back", async () => {
+      const first = await upsertReadProduct(reading());
+      const second = await upsertReadProduct(reading({ pageUrl: OTHER_PAGE, name: "Jonge kaas" }));
+      const longAgo = new Date("2026-01-01T00:00:00Z");
+
+      await getTestDb()
+        .update(storeProducts)
+        .set({ pricedAt: longAgo, updatedAt: longAgo })
+        .where(eq(storeProducts.id, first.id));
+      await getTestDb()
+        .update(storeProducts)
+        .set({ pricedAt: longAgo, updatedAt: new Date("2026-01-02T00:00:00Z") })
+        .where(eq(storeProducts.id, second.id));
+
+      const stale = () =>
+        listStaleProducts([first.id, second.id], new Date()).then((rows) =>
+          rows.map((row) => row.id)
+        );
+
+      await expect(stale()).resolves.toEqual([first.id, second.id]);
+
+      // The first page could not be re-read: its price stays, and it takes
+      // its turn behind the one that has waited longer since.
+      await noteProductUnreadable(first.id);
+      await expect(stale()).resolves.toEqual([second.id, first.id]);
+      await expect(getStoreProductById(first.id)).resolves.toMatchObject({ price: 7.99 });
+    });
+
     it("is never stale, because nothing read it", async () => {
       const manual = await createManualProduct({
         id: crypto.randomUUID(),
@@ -206,6 +236,38 @@ describe("store products, product links and misses", () => {
       expect(links).toHaveLength(1);
       await expect(resolveProductLink(storeId, "kaas")).resolves.toMatchObject({
         product: { id: second.id },
+      });
+    });
+
+    it("lets the queue answer a name nobody has, and only such a name", async () => {
+      const read = await upsertReadProduct(reading());
+
+      // Nobody has answered "kaas": the queue's match lands.
+      await expect(linkIfUnanswered(storeId, "kaas", read.id)).resolves.toBe(true);
+      await expect(resolveProductLink(storeId, "kaas")).resolves.toMatchObject({
+        product: { id: read.id },
+      });
+
+      // A shopper then chooses another product. The queue, finishing a lookup
+      // it started before that, must not overrule them — with a match or with
+      // a Miss.
+      const chosen = await upsertReadProduct(reading({ pageUrl: OTHER_PAGE, name: "Jonge kaas" }));
+
+      await upsertProductLink(storeId, "kaas", chosen.id);
+      await expect(linkIfUnanswered(storeId, "kaas", read.id)).resolves.toBe(false);
+      await expect(linkIfUnanswered(storeId, "kaas", null)).resolves.toBe(false);
+      await expect(resolveProductLink(storeId, "kaas")).resolves.toMatchObject({
+        product: { id: chosen.id },
+      });
+    });
+
+    it("lets the queue answer a name it only knew as a Miss", async () => {
+      await upsertProductLink(storeId, "kaas", null);
+      const read = await upsertReadProduct(reading());
+
+      await expect(linkIfUnanswered(storeId, "kaas", read.id)).resolves.toBe(true);
+      await expect(resolveProductLink(storeId, "kaas")).resolves.toMatchObject({
+        product: { id: read.id },
       });
     });
 

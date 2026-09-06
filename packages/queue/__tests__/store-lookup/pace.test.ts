@@ -87,7 +87,8 @@ describe("paceStoreVisit", () => {
     await expect(paceStoreVisit("dirk.nl", () => Promise.resolve("html"), 1)).resolves.toBe("html");
   });
 
-  it("paces by host, which is what a shop is", () => {
-    expect(visitKey("https://www.dirk.nl/zoeken/producten/kaas")).toBe("www.dirk.nl");
+  it("paces by shop, which is a host with or without its www.", () => {
+    expect(visitKey("https://www.dirk.nl/zoeken/producten/kaas")).toBe("dirk.nl");
+    expect(visitKey("https://dirk.nl/boodschappen/kaas/97752")).toBe("dirk.nl");
   });
 });

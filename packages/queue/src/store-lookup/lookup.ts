@@ -5,12 +5,13 @@
  * the only thing standing between a household's shopping list and somebody
  * else's supermarket.
  */
-import type { StoreProductDto } from "@norish/shared/contracts";
+import type { StoreProductDto, StoreProductReadingInput } from "@norish/shared/contracts";
 import type { PricedCandidate } from "@norish/shared/lib/currency";
 import {
+  linkIfUnanswered,
   listStaleProducts,
+  noteProductUnreadable,
   resolveProductLink,
-  upsertProductLink,
   upsertReadProduct,
 } from "@norish/db/repositories/store-products";
 import { getStoreById } from "@norish/db/repositories/stores";
@@ -44,6 +45,25 @@ function announceProduct(householdKey: string, product: StoreProductDto): void {
 }
 
 /**
+ * What to keep of a product: its own page's reading where the page stated
+ * one, else what the results page said about it.
+ */
+function productReading(
+  storeId: string,
+  pageUrl: string,
+  reading: { name: string; price: number; currency: string; size?: string | null } | null,
+  fallback: PricedCandidate | null
+): StoreProductReadingInput | null {
+  const name = reading?.name ?? fallback?.name;
+  const price = reading?.price ?? fallback?.price;
+  const currency = reading?.currency ?? fallback?.currency;
+
+  if (name === undefined || price === undefined || currency === undefined) return null;
+
+  return { storeId, name, pageUrl, price, currency, size: reading?.size ?? fallback?.size ?? null };
+}
+
+/**
  * Search one Store's own shop for a term, paced. The only way anything in
  * Norish visits a shop's search page: the queue's match jobs and the picker's
  * searches share this, and therefore share one pacing chain per host.
@@ -56,18 +76,33 @@ export async function searchStore(
   const readSearchResults = requireQueueApiHandler("readSearchResults");
   const url = resolveSearchAddress(searchAddress, term);
   const visit = await paceStoreVisit(visitKey(url), () =>
-    fetchStorePage(url, (html) => pricedCandidates(readSearchResults(html, url)).length === 0)
+    fetchStorePage(url, (html, at) => pricedCandidates(readSearchResults(html, at)).length === 0)
   );
 
   if (!visit.html) return { candidates: [], answered: false };
 
-  return { candidates: pricedCandidates(readSearchResults(visit.html, url)), answered: true };
+  // Read against the address the shop answered from: a shop that redirects to
+  // its `www.` writes its links for that host, and against the asked-for one
+  // most of its shelf would resolve elsewhere and go unpriced.
+  return {
+    candidates: pricedCandidates(readSearchResults(visit.html, visit.url ?? url)),
+    answered: true,
+  };
 }
 
 /**
- * Ask a Store what a grocery name means there. A shop that answers nothing at
- * all is a Miss for the searched name and nothing more: the job stops rather
- * than retrying inside itself, and no other name is blamed for it.
+ * Ask a Store what a grocery name means there. A Miss is what the shop said:
+ * it answered, and nothing it answered with is unmistakably the thing asked
+ * for. A shop that did not answer at all — down, rate-limiting, or turning
+ * the visit away with nothing to render it with — said nothing, and nothing
+ * is written for it: the job stops rather than retrying inside itself, and
+ * the next view of the list asks again, an hour on at the soonest. A Miss
+ * written for that would have priced the name never.
+ *
+ * Every write here is conditional on nobody having answered the name in the
+ * meantime. The check before the visits only saves the shop a trip; the
+ * repository's own condition is what keeps a shopper's choice, made while the
+ * shop was being read, from being overwritten by the queue.
  */
 export async function matchGroceryName(input: {
   storeId: string;
@@ -88,7 +123,10 @@ export async function matchGroceryName(input: {
   const answered = await resolveProductLink(storeId, name);
 
   if (answered?.product) {
-    log.debug({ storeId, name }, "A shopper answered this name while the lookup was queued");
+    log.debug(
+      { storeId, groceryName: name },
+      "A shopper answered this name while the lookup was queued"
+    );
 
     return { matched: false };
   }
@@ -100,9 +138,7 @@ export async function matchGroceryName(input: {
   const { candidates, answered: shopAnswered } = await searchStore(store.searchAddress, name);
 
   if (!shopAnswered) {
-    log.info({ storeId, name }, "The shop did not answer a lookup");
-    await upsertProductLink(storeId, name, null);
-    await announceLink(householdKey, storeId, name);
+    log.info({ storeId, groceryName: name }, "The shop did not answer a lookup");
 
     return { matched: false };
   }
@@ -110,8 +146,11 @@ export async function matchGroceryName(input: {
   const chosen = chooseUnmistakable(candidates, name);
 
   if (!chosen) {
-    log.info({ storeId, name, candidates: candidates.length }, "No unmistakable match; a Miss");
-    await upsertProductLink(storeId, name, null);
+    log.info(
+      { storeId, groceryName: name, candidates: candidates.length },
+      "No unmistakable match; a Miss"
+    );
+    await linkIfUnanswered(storeId, name, null);
     await announceLink(householdKey, storeId, name);
 
     return { matched: false };
@@ -120,24 +159,34 @@ export async function matchGroceryName(input: {
   // The results page names the product; its own page states the price to keep.
   await input.onStep?.("reading-product");
   const page = await paceStoreVisit(visitKey(chosen.url), () => fetchStorePage(chosen.url));
-  const reading = page.html ? readProduct(page.html, chosen.url) : null;
+  const reading = productReading(
+    storeId,
+    chosen.url,
+    page.html ? readProduct(page.html, page.url ?? chosen.url) : null,
+    chosen
+  );
+
+  if (!reading) return { matched: false };
 
   await input.onStep?.("saving");
-  const product = await upsertReadProduct({
-    storeId,
-    name: reading?.name ?? chosen.name,
-    pageUrl: chosen.url,
-    price: reading?.price ?? chosen.price,
-    currency: reading?.currency ?? chosen.currency,
-    size: reading?.size ?? chosen.size ?? null,
-  });
+  const product = await upsertReadProduct(reading);
+  const linked = await linkIfUnanswered(storeId, name, product.id);
 
-  await upsertProductLink(storeId, name, product.id);
   announceProduct(householdKey, product);
   await announceLink(householdKey, storeId, name);
-  log.info({ storeId, name, productId: product.id }, "Linked a grocery name to a Store Product");
+  if (linked) {
+    log.info(
+      { storeId, groceryName: name, productId: product.id },
+      "Linked a grocery name to a Store Product"
+    );
+  } else {
+    log.debug(
+      { storeId, groceryName: name },
+      "A shopper answered this name while the shop was being read"
+    );
+  }
 
-  return { matched: true };
+  return { matched: linked };
 }
 
 /**
@@ -163,21 +212,20 @@ export async function refreshProducts(input: {
 
     if (!pageUrl) continue;
     const page = await paceStoreVisit(visitKey(pageUrl), () => fetchStorePage(pageUrl));
-    const reading = page.html ? readProduct(page.html, pageUrl) : null;
+    const reading = productReading(
+      product.storeId,
+      pageUrl,
+      page.html ? readProduct(page.html, page.url ?? pageUrl) : null,
+      null
+    );
 
     if (!reading) {
       log.info({ productId: product.id }, "A stale Shelf Price could not be re-read");
+      await noteProductUnreadable(product.id);
       continue;
     }
 
-    const updated = await upsertReadProduct({
-      storeId: product.storeId,
-      name: reading.name,
-      pageUrl,
-      price: reading.price,
-      currency: reading.currency,
-      size: reading.size ?? null,
-    });
+    const updated = await upsertReadProduct(reading);
 
     announceProduct(input.householdKey, updated);
     refreshed += 1;

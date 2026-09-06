@@ -23,10 +23,15 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/** The host a visit is a visit to, which is what is being paced. */
+/**
+ * The shop a visit is a visit to, which is what is being paced. `dirk.nl` and
+ * `www.dirk.nl` are one shop: a shop that redirects to its `www.` would
+ * otherwise have its search visited on one chain and its product pages on
+ * another, back to back.
+ */
 export function visitKey(url: string): string {
   try {
-    return new URL(url).hostname;
+    return new URL(url).hostname.toLowerCase().replace(/^www\./, "");
   } catch {
     return url;
   }

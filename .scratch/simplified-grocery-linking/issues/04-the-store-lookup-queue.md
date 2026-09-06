@@ -41,3 +41,7 @@ A shop that answers nothing at all is not a Miss for every candidate — write t
 - [x] A price older than 12 hours refreshes only for products attached to a live Grocery, capped per page view.
 - [x] A manual product is never refreshed.
 - [x] A landed price reaches other household members over the existing subscription without a reload.
+
+## Comments
+
+- 2026-09-05 (review): a shop that does **not answer** — down, rate-limiting, or turning the visit away with Obscura unreachable — no longer writes a Miss. A Miss is what a shop *said*; a shop that said nothing is asked again on the next view of the list, an hour on at the soonest (the match job id carries the hour). Written as a Miss it priced the name never. Refresh job ids likewise carry the staleness window, because a completed job's id is kept for the administrator's retention and BullMQ refuses a second job with it.

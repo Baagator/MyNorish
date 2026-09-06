@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNotNull, lt, sql } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import z from "zod";
 
 import type {
@@ -14,7 +14,7 @@ import {
   StoreProductLinkSelectSchema,
   StoreProductSelectSchema,
 } from "@norish/shared/contracts/zod";
-import { normalizeGroceryName } from "@norish/shared/lib/normalized-name";
+import { normalizeGroceryName, productLinkKey } from "@norish/shared/lib/normalized-name";
 
 const ProductSchema = StoreProductSelectSchema;
 const ProductsSchema = z.array(StoreProductSelectSchema);
@@ -86,8 +86,9 @@ export async function resolveProductLinks(
 ): Promise<ResolvedProductLink[]> {
   const wanted = new Set(
     pairs
-      .map(({ storeId, name }) => `${storeId}|${normalizeGroceryName(name)}`)
-      .filter((key) => !key.endsWith("|"))
+      .map(({ storeId, name }) => ({ storeId, normalized: normalizeGroceryName(name) }))
+      .filter((pair) => pair.normalized !== "")
+      .map((pair) => productLinkKey(pair.storeId, pair.normalized))
   );
 
   if (wanted.size === 0) return [];
@@ -106,7 +107,7 @@ export async function resolveProductLinks(
     );
 
   return rows
-    .filter((row) => wanted.has(`${row.link.storeId}|${row.link.normalizedName}`))
+    .filter((row) => wanted.has(productLinkKey(row.link.storeId, row.link.normalizedName)))
     .map((row) => ({
       storeId: row.link.storeId,
       normalizedName: row.link.normalizedName,
@@ -141,6 +142,42 @@ export async function upsertProductLink(
         version: sql`${storeProductLinks.version} + 1`,
       },
     });
+}
+
+/**
+ * What the lookup queue learned about a name, written only where nobody has
+ * answered it. The queue reads a shop between two paced visits, and a shopper
+ * may choose the product in that gap — through the panel, or from a
+ * housemate's screen. A shopper's answer is the answer, so the write itself
+ * carries the condition rather than a check made seconds before it: a link
+ * that already points at a product is left exactly as it is, Miss or match.
+ * Returns whether anything was written.
+ */
+export async function linkIfUnanswered(
+  storeId: string,
+  name: string,
+  storeProductId: string | null
+): Promise<boolean> {
+  const normalizedName = normalizeGroceryName(name);
+
+  if (!normalizedName) return false;
+
+  const rows = await db
+    .insert(storeProductLinks)
+    .values({ storeId, normalizedName, storeProductId })
+    .onConflictDoUpdate({
+      target: [storeProductLinks.storeId, storeProductLinks.normalizedName],
+      set: {
+        storeProductId,
+        triedAt: new Date(),
+        updatedAt: new Date(),
+        version: sql`${storeProductLinks.version} + 1`,
+      },
+      setWhere: isNull(storeProductLinks.storeProductId),
+    })
+    .returning({ id: storeProductLinks.id });
+
+  return rows.length > 0;
 }
 
 /**
@@ -256,8 +293,12 @@ export async function listStoreProducts(storeId: string): Promise<StoreProductDt
 }
 
 /**
- * The read products among these whose Shelf Price is older than the ceiling. A
- * by-hand product is never stale: nothing read it, and nothing may refresh it.
+ * The read products among these whose Shelf Price is older than the ceiling,
+ * least recently touched first. A by-hand product is never stale: nothing
+ * read it, and nothing may refresh it. "Touched" rather than "priced": a page
+ * that could not be re-read is noted as tried (see `noteProductUnreadable`),
+ * so a shop's dead pages take their turn behind its live ones instead of
+ * filling every refresh with pages that answer nothing.
  */
 export async function listStaleProducts(
   productIds: string[],
@@ -274,7 +315,18 @@ export async function listStaleProducts(
         isNotNull(storeProducts.pageUrl),
         lt(storeProducts.pricedAt, olderThan)
       )
-    );
+    )
+    .orderBy(storeProducts.updatedAt);
 
   return parseProducts(rows);
+}
+
+/**
+ * A product page that could not be re-read. The price is kept as it was — a
+ * page that is down is not a page that says nothing costs anything — and the
+ * attempt is noted, so the next refresh asks about the products it has not
+ * tried for longest.
+ */
+export async function noteProductUnreadable(id: string): Promise<void> {
+  await db.update(storeProducts).set({ updatedAt: new Date() }).where(eq(storeProducts.id, id));
 }
