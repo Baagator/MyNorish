@@ -7,12 +7,14 @@ import { describe, expect, it } from "vitest";
 import {
   currencyForUrl,
   parsePriceText,
-  readOpenSearchTemplate,
   readPriceInText,
   readProduct,
-  readSearchAddressFromPage,
   readSearchResults,
 } from "@norish/api/parser/store-page";
+import {
+  readOpenSearchTemplate,
+  readSearchAddressFromPage,
+} from "@norish/api/parser/store-search-address";
 
 const fixtures = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -275,6 +277,24 @@ describe("discovery: how a shop says it is searched", () => {
     expect(readOpenSearchTemplate(xml, "https://shop.example.kr/opensearch.xml")).toBe(
       "https://shop.example.kr/%EC%B0%BE%EA%B8%B0?%EB%8B%A8%EC%96%B4={query}"
     );
+  });
+
+  it("leaves the optional parameters of an OpenSearch template out of the address", () => {
+    const xml = `<?xml version="1.0"?><OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">
+      <Url type="text/html" method="get" template="/search?q={searchTerms}&amp;page={startPage?}&amp;lang=nl"/>
+      </OpenSearchDescription>`;
+
+    expect(readOpenSearchTemplate(xml, "https://shop.example.kr/opensearch.xml")).toBe(
+      "https://shop.example.kr/search?q={query}&lang=nl"
+    );
+  });
+
+  it("refuses an OpenSearch template that needs something it cannot fill", () => {
+    const xml = `<?xml version="1.0"?><OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">
+      <Url type="text/html" method="get" template="/search?q={searchTerms}&amp;sid={sessionId}"/>
+      </OpenSearchDescription>`;
+
+    expect(readOpenSearchTemplate(xml, "https://shop.example.kr/opensearch.xml")).toBeNull();
   });
 
   it("takes the input name of a form marked as search, in a language it cannot read", () => {

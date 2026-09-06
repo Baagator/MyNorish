@@ -11,7 +11,8 @@ import { pricedCandidates } from "@norish/shared/lib/currency";
 import { resolveSearchAddress } from "@norish/shared/lib/search-address";
 
 import { fetchStorePage } from "./store-fetch";
-import { readOpenSearchTemplate, readSearchAddressFromPage, readSearchResults } from "./store-page";
+import { readSearchResults } from "./store-page";
+import { readOpenSearchTemplate, readSearchAddressFromPage } from "./store-search-address";
 
 /**
  * The Search Address a shop's own homepage states, or nothing. Finding
