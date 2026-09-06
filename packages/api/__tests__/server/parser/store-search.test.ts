@@ -19,6 +19,27 @@ const A_RESULTS_PAGE = page(
     .join("")
 );
 
+describe("a shop that answers from another address than it was asked at", () => {
+  it("reads the results against the address the shop answered from", async () => {
+    // Absolute links for the `www.` host: read against the bare host they were
+    // asked at, every one of them is another site's and nothing is priced.
+    const html = page(
+      ["1", "2", "3", "4"]
+        .map(
+          (n) =>
+            `<a href="https://www.sklep.example.pl/produkty/produkt/${n}/ser">Ser ${n} 12,3${n} zł</a>`
+        )
+        .join("")
+    );
+
+    visitPage.mockResolvedValue({ html, url: "https://www.sklep.example.pl/szukaj?szukaj=ser" });
+
+    await expect(
+      verifySearchAddress("https://sklep.example.pl/szukaj?szukaj={query}", "ser")
+    ).resolves.toEqual({ outcome: "products", count: 4 });
+  });
+});
+
 describe("verifySearchAddress", () => {
   beforeEach(() => {
     visitPage.mockReset();

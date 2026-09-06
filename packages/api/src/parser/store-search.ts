@@ -23,7 +23,7 @@ export async function discoverSearchAddress(website: string): Promise<string | n
   const visit = await fetchStorePage(website);
 
   if (!visit.html) return null;
-  const reading = readSearchAddressFromPage(visit.html, website);
+  const reading = readSearchAddressFromPage(visit.html, visit.url ?? website);
 
   if (!reading) return null;
   if (reading.kind === "form") return reading.searchAddress;
@@ -32,7 +32,7 @@ export async function discoverSearchAddress(website: string): Promise<string | n
 
   if (!descriptor.html) return null;
 
-  return readOpenSearchTemplate(descriptor.html, reading.descriptionUrl);
+  return readOpenSearchTemplate(descriptor.html, descriptor.url ?? reading.descriptionUrl);
 }
 
 /**
@@ -55,11 +55,11 @@ export async function verifySearchAddress(
   const url = resolveSearchAddress(searchAddress, term);
   const visit = await fetchStorePage(
     url,
-    (html) => pricedCandidates(readSearchResults(html, url)).length === 0
+    (html, at) => pricedCandidates(readSearchResults(html, at)).length === 0
   );
 
   if (!visit.html) return { outcome: "no-answer" };
-  const count = pricedCandidates(readSearchResults(visit.html, url)).length;
+  const count = pricedCandidates(readSearchResults(visit.html, visit.url ?? url)).length;
 
   log.debug({ url, count, rendered: visit.rendered }, "Verified a Search Address");
 

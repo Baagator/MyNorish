@@ -83,6 +83,51 @@ describe("fetchStorePage", () => {
     });
   });
 
+  it("hands back the address the shop answered from, for the page to be read against", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          url: "https://www.dirk.nl/zoeken/producten/kaas",
+          text: async () => Promise.resolve(A_REAL_PAGE),
+        })
+      )
+    );
+    const readAgainst: string[] = [];
+
+    const visit = await fetchStorePage("https://dirk.nl/zoeken/producten/kaas", (_html, at) => {
+      readAgainst.push(at);
+
+      return false;
+    });
+
+    // A shop that redirects to its `www.` writes its links for that host.
+    expect(visit.url).toBe("https://www.dirk.nl/zoeken/producten/kaas");
+    expect(readAgainst).toEqual(["https://www.dirk.nl/zoeken/producten/kaas"]);
+  });
+
+  it("waits, when rendering, for the shelf to be drawn and not only for the challenge to pass", async () => {
+    vi.stubGlobal("fetch", answerWith("", 403));
+    let settled: ((html: string) => boolean) | undefined;
+
+    renderPage.mockImplementation(
+      async (_url: string, _tokens?: unknown, isSettled?: (html: string) => boolean) => {
+        settled = isSettled;
+
+        return Promise.resolve(RENDERED);
+      }
+    );
+
+    await fetchStorePage("https://www.ah.nl/zoeken?query=kaas", (html) => !html.includes("shelf"));
+
+    // A real page with nothing on it yet is not settled; one with the shelf is.
+    expect(settled?.(A_REAL_PAGE)).toBe(false);
+    expect(settled?.(A_REAL_PAGE.replace("<body>", "<body>shelf"))).toBe(true);
+    expect(settled?.(A_CHALLENGE)).toBe(false);
+  });
+
   it("still reads a plain-fetchable shop when Obscura is out of reach", async () => {
     vi.stubGlobal("fetch", answerWith(A_REAL_PAGE));
     renderPage.mockRejectedValue(new Error("Obscura is not reachable"));
