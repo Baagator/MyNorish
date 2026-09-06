@@ -1,6 +1,6 @@
 # 05 — E2E, docs and release notes
 
-Status: ready-for-agent
+Status: ready-for-human
 Blocked by: 01, 03, 04
 
 Spec: `.scratch/grocery-line-cost/spec.md`
@@ -21,7 +21,7 @@ Docs screenshots follow the conventions already used for the prices page.
 
 ## Acceptance criteria
 
-- [ ] E2E covers the loader, two packs at the heading, a Sale on the row, and a Pack Size corrected in the panel, against the harness's fake shop.
-- [ ] The prices docs page documents Line Cost, the Pack Size editor, the loader and Sales, with screenshots, and its not-yet list matches the spec's Out of Scope.
-- [ ] The `0.23.0-beta` release notes cover the feature in the established structure.
-- [ ] `pnpm lint`, `pnpm test:run`, `pnpm i18n:check`, `pnpm test:e2e` and `pnpm build` pass.
+- [x] E2E covers the loader, two packs at the heading, a Sale on the row, and a Pack Size corrected in the panel, against the harness's fake shop.
+- [x] The prices docs page documents Line Cost, the Pack Size editor, the loader and Sales, with screenshots, and its not-yet list matches the spec's Out of Scope.
+- [x] The `0.23.0-beta` release notes cover the feature in the established structure.
+- [x] `pnpm lint`, `pnpm test:run`, `pnpm i18n:check`, `pnpm test:e2e` and `pnpm build` pass.

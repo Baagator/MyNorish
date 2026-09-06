@@ -45,21 +45,72 @@ perfectly.
 
 ## What a grocery costs
 
-A priced grocery shows its **Shelf Price** on the row, with the shop's own
-words for the pack beside it — `€2.99 · 150 gram` — and, underneath, which of
-the shop's products that price is for. The size is left out when the shop
-states none.
+A priced grocery shows what it costs on the row — its **Line Cost** — with
+the packs that were counted beside it, in the shop's own words for the pack:
+`€5.98 · 2 × 500 gram`. Underneath is which of the shop's products that
+price is for. One pack reads as the **Shelf Price** and the size, `€2.99 ·
+150 gram`; the size is left out when the shop states none.
 
-![A shopping list with prices on its rows](/img/screenshots/groceries-prices.png)
+![A shopping list with Line Costs on its rows](/img/screenshots/groceries-prices.png)
 
 The Shelf Price is what one pack costs — the number on the shelf edge, not a
 price per kilo. Norish keeps only the price it last read, and refreshes it
 when it is more than twelve hours old and you are looking at the list.
 
-The Store's heading adds those up: one Shelf Price for every row still to buy
-under it, in the shop's own currency. A row the Store cannot price is left out
-of the sum rather than guessed at, and a row you tick off leaves it. When the
-list groups similar ingredients, a group is one row and counts once.
+### How many packs
+
+Norish counts the packs the way a till does. It reads the **Pack Size** —
+what one Shelf Price buys — out of the shop's own size words, and holds your
+grocery's amount against it:
+
+- **"700 g flour"** against a 500 g pack is two packs. Packs are whole and
+  rounded up strictly: 410 g against a pack of "ca. 405 g" is two, because a
+  pack you cannot buy 1.02 of is a pack.
+- **"2 cola"** is two of whatever the shop sells: a bare number is a number
+  of packs.
+- **"12 eggs"** against a box of ten is two boxes: when the shop counts the
+  pack in pieces too, a bare number is a number of pieces.
+- **"2 pak melk"** is two packs: a container word — pack, box, bottle, can,
+  jar, bag — means packs.
+- **"700 g bananas"** sold per kilo costs seven tenths of the kilo price. What
+  a shop sells loose is priced by weight, so 300 g of it is not rounded up to
+  a kilo. The row reads the cost and the weight priced: `€1.39 · 700 g`.
+- A grocery with **no amount** costs one pack.
+
+A line Norish cannot work out — a measure against something counted in
+pieces, a unit it does not know such as a pinch or a slice, a product it read
+no Pack Size for, or more than 24 packs — still shows a price: it counts one
+pack, with a quiet note under the product name saying so. A linked product is
+never priced at nothing.
+
+### Correcting the Pack Size
+
+Where the reading is wrong, or the shop stated no size, the grocery's own
+panel has the fix. Under the **Product** field, beside the price, the **Pack
+size** is a quantity and a unit — grams, kilos, millilitres, litres, ounces,
+pounds, pieces, or the two forms shops print for what is sold loose, per kg
+and per 100 g. Change it and press **Save**, and the row counts its packs
+afresh.
+
+![The grocery panel, with the Pack Size under the product](/img/screenshots/groceries-pack-size.png)
+
+A Pack Size you set is the last word: no later reading, match or refresh
+overwrites it, and your household sees the correction too. Clear the field
+and Norish goes back to reading it from the shop's words. A product you typed
+by hand takes a Pack Size the same way, so a shop Norish cannot read still
+prices by amount.
+
+### The Store's heading
+
+The Store's heading adds the Line Costs up: every row still to buy under it,
+in the shop's own currency. A row the Store cannot price is left out of the
+sum rather than guessed at, and a row you tick off leaves it. Each view
+prices what it shows: in the plain list every row is its own purchase; when
+the list groups similar ingredients, a group is one row and one purchase,
+priced from its recipes' amounts added together — 300 g and 0.4 kg of flour
+are priced as 700 g, two packs, even though the group still shows them apart.
+
+### While Norish is asking
 
 Adding a grocery never waits on a shop:
 
@@ -67,6 +118,12 @@ Adding a grocery never waits on a shop:
   outbound request at all;
 - a name it does not know goes to a queue, and the price appears on your list
   the moment it lands — on your housemates' screens too.
+
+While the shop is being asked, the row shows a small loader where the price
+will go, so a blank reads as waiting and not as failure. The loader is a fact
+about the Store rather than about your screen: your housemates see it on the
+same row, and it goes when the answer lands. A shop that does not answer at
+all leaves nothing behind, and the name is asked again on a later visit.
 
 Norish links a grocery to a product by itself only where you would not
 hesitate: your grocery's name is a product's name to the letter, or every word
@@ -91,13 +148,13 @@ so, so you can see it working rather than guess.
 
 ![The product field in a grocery's panel, offering priced results from the shop](/img/screenshots/groceries-picker.png)
 
-Picking one fills in the **Product name**, **Price** and **Currency** beneath
-it, so the panel says what this costs where it says everything else. Nothing is
-written until you press **Save** or **Add** — what you do in the dropdown
-changes nothing your household sees until then. Norish asks the shop only once
-you use the field, so opening a grocery to rename it sends nobody to a
-supermarket, and a Store with no shop link shows the field greyed out rather
-than pretending it can search.
+Picking one fills in the **Product name**, **Price**, **Currency** and
+**Pack size** beneath it, so the panel says what this costs where it says
+everything else. Nothing is written until you press **Save** or **Add** —
+what you do in the dropdown changes nothing your household sees until then.
+Norish asks the shop only once you use the field, so opening a grocery to
+rename it sends nobody to a supermarket, and a Store with no shop link shows
+the field greyed out rather than pretending it can search.
 
 Those three fields are yours to correct. Type over the price and it becomes
 **your** price for that name at that Store: Norish never writes over a price it
@@ -117,16 +174,35 @@ makes a Store Product like any other, except that nothing Norish reads will
 ever overwrite it: a price you typed is the last word. Type over it later and
 it is the same product, corrected, not a second one beside it.
 
+## Sales
+
+A **Sale** is what the shop presents as one: a price with the regular price
+it replaces beside it. On the row the regular Line Cost is struck through
+next to the Line Cost, with a **Sale** badge, and the shop's own words for
+the deal follow the product name — "Weekend actie", "Bonus". The picker shows
+the same on each result, so you can see a deal before you choose it.
+
+A deal the shop keeps as a label over its regular price — Albert Heijn's
+"2 voor €5.50" — is shown in those words and never worked into the number:
+Norish prices what the shop presents as the price, and tells you the rest in
+the shop's words so you can act on it at the shelf. A Sale lasts until the
+shop presents another price; a refresh that reads the same price keeps it,
+and one that reads any other price ends it. A price you typed by hand is
+never on Sale.
+
 ## What this does not do yet
 
 Deliberately, for now:
 
-- no amount × price arithmetic: a Store's heading counts one Shelf Price per
-  row, whatever the row's own amount says;
-- no comparable unit prices (€/kg) and no pack-size conversion;
-- no sale badges, stock or availability;
+- no deal arithmetic: "2 voor €5.50" is shown, never computed;
+- no card, membership or login-gated prices — Norish cannot tell a card
+  price from a markdown by markup, so a shop that presents its card price as
+  the price is priced at it;
+- no comparable unit prices (€/kg beside a pack);
 - no price history — a Shelf Price is overwritten and the one it replaces is
   gone;
+- no tolerance on pack rounding, and no per-line "packs needed" override: the
+  amount and the Pack Size are the two knobs;
 - prices are a web surface: they do not appear in the mobile app.
 
 ## For self-hosting operators

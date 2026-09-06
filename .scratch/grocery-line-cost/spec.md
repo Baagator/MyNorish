@@ -1,6 +1,6 @@
 # Grocery Line Cost
 
-Status: ready-for-agent
+Status: ready-for-human
 
 ## Problem Statement
 

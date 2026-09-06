@@ -46,13 +46,13 @@ test.afterAll(async () => {
   await shop?.stop();
 });
 
-async function addGrocery(name: string): Promise<void> {
+async function addGrocery(name: string, shown: string = name): Promise<void> {
   await page.getByRole("button", { name: "Add Item" }).click();
   await page.getByPlaceholder("e.g., 2 lbs chicken breast").fill(name);
   await page.getByRole("button", { name: /Auto-detect from history/ }).click();
   await page.getByRole("option", { name: STORE_NAME }).click();
   await page.getByRole("button", { name: "Add", exact: true }).click();
-  await expect(page.getByText(name).first()).toBeVisible();
+  await expect(page.getByText(shown).first()).toBeVisible();
   await page.getByRole("button", { name: "Close panel" }).click();
 }
 
@@ -77,6 +77,11 @@ test("captures a priced shopping list", async () => {
   await addGrocery("kaas");
   await addGrocery("melk");
   await addGrocery("brood");
+  // Two packs, a Sale, and something sold by weight, so the list shows what
+  // a Line Cost looks like in each of its shapes.
+  await addGrocery("700 g tarwebloem", "tarwebloem");
+  await addGrocery("300 g geitenkaas plakken", "geitenkaas plakken");
+  await addGrocery("700 g bananen los", "bananen los");
 
   await expect
     .poll(
@@ -87,10 +92,20 @@ test("captures a priced shopping list", async () => {
       },
       { timeout: 90_000 }
     )
-    .toBeGreaterThanOrEqual(3);
+    .toBeGreaterThanOrEqual(6);
 
   await page.waitForTimeout(800);
   await page.screenshot({ path: path.join(SHOTS, "groceries-prices.png") });
+});
+
+test("captures the Pack Size under the product in the grocery panel", async () => {
+  await page.goto("/groceries");
+  await page.getByText("tarwebloem", { exact: true }).first().click();
+  await expect(page.getByTestId("grocery-product-field")).toHaveValue("Tarwebloem");
+  await expect(page.getByTestId("pack-size-quantity")).toHaveValue("500");
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: path.join(SHOTS, "groceries-pack-size.png") });
+  await page.getByRole("button", { name: "Close panel" }).click();
 });
 
 test("captures the product field in the grocery panel", async () => {

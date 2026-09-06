@@ -56,6 +56,33 @@ export async function readStoredLink(
   }
 }
 
+/** The Pack Size a Store Product holds, as the database has it. */
+export async function readPackSize(
+  productName: string
+): Promise<{ quantity: string | null; unit: string | null; byHand: boolean } | null> {
+  const database = new Client({ connectionString: databaseUrl() });
+
+  await database.connect();
+
+  try {
+    const rows = await database.query<{
+      pack_quantity: string | null;
+      pack_unit: string | null;
+      pack_by_hand: boolean;
+    }>(
+      `select pack_quantity, pack_unit, pack_by_hand from store_products where name = $1 limit 1`,
+      [productName]
+    );
+    const row = rows.rows[0];
+
+    return row
+      ? { quantity: row.pack_quantity, unit: row.pack_unit, byHand: row.pack_by_hand }
+      : null;
+  } finally {
+    await database.end();
+  }
+}
+
 /** Which Store a grocery sits under, as the database has it. */
 export async function readGroceryStore(name: string): Promise<string | null> {
   const database = new Client({ connectionString: databaseUrl() });

@@ -1,6 +1,6 @@
 # 02 — The unit table, the Pack Size, and prices by weight
 
-Status: ready-for-agent
+Status: ready-for-human
 
 Spec: `.scratch/grocery-line-cost/spec.md`
 
@@ -28,10 +28,10 @@ The `__tests__` eslint blind spot applies if new source lands under that tree.
 
 ## Acceptance criteria
 
-- [ ] A table-driven test resolves the units map's spellings in every locale, `parse-ingredient`'s built-ins, and the shop words above to the right family and magnitude, and resolves pinch, handful and slice to unknown.
-- [ ] Size words "500 g", "1,5 l", "6 x 33 cl", "10 stuks", "8 st.", "Per stuk", "ca. 405 g", "per kg" and "per 100 gram" read to the expected Pack Size; a word the table does not know reads to none.
-- [ ] JSON-LD `weight`/`size`/`netContent` with a unit code reads to a Pack Size ahead of the size words.
-- [ ] Two new loose-product fixtures are committed, and the reader offers their by-weight products priced and marked by weight; a per-unit price beside a pack price is still rejected.
-- [ ] A match and a refresh store the Pack Size; neither overwrites one set by hand.
-- [ ] The grocery panel edits the Pack Size of a linked or picked product and writes it on Save; the by-hand form takes an optional Pack Size.
-- [ ] `pnpm lint`, `pnpm test:run` and `pnpm i18n:check` pass.
+- [x] A table-driven test resolves the units map's spellings in every locale, `parse-ingredient`'s built-ins, and the shop words above to the right family and magnitude, and resolves pinch, handful and slice to unknown.
+- [x] Size words "500 g", "1,5 l", "6 x 33 cl", "10 stuks", "8 st.", "Per stuk", "ca. 405 g", "per kg" and "per 100 gram" read to the expected Pack Size; a word the table does not know reads to none.
+- [x] JSON-LD `weight`/`size`/`netContent` with a unit code reads to a Pack Size ahead of the size words.
+- [x] Two new loose-product fixtures are committed, and the reader offers their by-weight products priced and marked by weight; a per-unit price beside a pack price is still rejected.
+- [x] A match and a refresh store the Pack Size; neither overwrites one set by hand.
+- [x] The grocery panel edits the Pack Size of a linked or picked product and writes it on Save; the by-hand form takes an optional Pack Size.
+- [x] `pnpm lint`, `pnpm test:run` and `pnpm i18n:check` pass.

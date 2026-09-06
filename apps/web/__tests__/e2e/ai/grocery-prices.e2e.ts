@@ -13,7 +13,12 @@ import type { Page } from "@playwright/test";
 import type { FakeShop } from "../harness/fake-shop";
 import { createFakeShop } from "../harness/fake-shop";
 import { expect, test } from "./fixture";
-import { createShopStore, readGroceryStore, readStoredLink } from "./grocery-prices-support";
+import {
+  createShopStore,
+  readGroceryStore,
+  readPackSize,
+  readStoredLink,
+} from "./grocery-prices-support";
 
 test.describe.configure({ mode: "serial" });
 
@@ -40,15 +45,19 @@ test.afterAll(async () => {
   await shop?.stop();
 });
 
-/** Add a grocery to the Store the harness serves, through the panel a user uses. */
-async function addGroceryToShop(name: string): Promise<void> {
+/**
+ * Add a grocery to the Store the harness serves, through the panel a user
+ * uses. `shown` is the name the row will carry once "700 g tarwebloem" has
+ * been parsed into an amount, a unit and a name.
+ */
+async function addGroceryToShop(name: string, shown: string = name): Promise<void> {
   await page.goto("/groceries");
   await page.getByRole("button", { name: "Add Item" }).click();
   await page.getByPlaceholder("e.g., 2 lbs chicken breast").fill(name);
   await page.getByRole("button", { name: /Auto-detect from history/ }).click();
   await page.getByRole("option", { name: STORE_NAME }).click();
   await page.getByRole("button", { name: "Add", exact: true }).click();
-  await expect(page.getByText(name).first()).toBeVisible();
+  await expect(page.getByText(shown).first()).toBeVisible();
   // The add panel stays open for batch adding; the list underneath is what
   // every assertion here is about.
   await page.getByRole("button", { name: "Close panel" }).click();
@@ -97,12 +106,20 @@ async function dragGroceryToStore(name: string, storeName: string): Promise<void
 test("a name the shop states unmistakably is priced without being asked", async () => {
   await addGroceryToShop("kaas");
 
+  // The Store has been asked and has not answered: the row says so with a
+  // loader — a Pending Link, written before the job — rather than a blank
+  // that reads as failure.
+  await expect(rowFor("kaas").getByTestId("grocery-price-pending")).toBeVisible({
+    timeout: 15_000,
+  });
+
   // The lookup is a queue job — the add returned long before the shop answered
   // — and the price it landed reaches this already-open page over the Store
   // subscription, with no reload anywhere in this assertion.
   const price = page.getByTestId("grocery-price").first();
 
   await expect(price).toContainText(/4[.,]99/, { timeout: 60_000 });
+  await expect(rowFor("kaas").getByTestId("grocery-price-pending")).toBeHidden();
   await expect(price).toContainText("500 g");
   // The row says which of the shop's products that price is for.
   await expect(page.getByTestId("grocery-product").first()).toHaveText("Oude kaas 500 g");
@@ -252,7 +269,8 @@ test("a grocery dragged into another Store is priced there, on the list", async 
   // The same name means a different product at the other shop, chosen by hand
   // there, so the two Stores hold different answers for one grocery name.
   await page.getByText("roomboter", { exact: true }).first().click();
-  await page.locator("[data-slot='select-trigger']").click();
+  // The Store select is the panel's first; the Pack Size unit select sits under the product.
+  await page.locator("[data-slot='select-trigger']").first().click();
   await page.getByRole("option", { name: second }).click();
   await page.getByTestId("grocery-product-field").fill("brood");
   // The one product answering "brood" is taken by the field for the typed term.
@@ -284,4 +302,89 @@ test("a grocery dragged into another Store is priced there, on the list", async 
   await expect(rowFor("roomboter").getByTestId("grocery-product")).toHaveText("Roomboter 250 g", {
     timeout: 30_000,
   });
+});
+
+test("700 g of a 500 g pack is two packs, on the row and at the heading", async () => {
+  await page.goto("/groceries");
+  // A name no other scenario uses, whose shop answers with one product of a
+  // known Pack Size: the queue links it on its own.
+  await addGroceryToShop("700 g tarwebloem", "tarwebloem");
+
+  const row = rowFor("tarwebloem");
+
+  await expect(row.getByTestId("grocery-product")).toHaveText("Tarwebloem", { timeout: 60_000 });
+  // The Line Cost first, the packs after: two 500 g packs at €1.15.
+  await expect(row.getByTestId("grocery-line-cost")).toContainText(/2[.,]30/);
+  await expect(row.getByTestId("grocery-line-cost")).toContainText("2 × 500 g");
+  await expect(row.getByTestId("grocery-price")).toHaveAttribute("data-grocery-packs", "2");
+
+  // The heading is the sum of the Line Costs under it, so two packs count
+  // twice: every row's own Line Cost in this Store's section, read off the
+  // screen, adds up to the number in its heading.
+  const section = row.locator("xpath=ancestor::*[@data-store-id]").first();
+  const money = (text: string | null) =>
+    Number(text?.match(/\d+[.,]\d{2}/)?.[0].replace(",", ".") ?? 0);
+
+  await expect(section.getByTestId("store-total")).toBeVisible();
+  const heading = money(await section.getByTestId("store-total").textContent());
+  const costs = await section.getByTestId("grocery-line-cost").allTextContents();
+  const sum = costs.map(money).reduce((total, cost) => Math.round((total + cost) * 100) / 100, 0);
+
+  expect(sum).toBeGreaterThanOrEqual(2.3);
+  expect(heading).toBe(sum);
+});
+
+test("a product on Sale shows the badge and the price the shop struck through", async () => {
+  await page.goto("/groceries");
+  await addGroceryToShop("300 g geitenkaas plakken", "geitenkaas plakken");
+
+  const row = rowFor("geitenkaas plakken");
+
+  await expect(row.getByTestId("grocery-product")).toContainText("Geitenkaas plakken", {
+    timeout: 60_000,
+  });
+  // Two 150 g packs at the Sale price, and at the regular price struck through.
+  await expect(row.getByTestId("grocery-line-cost")).toContainText(/4[.,]38/);
+  await expect(row.getByTestId("grocery-regular-cost")).toContainText(/6[.,]58/);
+  await expect(row.getByTestId("grocery-sale")).toBeVisible();
+  // The shop's own words for the deal, after the product name.
+  await expect(row.getByTestId("grocery-deal-words")).toContainText("Weekend actie");
+});
+
+test("what is sold loose is priced by the weight the line states", async () => {
+  await page.goto("/groceries");
+  await addGroceryToShop("700 g bananen los", "bananen los");
+
+  const row = rowFor("bananen los");
+
+  await expect(row.getByTestId("grocery-product")).toHaveText("Bananen los", { timeout: 60_000 });
+  // 700 g of something priced per kilo at €1.89 is €1.32, and the row says
+  // what weight it priced rather than a number of packs.
+  await expect(row.getByTestId("grocery-line-cost")).toContainText(/1[.,]32/);
+  await expect(row.getByTestId("grocery-line-cost")).toContainText("700");
+});
+
+test("a Pack Size corrected in the panel changes the row's packs after Save", async () => {
+  await page.goto("/groceries");
+
+  // "Tarwebloem" is linked to a 500 g pack; the shopper knows it is a kilo bag.
+  await page.getByText("tarwebloem", { exact: true }).first().click();
+  await expect(page.getByTestId("grocery-product-field")).toHaveValue("Tarwebloem");
+  await expect(page.getByTestId("pack-size-quantity")).toHaveValue("500");
+
+  await page.getByTestId("pack-size-quantity").fill("1000");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+
+  // The correction is the last word: stored by hand, and the row now counts
+  // one pack of a kilo where it counted two of 500 g.
+  await expect
+    .poll(async () => (await readPackSize("Tarwebloem"))?.quantity, { timeout: 30_000 })
+    .toBe("1000.000");
+  expect((await readPackSize("Tarwebloem"))?.byHand).toBe(true);
+  await expect(rowFor("tarwebloem").getByTestId("grocery-price")).toHaveAttribute(
+    "data-grocery-packs",
+    "1",
+    { timeout: 30_000 }
+  );
+  await expect(rowFor("tarwebloem").getByTestId("grocery-line-cost")).toContainText(/1[.,]15/);
 });

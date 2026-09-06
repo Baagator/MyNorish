@@ -1,6 +1,6 @@
 # 04 — The Sale
 
-Status: ready-for-agent
+Status: ready-for-human
 Blocked by: 03
 
 Spec: `.scratch/grocery-line-cost/spec.md`
@@ -21,11 +21,11 @@ The badge is Norish's word, translated in every locale; the deal words are the s
 
 ## Acceptance criteria
 
-- [ ] The Dirk results fixture reads 31 candidates with a regular price above their price, and the "VR, ZA & ZO actie" words on the ones that carry them.
-- [ ] The AH results fixture reads "2 voor €5.50" as deal words on seven candidates, none of them on Sale.
-- [ ] The Dirk on-offer product page fixture reads what the page states, and the refresh rule keeps a Sale the page does not restate at the same price.
-- [ ] A refresh that reads a different price ends the Sale.
-- [ ] A row on Sale shows the Line Cost, the struck regular Line Cost and the badge; the deal words follow the product name.
-- [ ] Picker candidates on Sale show the badge, the struck pack price and the words.
-- [ ] A hand-typed product shows no Sale.
-- [ ] `pnpm lint`, `pnpm test:run` and `pnpm i18n:check` pass.
+- [x] The Dirk results fixture reads 31 candidates with a regular price above their price, and the "VR, ZA & ZO actie" words on the ones that carry them.
+- [x] The AH results fixture reads "2 voor €5.50" as deal words on seven candidates, none of them on Sale.
+- [x] The Dirk on-offer product page fixture reads what the page states, and the refresh rule keeps a Sale the page does not restate at the same price.
+- [x] A refresh that reads a different price ends the Sale.
+- [x] A row on Sale shows the Line Cost, the struck regular Line Cost and the badge; the deal words follow the product name.
+- [x] Picker candidates on Sale show the badge, the struck pack price and the words.
+- [x] A hand-typed product shows no Sale.
+- [x] `pnpm lint`, `pnpm test:run` and `pnpm i18n:check` pass.

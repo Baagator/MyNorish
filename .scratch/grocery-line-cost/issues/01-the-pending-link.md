@@ -1,6 +1,6 @@
 # 01 — The Pending Link
 
-Status: ready-for-agent
+Status: ready-for-human
 
 Spec: `.scratch/grocery-line-cost/spec.md`
 
@@ -26,13 +26,13 @@ The loader is a loader, not a sentence: no "asking the shop" copy. One i18n key 
 
 ## Acceptance criteria
 
-- [ ] Creating a grocery with an unknown name in a searchable Store writes a Pending Link and enqueues the match job.
-- [ ] The row shows a loader while the link is pending and the price, or the invitation, once it is answered, without a reload.
-- [ ] A housemate's screen shows the same loader over the existing subscription.
-- [ ] A shop that does not answer leaves no row behind, and the name is asked again on a later view.
-- [ ] A job that gives up leaves no row behind.
-- [ ] A Pending Link older than the retry window does not stop the producer from asking again.
-- [ ] A Pending Link older than five minutes renders as unanswered on the client.
-- [ ] The grocery panel's product field waits on a Pending Link and does not search the shop for it; typing a term still searches.
-- [ ] A test asserts no job on this queue is enqueued with `delay`, as before.
-- [ ] `pnpm lint`, `pnpm test:run` and `pnpm i18n:check` pass.
+- [x] Creating a grocery with an unknown name in a searchable Store writes a Pending Link and enqueues the match job.
+- [x] The row shows a loader while the link is pending and the price, or the invitation, once it is answered, without a reload.
+- [x] A housemate's screen shows the same loader over the existing subscription.
+- [x] A shop that does not answer leaves no row behind, and the name is asked again on a later view.
+- [x] A job that gives up leaves no row behind.
+- [x] A Pending Link older than the retry window does not stop the producer from asking again.
+- [x] A Pending Link older than five minutes renders as unanswered on the client.
+- [x] The grocery panel's product field waits on a Pending Link and does not search the shop for it; typing a term still searches.
+- [x] A test asserts no job on this queue is enqueued with `delay`, as before.
+- [x] `pnpm lint`, `pnpm test:run` and `pnpm i18n:check` pass.

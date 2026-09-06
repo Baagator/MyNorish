@@ -15,7 +15,11 @@ export interface FakeShopProduct {
   slug: string;
   name: string;
   price: string;
+  /** The shop's own size words, which is what the Pack Size is read from. */
   size: string;
+  /** A Sale: the regular price the shop shows struck through, and its words for the deal. */
+  regularPrice?: string;
+  dealWords?: string;
 }
 
 export const FAKE_SHOP_PRODUCTS: FakeShopProduct[] = [
@@ -23,6 +27,16 @@ export const FAKE_SHOP_PRODUCTS: FakeShopProduct[] = [
   { slug: "halfvolle-melk", name: "Halfvolle melk 1 L", price: "1.29", size: "1 L" },
   { slug: "roomboter", name: "Roomboter 250 g", price: "2.49", size: "250 g" },
   { slug: "bruin-brood", name: "Bruin brood", price: "1.79", size: "800 g" },
+  { slug: "tarwebloem", name: "Tarwebloem", price: "1.15", size: "500 g" },
+  {
+    slug: "geitenkaas",
+    name: "Geitenkaas plakken",
+    price: "2.19",
+    size: "150 g",
+    regularPrice: "3.29",
+    dealWords: "Weekend actie",
+  },
+  { slug: "bananen", name: "Bananen los", price: "1.89", size: "per kg" },
 ];
 
 /** What a shop answers a search with: the products sharing a word with it. */
@@ -53,13 +67,17 @@ function resultsPage(term: string): string {
     })),
   };
   const cards = found
-    .map(
-      (product) =>
-        `<article><a href="/p/${product.slug}">${product.name}</a><span>€${product.price.replace(
-          ".",
-          ","
-        )}</span><span>${product.size}</span></article>`
-    )
+    .map((product) => {
+      const struck = product.regularPrice
+        ? `<del>€${product.regularPrice.replace(".", ",")}</del>`
+        : "";
+      const label = product.dealWords ? `<div class="promo-label">${product.dealWords}</div>` : "";
+
+      return `<article><a href="/p/${product.slug}">${product.name}</a>${label}${struck}<span>€${product.price.replace(
+        ".",
+        ","
+      )}</span><span>${product.size}</span></article>`;
+    })
     .join("");
 
   return `<!doctype html><html lang="nl"><head><title>Zoekresultaten</title>
@@ -75,10 +93,15 @@ function productPage(product: FakeShopProduct): string {
     weight: product.size,
     offers: { "@type": "Offer", price: product.price, priceCurrency: "EUR" },
   };
+  // Like the real shops, a product page states its Sale for people and not
+  // in its data: the regular price struck through beside the price.
+  const sale = product.regularPrice
+    ? `<div class="promo-label">${product.dealWords ?? ""}</div><del>€${product.regularPrice.replace(".", ",")}</del>`
+    : "";
 
   return `<!doctype html><html lang="nl"><head><title>${product.name}</title>
 <script type="application/ld+json">${JSON.stringify(node)}</script></head>
-<body><h1>${product.name}</h1><p>${product.size}</p></body></html>`;
+<body><div><h1>${product.name}</h1><p>${product.size}</p>${sale}<span>€${product.price.replace(".", ",")}</span></div></body></html>`;
 }
 
 export interface FakeShop {
