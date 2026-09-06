@@ -110,6 +110,7 @@
     "knownGroup": "Allerede kendt",
     "shopGroup": "Fra butikken",
     "nothingFound": "Norish fandt intet hos {store}. Du kan selv skrive prisen.",
+    "noAnswer": "{store} svarede ikke. Prøv igen om et øjeblik, eller skriv prisen selv.",
     "byHandName": "Produktnavn",
     "byHandPrice": "Pris",
     "byHandCurrency": "Valuta",

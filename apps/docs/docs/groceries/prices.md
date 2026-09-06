@@ -106,19 +106,23 @@ rather than through it.
 
 ### A shop Norish cannot read
 
-Some shops answer with nothing Norish can read. When a search comes back
-empty, the field offers to take a price by hand: a name, prefilled with the
+Some shops answer with nothing Norish can read, and some cannot be searched at
+all — a shop link Norish could not make a search page out of. A shop that does
+not answer at all — down, or turning the visit away — is reported as exactly
+that, not as a shop with nothing on its shelf. In every case the field offers to
+take a price by hand: a name, prefilled with the
 grocery's, and the price and currency you saw. There is nothing to press — a
 price you have typed is your choice, and Save writes it like any other. That
 makes a Store Product like any other, except that nothing Norish reads will
-ever overwrite it: a price you typed is the last word.
+ever overwrite it: a price you typed is the last word. Type over it later and
+it is the same product, corrected, not a second one beside it.
 
 ## What this does not do yet
 
 Deliberately, for now:
 
-- no amount × price arithmetic: a Store's heading adds up one Shelf Price per
-  line still to buy, and a line the Store cannot price is left out of it;
+- no amount × price arithmetic: a Store's heading counts one Shelf Price per
+  row, whatever the row's own amount says;
 - no comparable unit prices (€/kg) and no pack-size conversion;
 - no sale badges, stock or availability;
 - no price history — a Shelf Price is overwritten and the one it replaces is

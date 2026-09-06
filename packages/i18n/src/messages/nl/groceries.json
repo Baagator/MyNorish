@@ -110,6 +110,7 @@
     "knownGroup": "Al bekend",
     "shopGroup": "Uit de winkel",
     "nothingFound": "Norish vond niets bij {store}. Je kunt de prijs zelf typen.",
+    "noAnswer": "{store} gaf geen antwoord. Probeer het zo nog eens, of typ de prijs zelf.",
     "byHandName": "Productnaam",
     "byHandPrice": "Prijs",
     "byHandCurrency": "Valuta",

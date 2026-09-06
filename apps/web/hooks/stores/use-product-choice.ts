@@ -28,8 +28,24 @@ export function useProductChoice(options: {
   /** Reopened, or opened on a different grocery: the held choice is not that grocery's. */
   resetOn?: unknown;
 }) {
-  const { itemName, stores, selectedStoreId } = options;
-  const [choice, setChoice] = useState<StoreProductChoice | null>(null);
+  const { itemName, stores, selectedStoreId, resetOn } = options;
+  // What is held is held for one Store and one grocery. Reading it back
+  // through that key, rather than clearing it in an effect, means a field
+  // mounted for another Store never sees the last Store's choice — not even
+  // for the one render an effect would take to clear it, which is the render
+  // the field reads its opening state from.
+  const [held, setHeld] = useState<{
+    storeId: string | null;
+    about: unknown;
+    choice: StoreProductChoice | null;
+  } | null>(null);
+  const choice =
+    held && held.storeId === selectedStoreId && held.about === resetOn ? held.choice : null;
+  const setChoice = useCallback(
+    (next: StoreProductChoice | null) =>
+      setHeld({ storeId: selectedStoreId, about: resetOn, choice: next }),
+    [selectedStoreId, resetOn]
+  );
   const chooseProduct = useChooseProduct();
   const { priceFor } = useStorePrices();
   const groceryName = useParsedGroceryName(itemName);
@@ -55,24 +71,24 @@ export function useProductChoice(options: {
   // other, so a Store the shopper has just selected is read on its own.
   const lookup = useProductLink(onTheList ? null : selectedStoreId, settledName);
   const linked = onTheList ?? (settledName === groceryName ? (lookup.data?.product ?? null) : null);
-
-  // A choice is about one Store's product; the Store swapped away from takes
-  // its choice with it, because that product is not in the new one.
-  useEffect(() => {
-    setChoice(null);
-  }, [options.resetOn, selectedStoreId]);
+  // Whether the link is still being read: the name has not settled yet, or the
+  // Store is being asked. Until then "nothing linked" is not an answer, and
+  // the field must not treat it as one — by searching the shop for a name
+  // that may well be linked, or by taking a product for it.
+  const linkPending =
+    !onTheList && Boolean(selectedStoreId) && (settledName !== groceryName || lookup.isLoading);
 
   const commit = useCallback(() => {
     // Committed or not, the choice is spent: the panel that stays open for the
     // next grocery must not still be holding this one's product.
-    const held = choice;
+    const chosen = choice;
 
-    setChoice(null);
-    if (!held || !selectedStoreId || !groceryName) return;
+    setHeld(null);
+    if (!chosen || !selectedStoreId || !groceryName) return;
     // An untouched field has nothing to say: only a choice the user actually
     // made is written, and never over the same product it already pointed at.
-    if (held.kind === "product" && held.storeProductId === linked?.id) return;
-    void chooseProduct(selectedStoreId, groceryName, held);
+    if (chosen.kind === "product" && chosen.storeProductId === linked?.id) return;
+    void chooseProduct(selectedStoreId, groceryName, chosen);
   }, [choice, chooseProduct, groceryName, linked?.id, selectedStoreId]);
 
   return {
@@ -82,6 +98,8 @@ export function useProductChoice(options: {
     store,
     /** What this grocery is linked to now, if anything. */
     linkedProduct: linked,
+    /** Whether that is still being read, in which case `linkedProduct` says nothing yet. */
+    linkPending,
     commit,
   };
 }

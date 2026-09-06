@@ -110,6 +110,7 @@
     "knownGroup": "Já conhecidos",
     "shopGroup": "Da loja",
     "nothingFound": "O Norish não encontrou nada em {store}. Você pode digitar o preço.",
+    "noAnswer": "{store} não respondeu. Tente novamente em instantes, ou digite o preço você mesmo.",
     "byHandName": "Nome do produto",
     "byHandPrice": "Preço",
     "byHandCurrency": "Moeda",

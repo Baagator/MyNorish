@@ -21,6 +21,8 @@ const searchCalls: SearchCall[] = [];
 
 /** A shop that has been asked and has not answered yet. */
 const SEARCH_IS_SLOW = { current: false };
+/** A shop that is down, or turned the visit away: it answered nothing at all. */
+const SHOP_IS_DOWN = { current: false };
 
 /** What the shop answers: whatever shares a word with the term. */
 const SHOP: Record<string, { name: string; url: string; price: number; size: string }[]> = {
@@ -53,6 +55,9 @@ vi.mock("@/hooks/stores", () => ({
 
     if (!on) return { data: undefined, isPending: true, isFetching: false };
     if (SEARCH_IS_SLOW.current) return { data: undefined, isPending: true, isFetching: true };
+    if (SHOP_IS_DOWN.current) {
+      return { data: { candidates: [], answered: false }, isPending: false, isFetching: false };
+    }
 
     return {
       data: {
@@ -63,6 +68,7 @@ vi.mock("@/hooks/stores", () => ({
           currency: "EUR",
           size: candidate.size,
         })),
+        answered: true,
       },
       isPending: false,
       isFetching: false,
@@ -139,29 +145,204 @@ beforeEach(() => {
   searchCalls.length = 0;
   KNOWN["store-a"] = [];
   KNOWN["store-b"] = [];
+  SHOP_IS_DOWN.current = false;
 });
 
 describe("GroceryProductField", () => {
-  it("asks the shop about the grocery's own name when the name arrived after the field", async () => {
-    // The add panel mounts this field the moment a Store is picked, which for
-    // a batch add is before the shopper has typed the grocery's name.
-    const { rerender } = render(
-      <GroceryProductField
-        choice={null}
-        groceryName=""
-        linkedProduct={null}
-        store={STORE_A}
-        onChoice={() => undefined}
-      />
-    );
+  it("asks the shop about the grocery's own name when the name arrived after the field", () => {
+    vi.useFakeTimers();
+    try {
+      // The add panel mounts this field the moment a Store is picked, which for
+      // a batch add is before the shopper has typed the grocery's name.
+      const { rerender } = render(
+        <GroceryProductField
+          choice={null}
+          groceryName=""
+          linkedProduct={null}
+          store={STORE_A}
+          onChoice={() => undefined}
+        />
+      );
 
-    rerender(
+      rerender(
+        <GroceryProductField
+          choice={null}
+          groceryName="cola"
+          linkedProduct={null}
+          store={STORE_A}
+          onChoice={() => undefined}
+        />
+      );
+
+      act(() => {
+        field().focus();
+      });
+      act(() => {
+        vi.advanceTimersByTime(500);
+      });
+
+      expect(lastAskedTerm()).toBe("cola");
+      expect(screen.queryByTestId("product-searching")).not.toBeInTheDocument();
+      expect(options()).toContain("Coca-Cola 1 L€1.99 · 1 L");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("asks the shop once the grocery's name stops being typed, not once per letter", () => {
+    vi.useFakeTimers();
+    try {
+      const { rerender } = render(
+        <GroceryProductField
+          choice={null}
+          groceryName=""
+          linkedProduct={null}
+          store={STORE_A}
+          onChoice={() => undefined}
+        />
+      );
+
+      act(() => {
+        field().focus();
+      });
+      for (const partial of ["c", "co", "col", "cola"]) {
+        rerender(
+          <GroceryProductField
+            choice={null}
+            groceryName={partial}
+            linkedProduct={null}
+            store={STORE_A}
+            onChoice={() => undefined}
+          />
+        );
+        act(() => {
+          vi.advanceTimersByTime(100);
+        });
+      }
+
+      // Mid-word the shop has not been asked about anything.
+      expect(lastAskedTerm()).toBeNull();
+
+      act(() => {
+        vi.advanceTimersByTime(500);
+      });
+
+      const asked = new Set(
+        searchCalls.filter((call) => call.enabled && call.term.length > 0).map((call) => call.term)
+      );
+
+      expect([...asked]).toEqual(["cola"]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("neither asks the shop nor takes a product while the grocery's link is still being read", () => {
+    vi.useFakeTimers();
+    try {
+      const onChoice = vi.fn();
+      const { rerender } = render(
+        <GroceryProductField
+          choice={null}
+          groceryName="Cola B 1 L"
+          linkPending
+          linkedProduct={null}
+          store={STORE_B}
+          onChoice={onChoice}
+        />
+      );
+
+      act(() => {
+        field().focus();
+      });
+      act(() => {
+        vi.advanceTimersByTime(500);
+      });
+
+      // "Nothing linked" is not an answer yet, so it is not acted on: the name
+      // may well turn out to be linked already.
+      expect(lastAskedTerm()).toBeNull();
+      expect(onChoice).not.toHaveBeenCalled();
+
+      // The link arrives: the grocery was linked all along, and stays so.
+      const linked = product("prod-b", "store-b", "Cola B 1 L", 1.49);
+
+      rerender(
+        <GroceryProductField
+          choice={null}
+          groceryName="Cola B 1 L"
+          linkPending={false}
+          linkedProduct={linked}
+          store={STORE_B}
+          onChoice={onChoice}
+        />
+      );
+      act(() => {
+        vi.advanceTimersByTime(500);
+      });
+
+      expect(lastAskedTerm()).toBeNull();
+      expect(onChoice).not.toHaveBeenCalled();
+      expect(field()).toHaveValue("Cola B 1 L");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("lets go of a product it took for the grocery's name when the name moves on", () => {
+    vi.useFakeTimers();
+    try {
+      const onChoice = vi.fn();
+      const { rerender } = render(
+        <GroceryProductField
+          choice={null}
+          groceryName="Cola B 1 L"
+          linkedProduct={null}
+          store={STORE_B}
+          onChoice={onChoice}
+        />
+      );
+
+      act(() => {
+        field().focus();
+      });
+      act(() => {
+        vi.advanceTimersByTime(500);
+      });
+
+      expect(onChoice).toHaveBeenLastCalledWith(expect.objectContaining({ kind: "candidate" }));
+      expect(field()).toHaveValue("Cola B 1 L");
+
+      // The shopper goes on typing the grocery's name. The field's own answer
+      // was to a question that is no longer being asked, so it is let go —
+      // Save must not link "Cola B 1 L extra" to a product taken for "Cola B 1 L".
+      rerender(
+        <GroceryProductField
+          choice={null}
+          groceryName="Cola B 1 L extra"
+          linkedProduct={null}
+          store={STORE_B}
+          onChoice={onChoice}
+        />
+      );
+
+      expect(onChoice).toHaveBeenLastCalledWith(null);
+      expect(field()).toHaveValue("");
+      expect(screen.queryByTestId("product-by-hand-price")).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps a product the shopper tapped when the grocery's name moves on", async () => {
+    const onChoice = vi.fn();
+    const { rerender } = render(
       <GroceryProductField
         choice={null}
         groceryName="cola"
         linkedProduct={null}
         store={STORE_A}
-        onChoice={() => undefined}
+        onChoice={onChoice}
       />
     );
 
@@ -169,9 +350,27 @@ describe("GroceryProductField", () => {
       field().focus();
     });
 
-    expect(lastAskedTerm()).toBe("cola");
-    expect(screen.queryByTestId("product-searching")).not.toBeInTheDocument();
-    expect(options()).toContain("Coca-Cola 1 L€1.99 · 1 L");
+    const picked = screen
+      .getAllByTestId("product-option")
+      .find((node) => node.textContent?.includes("Cola Zero"));
+
+    await act(async () => {
+      fireEvent.click(picked as HTMLElement);
+    });
+
+    rerender(
+      <GroceryProductField
+        choice={null}
+        groceryName="cola zero"
+        linkedProduct={null}
+        store={STORE_A}
+        onChoice={onChoice}
+      />
+    );
+
+    // A tap is the shopper's own answer, and a renamed grocery does not undo it.
+    expect(onChoice).toHaveBeenLastCalledWith(expect.objectContaining({ kind: "candidate" }));
+    expect(field()).toHaveValue("Cola Zero 1,5 L");
   });
 
   it("stops saying it is searching once there is nothing to search for", async () => {
@@ -211,6 +410,111 @@ describe("GroceryProductField", () => {
 
     expect(lastAskedTerm()).toBe("ansjovis");
     expect(screen.getByTestId("product-by-hand")).toBeInTheDocument();
+  });
+
+  it("says a shop that did not answer did not answer, rather than that it has nothing", async () => {
+    SHOP_IS_DOWN.current = true;
+    render(
+      <GroceryProductField
+        choice={null}
+        groceryName="cola"
+        linkedProduct={null}
+        store={STORE_A}
+        onChoice={() => undefined}
+      />
+    );
+
+    await act(async () => {
+      field().focus();
+    });
+
+    // A shop that is down has not said it stocks no cola.
+    expect(screen.getByTestId("product-no-answer")).toBeInTheDocument();
+    expect(screen.queryByText(/nothingFound/)).not.toBeInTheDocument();
+    // The shopper can still type what they saw on the shelf.
+    expect(screen.getByTestId("product-by-hand-price")).toBeInTheDocument();
+  });
+
+  it("keeps the row that was picked when a typed price is deleted again", async () => {
+    const onChoice = vi.fn();
+
+    render(
+      <GroceryProductField
+        choice={null}
+        groceryName="cola"
+        linkedProduct={null}
+        store={STORE_A}
+        onChoice={onChoice}
+      />
+    );
+
+    await act(async () => {
+      field().focus();
+    });
+    const picked = screen
+      .getAllByTestId("product-option")
+      .find((node) => node.textContent?.includes("Cola Zero"));
+
+    await act(async () => {
+      fireEvent.click(picked as HTMLElement);
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId("product-by-hand-price"), { target: { value: "1,99" } });
+    });
+    expect(onChoice).toHaveBeenLastCalledWith(expect.objectContaining({ kind: "manual" }));
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId("product-by-hand-price"), { target: { value: "" } });
+    });
+
+    // The row still reads as picked, so the pick is what Save writes.
+    expect(onChoice).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        kind: "candidate",
+        candidate: expect.objectContaining({ name: "Cola Zero 1,5 L" }),
+      })
+    );
+  });
+
+  it("does not carry the last product's price into a name that has none", () => {
+    vi.useFakeTimers();
+    try {
+      const linked = product("prod-a", "store-a", "Coca-Cola 1 L", 1.99);
+      const { rerender } = render(
+        <GroceryProductField
+          choice={null}
+          groceryName="cola"
+          linkedProduct={linked}
+          store={STORE_A}
+          onChoice={() => undefined}
+        />
+      );
+
+      expect(screen.getByTestId("product-by-hand-price")).toHaveValue("1.99");
+
+      // Renamed to something the Store knows nothing about: the fields, when
+      // they show again, must not be prefilled with cola's price.
+      rerender(
+        <GroceryProductField
+          choice={null}
+          groceryName="ansjovis"
+          linkedProduct={null}
+          store={STORE_A}
+          onChoice={() => undefined}
+        />
+      );
+      act(() => {
+        field().focus();
+      });
+      act(() => {
+        vi.advanceTimersByTime(500);
+      });
+
+      expect(screen.getByTestId("product-by-hand-name")).toHaveValue("ansjovis");
+      expect(screen.getByTestId("product-by-hand-price")).toHaveValue("");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("reads the new Store's own linked product when the Store is swapped", () => {
@@ -349,6 +653,137 @@ describe("GroceryProductField", () => {
     expect(field()).toHaveValue("");
   });
 
+  // AH lists one loaf under two product numbers: the same name, the same
+  // price, two addresses. That is one row.
+  it("offers a product the shop lists under two addresses once", async () => {
+    SHOP["store-a"]?.push({
+      name: "Coca-Cola 1 L",
+      url: "https://a.example/p/cola-1l-again",
+      price: 1.99,
+      size: "1 L",
+    });
+    try {
+      render(
+        <GroceryProductField
+          choice={null}
+          groceryName="cola"
+          linkedProduct={null}
+          store={STORE_A}
+          onChoice={() => undefined}
+        />
+      );
+
+      await act(async () => {
+        field().focus();
+      });
+
+      // Two colas, not three: nothing is taken, and the twin is not offered.
+      expect(options()).toHaveLength(2);
+      expect(options().filter((row) => row.includes("Coca-Cola 1 L"))).toHaveLength(1);
+    } finally {
+      SHOP["store-a"]?.pop();
+    }
+  });
+
+  it("takes the first of several products carrying exactly the grocery's name", async () => {
+    const chosen: unknown[] = [];
+
+    // The same cola again at another price: the name is the grocery's to the
+    // letter, so the shopper has chosen, and the shop's first listing is it.
+    SHOP["store-a"]?.push({
+      name: "Coca-Cola 1 L",
+      url: "https://a.example/p/cola-1l-promo",
+      price: 1.79,
+      size: "1 L",
+    });
+    try {
+      render(
+        <GroceryProductField
+          choice={null}
+          groceryName="Coca-Cola 1 L"
+          linkedProduct={null}
+          store={STORE_A}
+          onChoice={(choice) => chosen.push(choice)}
+        />
+      );
+
+      await act(async () => {
+        field().focus();
+      });
+
+      expect(chosen).toEqual([
+        expect.objectContaining({
+          kind: "candidate",
+          candidate: expect.objectContaining({ url: "https://a.example/p/cola-1l", price: 1.99 }),
+        }),
+      ]);
+      expect(field()).toHaveValue("Coca-Cola 1 L");
+    } finally {
+      SHOP["store-a"]?.pop();
+    }
+  });
+
+  it("takes a product the shop lists under two addresses, by its first address", async () => {
+    const chosen: unknown[] = [];
+
+    SHOP["store-b"]?.push({
+      name: "Cola B 1 L",
+      url: "https://b.example/p/cola-1l-again",
+      price: 1.49,
+      size: "1 L",
+    });
+    try {
+      render(
+        <GroceryProductField
+          choice={null}
+          groceryName="Cola B 1 L"
+          linkedProduct={null}
+          store={STORE_B}
+          onChoice={(choice) => chosen.push(choice)}
+        />
+      );
+
+      await act(async () => {
+        field().focus();
+      });
+
+      expect(chosen).toEqual([
+        expect.objectContaining({
+          kind: "candidate",
+          candidate: expect.objectContaining({ url: "https://b.example/p/cola-1l" }),
+        }),
+      ]);
+      expect(field()).toHaveValue("Cola B 1 L");
+    } finally {
+      SHOP["store-b"]?.pop();
+    }
+  });
+
+  it("takes the Store's own copy of a product over the shop's twin of it", async () => {
+    const chosen: unknown[] = [];
+
+    // Stored from an earlier visit, under an address the shop is not
+    // answering with today. It is what a link can point at, so it is the row.
+    KNOWN["store-b"] = [product("known-cola-b", "store-b", "Cola B 1 L", 1.49)];
+
+    render(
+      <GroceryProductField
+        choice={null}
+        groceryName="Cola B 1 L"
+        linkedProduct={null}
+        store={STORE_B}
+        onChoice={(choice) => chosen.push(choice)}
+      />
+    );
+
+    await act(async () => {
+      field().focus();
+    });
+
+    expect(chosen).toEqual([{ kind: "product", storeProductId: "known-cola-b" }]);
+    expect(field()).toHaveValue("Cola B 1 L");
+  });
+
   it("leaves a grocery that is already linked exactly as it is", async () => {
     const linked = product("prod-b", "store-b", "Cola B 1 L", 1.49);
     const chosen: unknown[] = [];
@@ -387,14 +822,16 @@ describe("GroceryProductField", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("cannot be typed in for a shop Norish cannot read", () => {
+  it("cannot be typed in for a shop Norish cannot read, but a price can", async () => {
+    const onChoice = vi.fn();
+
     render(
       <GroceryProductField
         choice={null}
         groceryName="cola"
         linkedProduct={null}
         store={UNREADABLE}
-        onChoice={() => undefined}
+        onChoice={onChoice}
       />
     );
 
@@ -402,6 +839,71 @@ describe("GroceryProductField", () => {
     expect(searchCalls.every((call) => !call.enabled)).toBe(true);
     // And it says why, rather than leaving a dead field to be puzzled over.
     expect(screen.getByTestId("product-cannot-search")).toBeInTheDocument();
+
+    // An unreadable shop costs the shopper a price, not the feature: the
+    // fields to type one are there, prefilled with the grocery's name.
+    expect(screen.getByTestId("product-by-hand-name")).toHaveValue("cola");
+    await act(async () => {
+      fireEvent.change(screen.getByTestId("product-by-hand-price"), { target: { value: "1.79" } });
+    });
+
+    expect(onChoice).toHaveBeenLastCalledWith(
+      expect.objectContaining({ kind: "manual", name: "cola", price: 1.79 })
+    );
+  });
+
+  it("corrects the by-hand product the grocery is linked to rather than making another", async () => {
+    const onChoice = vi.fn();
+    const typedBefore = {
+      ...product("manual-1", "store-a", "Cola from the market", 1.5),
+      pageUrl: null,
+      isManual: true,
+    } as unknown as StoreProductDto;
+
+    render(
+      <GroceryProductField
+        choice={null}
+        groceryName="cola"
+        linkedProduct={typedBefore}
+        store={STORE_A}
+        onChoice={onChoice}
+      />
+    );
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId("product-by-hand-price"), { target: { value: "1.65" } });
+    });
+
+    // The same product, corrected: without this every correction added a new
+    // by-hand product, and two identical names made the unmistakable rule
+    // refuse both.
+    expect(onChoice).toHaveBeenLastCalledWith(
+      expect.objectContaining({ kind: "manual", id: "manual-1", price: 1.65 })
+    );
+  });
+
+  it("never edits a product read from a page by hand; a typed price is a new product", async () => {
+    const onChoice = vi.fn();
+    const read = product("read-1", "store-a", "Coca-Cola 1 L", 1.99);
+
+    render(
+      <GroceryProductField
+        choice={null}
+        groceryName="cola"
+        linkedProduct={read}
+        store={STORE_A}
+        onChoice={onChoice}
+      />
+    );
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId("product-by-hand-price"), { target: { value: "1.65" } });
+    });
+
+    const choice = onChoice.mock.lastCall?.[0] as { kind: string; id?: string };
+
+    expect(choice.kind).toBe("manual");
+    expect(choice.id).not.toBe("read-1");
   });
 
   it("offers the Store's own products for the term, and not its whole shelf", async () => {

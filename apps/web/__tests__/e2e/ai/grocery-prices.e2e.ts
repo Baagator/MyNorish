@@ -176,9 +176,13 @@ test("a name the shop does not state is left to the shopper, and priced on Save"
   await page.reload();
   await page.getByText("beleg").first().click();
   // The shop has nothing under "beleg", so the shopper searches it for
-  // something it does have.
+  // something it does have. One product answers "brood", and a row a shopper
+  // would not hesitate over is taken by the field itself rather than offered
+  // back to be tapped — the shopper typed the choice already.
   await page.getByTestId("grocery-product-field").fill("brood");
-  await page.getByRole("option", { name: /Bruin brood/ }).click({ timeout: 30_000 });
+  await expect(page.getByTestId("grocery-product-field")).toHaveValue("Bruin brood", {
+    timeout: 30_000,
+  });
 
   // Nothing is written until the panel's own Save.
   expect((await readStoredLink("beleg"))?.productName ?? null).toBeNull();
@@ -217,9 +221,12 @@ test("a product chosen while adding is not overruled by the lookup queued for it
   await page.getByRole("option", { name: STORE_NAME }).click();
 
   // "kaasplakken" would find nothing and be written off as a Miss; the
-  // shopper says otherwise, and a shopper's answer is the answer.
+  // shopper says otherwise, and a shopper's answer is the answer. The one
+  // product answering "Roomboter" is taken by the field for the typed term.
   await page.getByTestId("grocery-product-field").fill("Roomboter");
-  await page.getByRole("option", { name: /Roomboter/ }).click({ timeout: 30_000 });
+  await expect(page.getByTestId("grocery-product-field")).toHaveValue("Roomboter 250 g", {
+    timeout: 30_000,
+  });
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await page.getByRole("button", { name: "Close panel" }).click();
 
@@ -248,7 +255,10 @@ test("a grocery dragged into another Store is priced there, on the list", async 
   await page.locator("[data-slot='select-trigger']").click();
   await page.getByRole("option", { name: second }).click();
   await page.getByTestId("grocery-product-field").fill("brood");
-  await page.getByRole("option", { name: /Bruin brood/ }).click({ timeout: 30_000 });
+  // The one product answering "brood" is taken by the field for the typed term.
+  await expect(page.getByTestId("grocery-product-field")).toHaveValue("Bruin brood", {
+    timeout: 30_000,
+  });
   await page.getByRole("button", { name: "Save", exact: true }).click();
 
   await expect(rowFor("roomboter").getByTestId("grocery-product")).toHaveText("Bruin brood", {

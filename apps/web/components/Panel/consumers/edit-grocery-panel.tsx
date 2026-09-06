@@ -145,6 +145,7 @@ export default function EditGroceryPanel({
                 key={price.store.id}
                 choice={price.choice}
                 groceryName={price.groceryName}
+                linkPending={price.linkPending}
                 linkedProduct={price.linkedProduct}
                 store={price.store}
                 onChoice={price.setChoice}

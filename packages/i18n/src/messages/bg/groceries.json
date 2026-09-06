@@ -110,6 +110,7 @@
     "knownGroup": "Вече известни",
     "shopGroup": "От магазина",
     "nothingFound": "Norish не намери нищо в {store}. Можете сами да въведете цената.",
+    "noAnswer": "{store} не отговори. Опитайте отново след малко или въведете цената сами.",
     "byHandName": "Име на продукта",
     "byHandPrice": "Цена",
     "byHandCurrency": "Валута",

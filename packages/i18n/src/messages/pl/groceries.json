@@ -110,6 +110,7 @@
     "knownGroup": "Już znane",
     "shopGroup": "Ze sklepu",
     "nothingFound": "Norish nic nie znalazł w {store}. Możesz sam wpisać cenę.",
+    "noAnswer": "{store} nie odpowiedział. Spróbuj ponownie za chwilę albo wpisz cenę samodzielnie.",
     "byHandName": "Nazwa produktu",
     "byHandPrice": "Cena",
     "byHandCurrency": "Waluta",
