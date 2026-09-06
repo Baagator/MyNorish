@@ -28,7 +28,7 @@ describe("storeTotal", () => {
       "store-a"
     );
 
-    expect(total).toEqual({ amount: 3.28, currency: "EUR", priced: 2 });
+    expect(total).toEqual({ amount: 3.28, currency: "EUR" });
   });
 
   it("counts one Shelf Price per line, whatever the line's own amount says", () => {
@@ -58,6 +58,6 @@ describe("storeTotal", () => {
       "store-a"
     );
 
-    expect(total).toEqual({ amount: 2, currency: "EUR", priced: 1 });
+    expect(total).toEqual({ amount: 2, currency: "EUR" });
   });
 });

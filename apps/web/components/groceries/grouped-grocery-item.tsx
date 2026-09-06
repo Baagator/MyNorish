@@ -33,6 +33,20 @@ function formatInlineSourceBreakdown(
     .join(", ");
 }
 
+/**
+ * The line a group is priced by: a group shares one name at one Store, so one
+ * Shelf Price is what its row shows and what the heading counts it as. An
+ * outstanding line stands for the group while there is one; a group that is
+ * all ticked off is priced by its first, which the heading then leaves out.
+ */
+export function groupPriceLine(group: GroceryGroup): GroceryDto {
+  const line = group.sources.find((source) => !source.grocery.isDone) ?? group.sources[0];
+
+  if (!line) throw new Error("A grocery group has no groceries");
+
+  return line.grocery;
+}
+
 interface GroupedGroceryItemProps {
   group: GroceryGroup;
   recurringGroceries: RecurringGroceryDto[];
@@ -91,8 +105,10 @@ function GroupedGroceryItemComponent({
 
   // Edit first item when clicking on single item, or expand when multiple
   const handleContentClick = useCallback(() => {
-    if (isSingleItem) {
-      onEdit(group.sources[0].grocery);
+    const only = isSingleItem ? group.sources[0] : undefined;
+
+    if (only) {
+      onEdit(only.grocery);
     } else {
       setIsExpanded(!isExpanded);
     }
@@ -176,8 +192,8 @@ function GroupedGroceryItemComponent({
           )}
         </button>
 
-        {/* A price belongs to one grocery, so only a lone one shows it */}
-        {isSingleItem && singleSource && <GroceryPrice grocery={singleSource.grocery} />}
+        {/* One Shelf Price per row, for a lone grocery and for a group alike */}
+        <GroceryPrice grocery={groupPriceLine(group)} />
 
         {/* Expand/collapse button for groups */}
         {!isSingleItem && (

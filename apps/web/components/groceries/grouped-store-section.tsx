@@ -1,8 +1,6 @@
 "use client";
 
 import { memo, useMemo, useState } from "react";
-import { useStoresContext } from "@/app/(app)/groceries/stores-context";
-import { formatShelfPrice } from "@/lib/format-price";
 import {
   CheckIcon,
   ChevronDownIcon,
@@ -11,7 +9,7 @@ import {
 } from "@heroicons/react/16/solid";
 import { Button, Dropdown, Label } from "@heroui/react";
 import { motion } from "motion/react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 
 import type {
   GroceryDto,
@@ -27,9 +25,9 @@ import {
   useDndGroupedGroceryContext,
 } from "./dnd";
 import { DynamicHeroIcon } from "./dynamic-hero-icon";
-import { GroupedGroceryItem } from "./grouped-grocery-item";
+import { GroupedGroceryItem, groupPriceLine } from "./grouped-grocery-item";
 import { getStoreColorClasses } from "./store-colors";
-import { storeTotal } from "./store-total";
+import { StoreHeadingTotal } from "./store-heading-total";
 
 interface GroupedStoreSectionProps {
   store: StoreDto | null; // null = Unsorted
@@ -68,8 +66,6 @@ function GroupedStoreSectionComponent({
 }: GroupedStoreSectionProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const t = useTranslations("groceries.store");
-  const locale = useLocale();
-  const { priceFor } = useStoresContext();
 
   // Get DnD context for ordered group keys
   const { getGroupKeysForContainer } = useDndGroupedGroceryContext();
@@ -89,9 +85,10 @@ function GroupedStoreSectionComponent({
   // Calculate counts from original groceries
   const activeCount = groceries.filter((g) => !g.isDone).length;
   const doneCount = groceries.filter((g) => g.isDone).length;
-  // What is still to buy here costs this, in the heading of the section the
-  // shopper is standing in front of.
-  const total = storeTotal(groceries, priceFor, store?.id ?? null);
+  // The grouped list shows one row per group and one price on it, so the
+  // heading adds up one Shelf Price per group rather than per line — what is
+  // under the heading is exactly what it sums.
+  const priceLines = useMemo(() => groups.map(groupPriceLine), [groups]);
 
   // Build a map for quick group lookup - uses ALL groups so we can
   // render groups that are dragged from other stores during drag operations
@@ -164,15 +161,7 @@ function GroupedStoreSectionComponent({
         </div>
 
         {/* What is still to buy at this Store costs this */}
-        {total && (
-          <span
-            className="text-muted shrink-0 text-sm tabular-nums"
-            data-testid="store-total"
-            title={t("total")}
-          >
-            {formatShelfPrice(locale, total.amount, total.currency)}
-          </span>
-        )}
+        <StoreHeadingTotal lines={priceLines} storeId={store?.id ?? null} />
 
         {/* Expand/collapse chevron */}
         <motion.div

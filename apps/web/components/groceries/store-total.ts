@@ -3,14 +3,14 @@ import type { GroceryDto, StoreProductDto } from "@norish/shared/contracts";
 export interface StoreTotal {
   amount: number;
   currency: string;
-  /** How many of the outstanding groceries the Store could price. */
-  priced: number;
 }
 
 /**
  * What is still to buy at one Store costs this, as the Store last knew: one
  * Shelf Price per outstanding line, because a Shelf Price is what one pack
- * costs and a Grocery's own amount ("2 kg") is not a number of packs.
+ * costs and a Grocery's own amount ("2 kg") is not a number of packs. The
+ * lines are the rows a section shows — in the grouped list one per group —
+ * so the heading is always the sum of the prices under it.
  *
  * A line the Store cannot price is left out rather than guessed at, and a
  * Store whose products are priced in more than one currency totals the one its
@@ -37,6 +37,5 @@ export function storeTotal(
     // floating point makes 1.99 + 1.29 into 3.2800000000000002.
     amount: same.reduce((sum, product) => Math.round((sum + product.price) * 100) / 100, 0),
     currency,
-    priced: same.length,
   };
 }

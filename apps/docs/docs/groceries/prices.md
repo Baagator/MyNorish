@@ -56,6 +56,11 @@ The Shelf Price is what one pack costs — the number on the shelf edge, not a
 price per kilo. Norish keeps only the price it last read, and refreshes it
 when it is more than twelve hours old and you are looking at the list.
 
+The Store's heading adds those up: one Shelf Price for every row still to buy
+under it, in the shop's own currency. A row the Store cannot price is left out
+of the sum rather than guessed at, and a row you tick off leaves it. When the
+list groups similar ingredients, a group is one row and counts once.
+
 Adding a grocery never waits on a shop:
 
 - a name the Store already knows is priced in the same breath, with no
