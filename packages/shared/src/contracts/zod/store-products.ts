@@ -22,7 +22,15 @@ export const StoreProductSelectSchema = createSelectSchema(storeProducts)
     size: z.string().nullable(),
     packQuantity: z.coerce.number().nullable(),
     packUnit: z.string().nullable(),
+    regularPrice: z.coerce.number().nullable(),
+    dealWords: z.string().nullable(),
   });
+
+/** The Sale a shop presents: the regular price beside its price, and its own words for the deal. */
+const SaleFields = {
+  regularPrice: z.number().nonnegative().nullish(),
+  dealWords: z.string().max(120).nullish(),
+};
 
 export const StoreProductLinkSelectSchema = createSelectSchema(storeProductLinks).omit({
   createdAt: true,
@@ -45,6 +53,7 @@ export const StoreProductReadingSchema = z.object({
   currency: CurrencyCodeSchema,
   size: z.string().max(80).nullish(),
   pack: PackSizeSchema.nullish(),
+  ...SaleFields,
 });
 
 /** A Store Product someone typed, for a shop Norish cannot read. */
@@ -75,6 +84,7 @@ export const StoreCandidateSchema = z.object({
   currency: CurrencyCodeSchema,
   size: z.string().max(80).nullish(),
   pack: PackSizeSchema.nullish(),
+  ...SaleFields,
 });
 
 /**

@@ -125,6 +125,8 @@
     "perUnit": "за {unit}",
     "pieces": "{count, plural, one {брой} other {броя}}",
     "packs": "{count} × {size}",
-    "onePack": "броено като една опаковка"
+    "onePack": "броено като една опаковка",
+    "sale": "Промоция",
+    "regularPrice": "Редовна цена {price}"
   }
 }

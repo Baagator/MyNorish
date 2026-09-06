@@ -120,7 +120,9 @@ describe("store products, product links and misses", () => {
 
       expect(first).toMatchObject({ packQuantity: 930, packUnit: "gram", packByWeight: false });
 
-      const second = await upsertReadProduct(reading({ size: "1 kg", pack: { quantity: 1, unit: "kilogram", byWeight: false } }));
+      const second = await upsertReadProduct(
+        reading({ size: "1 kg", pack: { quantity: 1, unit: "kilogram", byWeight: false } })
+      );
 
       expect(second).toMatchObject({ packQuantity: 1, packUnit: "kilogram", packByHand: false });
     });
@@ -166,8 +168,63 @@ describe("store products, product links and misses", () => {
 
       expect(manual).toMatchObject({ packQuantity: 500, packUnit: "gram", packByHand: true });
       await expect(
-        updateManualProduct({ id: manual.id, pack: { quantity: 250, unit: "gram", byWeight: false } })
+        updateManualProduct({
+          id: manual.id,
+          pack: { quantity: 250, unit: "gram", byWeight: false },
+        })
       ).resolves.toMatchObject({ packQuantity: 250 });
+    });
+  });
+
+  describe("a Sale lasts until the shop presents another price", () => {
+    it("is stored with the reading that presented it", async () => {
+      const onSale = await upsertReadProduct(
+        reading({ price: 1.69, regularPrice: 2.65, dealWords: "VR, ZA & ZO actie" })
+      );
+
+      expect(onSale).toMatchObject({
+        price: 1.69,
+        regularPrice: 2.65,
+        dealWords: "VR, ZA & ZO actie",
+      });
+    });
+
+    it("survives a refresh that reads the same price and says nothing about the deal", async () => {
+      await upsertReadProduct(reading({ price: 1.69, regularPrice: 2.65, dealWords: "ACTIE" }));
+
+      const refreshed = await upsertReadProduct(reading({ price: 1.69 }));
+
+      expect(refreshed).toMatchObject({ price: 1.69, regularPrice: 2.65, dealWords: "ACTIE" });
+    });
+
+    it("ends with a refresh that reads any other price", async () => {
+      await upsertReadProduct(reading({ price: 1.69, regularPrice: 2.65, dealWords: "ACTIE" }));
+
+      const refreshed = await upsertReadProduct(reading({ price: 2.65 }));
+
+      expect(refreshed).toMatchObject({ price: 2.65, regularPrice: null, dealWords: null });
+    });
+
+    it("is what the page presents when the page presents one", async () => {
+      await upsertReadProduct(reading({ price: 1.69, regularPrice: 2.65, dealWords: "ACTIE" }));
+
+      const refreshed = await upsertReadProduct(
+        reading({ price: 1.49, regularPrice: 2.65, dealWords: "WEEKEND" })
+      );
+
+      expect(refreshed).toMatchObject({ price: 1.49, regularPrice: 2.65, dealWords: "WEEKEND" });
+    });
+
+    it("never touches a by-hand product", async () => {
+      const manual = await createManualProduct({
+        id: crypto.randomUUID(),
+        storeId,
+        name: "Kaas van de markt",
+        price: 5,
+        currency: "EUR",
+      });
+
+      expect(manual).toMatchObject({ regularPrice: null, dealWords: null });
     });
   });
 

@@ -125,6 +125,8 @@
     "perUnit": "per {unit}",
     "pieces": "{count, plural, one {stuk} other {stuks}}",
     "packs": "{count} × {size}",
-    "onePack": "geteld als één verpakking"
+    "onePack": "geteld als één verpakking",
+    "sale": "Aanbieding",
+    "regularPrice": "Normale prijs {price}"
   }
 }

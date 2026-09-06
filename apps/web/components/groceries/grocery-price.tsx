@@ -3,7 +3,7 @@
 import { useStoresContext } from "@/app/(app)/groceries/stores-context";
 import { useUnitFormatter } from "@/hooks/use-unit-formatter";
 import { formatPackSize, formatShelfPrice } from "@/lib/format-price";
-import { Spinner } from "@heroui/react";
+import { Chip, Spinner } from "@heroui/react";
 import { useLocale, useTranslations } from "next-intl";
 
 import { groupLineCost } from "@norish/shared/lib/line-cost";
@@ -20,6 +20,11 @@ import type { PricedLine } from "./store-total";
  * Underneath, which of the shop's products that is, and, where the amount
  * could not be reconciled with the Pack Size, a quiet note that one pack
  * was counted; the fix is the Pack Size editor in the panel.
+ *
+ * A Sale is what the shop presents: the regular Line Cost struck through
+ * beside the Line Cost, a badge, and the shop's own words for the deal after
+ * the product name — on Sale or not, because "2 voor €5.50" is something to
+ * act on at the shelf even though it is never worked into the number.
  *
  * While the Store is still being asked — a Pending Link — the row shows a
  * loader where the price would be and no words: waiting must read as waiting
@@ -50,6 +55,11 @@ export function GroceryPrice({ line }: { line: PricedLine }) {
   if (!product) return null;
   const pack = packSizeOf(product);
   const cost = groupLineCost(line.amounts, { price: product.price, pack });
+  // The regular Line Cost: the same packs at the price the shop struck through.
+  const onSale = product.regularPrice !== null && product.regularPrice > product.price;
+  const regular = onSale
+    ? groupLineCost(line.amounts, { price: product.regularPrice ?? 0, pack }).cost
+    : null;
   const packWords = {
     per: (unit: string) => t("perUnit", { unit }),
     pieces: (count: number) => t("pieces", { count }),
@@ -72,12 +82,33 @@ export function GroceryPrice({ line }: { line: PricedLine }) {
       data-grocery-price={product.id}
       data-testid="grocery-price"
     >
-      <span className="text-foreground text-sm tabular-nums" data-testid="grocery-line-cost">
-        {formatShelfPrice(locale, cost.cost, product.currency)}
-        {detail ? ` · ${detail}` : ""}
+      <span className="text-foreground flex items-center gap-1.5 text-sm tabular-nums">
+        <span data-testid="grocery-line-cost">
+          {formatShelfPrice(locale, cost.cost, product.currency)}
+          {regular !== null && (
+            <s
+              aria-label={t("regularPrice", {
+                price: formatShelfPrice(locale, regular, product.currency),
+              })}
+              className="text-muted ml-1.5"
+              data-testid="grocery-regular-cost"
+            >
+              {formatShelfPrice(locale, regular, product.currency)}
+            </s>
+          )}
+          {detail ? ` · ${detail}` : ""}
+        </span>
+        {onSale && (
+          <Chip color="accent" data-testid="grocery-sale" size="sm" variant="soft">
+            {t("sale")}
+          </Chip>
+        )}
       </span>
       <span className="text-muted w-full truncate text-xs" data-testid="grocery-product">
         {product.name}
+        {product.dealWords ? (
+          <span data-testid="grocery-deal-words">{` · ${product.dealWords}`}</span>
+        ) : null}
         {cost.matched ? "" : <span data-testid="grocery-one-pack">{` · ${t("onePack")}`}</span>}
       </span>
     </span>

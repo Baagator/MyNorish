@@ -239,14 +239,56 @@ export function readPriceInText(value: string, near?: string | null): PriceInTex
 }
 
 /** Elements whose text is not the product's: scripts, and a price struck through. */
-const NOT_THE_PRICE = new Set(["script", "style", "del", "s", "strike", "template"]);
+const NOT_THE_PRICE = new Set(["script", "style", "template"]);
+/** A price struck through by its element, or by the class a shop styles it with. */
+const STRUCK_TAGS = new Set(["del", "s", "strike"]);
+const STRUCK_CLASS = /regular|original|old-?price|strike|was-?price|previous|before-?price/i;
+
+function classOf(node: AnyNode): string {
+  return node.type === "tag" ? (node.attribs.class ?? "") : "";
+}
+
+/** Whether an element is a price the shop shows struck through: the regular price of a Sale. */
+function isStruck(node: AnyNode): boolean {
+  if (node.type !== "tag") return false;
+
+  return STRUCK_TAGS.has(node.name.toLowerCase()) || STRUCK_CLASS.test(classOf(node));
+}
+
+/**
+ * An element a shop labels its deal with: a promotion sticker, a discount
+ * badge, a price label. Recognised by the class a shop styles it with — the
+ * closed vocabulary of markup, not of any language. What it says is the
+ * deal's words, and a price inside it ("2 voor €5.50") is part of the words
+ * and never the price charged.
+ */
+const DEAL_LABEL_CLASS = /promo|deal|discount|bonus|badge|sticker|price-?label|shield/i;
+
+function isDealLabel(node: AnyNode): boolean {
+  return node.type === "tag" && DEAL_LABEL_CLASS.test(classOf(node));
+}
+
+/** Whether an element's text is not the price charged now: struck through, or a deal's words. */
+function notThePrice(node: AnyNode): boolean {
+  if (node.type !== "tag") return false;
+
+  return NOT_THE_PRICE.has(node.name.toLowerCase()) || isStruck(node) || isDealLabel(node);
+}
 
 function textNodesOf(node: AnyNode): string[] {
   if (node.type === "text") return [node.data];
-  if (node.type === "tag" && NOT_THE_PRICE.has(node.name.toLowerCase())) return [];
+  if (notThePrice(node)) return [];
   if ("children" in node) return node.children.flatMap(textNodesOf);
 
   return [];
+}
+
+/** Whether an element sits under one whose text is not the price charged now. */
+function insideNotThePrice($: cheerio.CheerioAPI, element: AnyNode, card: CheerioNode): boolean {
+  return $(element)
+    .parents()
+    .toArray()
+    .some((parent) => notThePrice(parent) && card.has(parent as never).length > 0);
 }
 
 /**
@@ -311,7 +353,10 @@ function readSize(value: unknown): SizeReading | null {
 
   if (!amount) return null;
   // A unit code is the surest reading there is; the words are made from it.
-  const pack = packSizeFromCode(amount, readText(prop(value, "unitCode")) ?? readText(prop(value, "unitText")));
+  const pack = packSizeFromCode(
+    amount,
+    readText(prop(value, "unitCode")) ?? readText(prop(value, "unitText"))
+  );
 
   if (pack) return { size: collapse(`${amount} ${unitLabel(pack.unit)}`), pack };
   const unitText = readText(prop(value, "unitText"));
@@ -575,6 +620,7 @@ function priceFromDigitRun($: cheerio.CheerioAPI, card: CheerioNode): number | n
   let longest = "";
 
   card.find("*").each((_, element) => {
+    if (notThePrice(element) || insideNotThePrice($, element, card)) return;
     const value = collapse($(element).text());
 
     if (!/^\d{2,6}$/.test(value) || value.length <= longest.length) return;
@@ -600,6 +646,7 @@ function decimalInCard($: cheerio.CheerioAPI, card: CheerioNode): number | null 
     const node = $(element);
 
     if (node.children().length > 0) return;
+    if (notThePrice(element) || insideNotThePrice($, element, card)) return;
     const value = collapse(node.text());
 
     if (!/^\d{1,4}[.,]\d{2}$/.test(value)) return;
@@ -608,6 +655,111 @@ function decimalInCard($: cheerio.CheerioAPI, card: CheerioNode): number | null 
   });
 
   return found;
+}
+
+/**
+ * The prices a card shows struck through: what the shop charged before the
+ * Sale, in a `del` or under a class that says so — Dirk's "van 2.65", Albert
+ * Heijn's old price with a line through it. Read with a mark or as a bare
+ * decimal, since a struck price is written the way the price beside it is.
+ */
+function struckPrices($: cheerio.CheerioAPI, card: CheerioNode): number[] {
+  const found: number[] = [];
+
+  card.find("*").each((_, element) => {
+    if (!isStruck(element)) return;
+    const text = collapse($(element).text());
+    const marked = readPriceInText(text)?.price;
+    const bare = text.match(/(?<![\d.,])\d{1,4}[.,]\d{2}(?![\d])/)?.[0];
+    const price = marked ?? (bare ? parsePriceText(bare) : null);
+
+    if (price !== null && price !== undefined) found.push(price);
+  });
+
+  return found;
+}
+
+/**
+ * The words of a card's deal label, read by its own accessible label where
+ * it has one, else by its innermost words with the struck price beside them
+ * left out. Words that are only a number are a price, not a deal.
+ */
+function dealWordsOf($: cheerio.CheerioAPI, card: CheerioNode): string | undefined {
+  const labelled = card.find("*").toArray().filter(isDealLabel);
+
+  if (labelled.length === 0) return undefined;
+  const isWords = (value: string) => value.length > 0 && !/^[\d.,\s€£$]+$/.test(value);
+  const aria = labelled
+    .map((element) => collapse($(element).attr("aria-label") ?? ""))
+    .find(isWords);
+
+  if (aria) return aria;
+  const innermost = labelled.filter((element) => !$(element).find("*").toArray().some(isDealLabel));
+  const ownText = (element: AnyNode) =>
+    collapse(
+      ("children" in element ? element.children : [])
+        .flatMap((child) => (isStruck(child) ? [] : textNodesOfWords(child)))
+        .join(" ")
+    );
+
+  return innermost.map(ownText).find(isWords);
+}
+
+/** The text of a deal label itself, which is not the price and so is not what `textNodesOf` reads. */
+function textNodesOfWords(node: AnyNode): string[] {
+  if (node.type === "text") return [node.data];
+  if (node.type === "tag" && (NOT_THE_PRICE.has(node.name.toLowerCase()) || isStruck(node))) {
+    return [];
+  }
+  if ("children" in node) return node.children.flatMap(textNodesOfWords);
+
+  return [];
+}
+
+/** What a card presents as its Sale: the regular price above its price, and the deal's words. */
+interface SaleReading {
+  regularPrice?: number;
+  dealWords?: string;
+}
+
+/**
+ * The price a card charges now and the regular price it shows beside it. A
+ * regular price is what the shop struck through; where nothing is struck,
+ * a label that states a higher price before a lower one — "Van €4.38 Voor
+ * €3.50" — is read the same way. A price read from a label that turns out
+ * to be the struck one is not the price charged: the lower one after it is.
+ */
+function saleOf(
+  $: cheerio.CheerioAPI,
+  card: CheerioNode,
+  label: string,
+  price: number
+): { price: number; sale: SaleReading } {
+  const labelPrices = readPricesInText(label)
+    .filter((reading) => !reading.perUnit)
+    .map((reading) => reading.price);
+  const struck = struckPrices($, card);
+  let regular: number | null = struck.length > 0 ? Math.max(...struck) : null;
+  const first = labelPrices[0];
+  const second = labelPrices[1];
+
+  if (regular === null && first !== undefined && second !== undefined && first > second) {
+    regular = first;
+  }
+  let charged = price;
+
+  if (regular !== null && charged === regular) {
+    charged = labelPrices.find((value) => value < regular) ?? price;
+  }
+  const dealWords = dealWordsOf($, card);
+
+  return {
+    price: charged,
+    sale: {
+      ...(regular !== null && regular > charged ? { regularPrice: regular } : {}),
+      ...(dealWords ? { dealWords } : {}),
+    },
+  };
 }
 
 function cardLabels($: cheerio.CheerioAPI, card: CheerioNode): string {
@@ -721,13 +873,15 @@ function readDomCandidates(
       if (price === undefined || price === null) return { name, url } satisfies StoreCandidate;
       const currency = money?.currency ?? fallbackCurrency;
       const size = cardSize(texts, label, money?.perUnit);
+      const { price: charged, sale } = saleOf($, card, label, price);
 
       return {
         name,
         url,
-        price,
+        price: charged,
         ...(currency ? { currency } : {}),
         ...sized(size ? sizeWords(size) : null),
+        ...sale,
       } satisfies StoreCandidate;
     })
     .filter((candidate): candidate is StoreCandidate => candidate !== null);
@@ -766,12 +920,23 @@ export function readSearchResults(html: string, baseUrl: string): StoreCandidate
       merged.set(candidate.url, candidate);
       continue;
     }
+    const charged = existing.price ?? candidate.price;
+
     merged.set(candidate.url, {
       ...existing,
-      price: existing.price ?? candidate.price,
+      price: charged,
       currency: existing.currency ?? candidate.currency,
       ...sized(existing.size ? { size: existing.size, pack: existing.pack ?? null } : null),
-      ...(existing.size ? {} : sized(candidate.size ? { size: candidate.size, pack: candidate.pack ?? null } : null)),
+      ...(existing.size
+        ? {}
+        : sized(candidate.size ? { size: candidate.size, pack: candidate.pack ?? null } : null)),
+      // A Sale is what the card presents; the data states no regular price.
+      ...(candidate.regularPrice !== undefined &&
+      charged !== undefined &&
+      candidate.regularPrice > charged
+        ? { regularPrice: candidate.regularPrice }
+        : {}),
+      ...(candidate.dealWords ? { dealWords: candidate.dealWords } : {}),
     });
   }
 
@@ -805,25 +970,59 @@ function byPageHeading(name: string, heading: string): string {
   return name.toLowerCase().startsWith(heading.toLowerCase()) ? heading : name;
 }
 
-/** The pack size a product page states beside its heading, when its data states none. */
-function sizeNearHeading($: cheerio.CheerioAPI): SizeReading | undefined {
+/** The part of a product page that is about the product: the heading's neighbourhood. */
+function nearHeading($: cheerio.CheerioAPI, found: (scope: CheerioNode) => boolean): void {
   const heading = $("h1").first();
 
-  if (heading.length === 0) return undefined;
-  let scope = heading.parent();
+  if (heading.length === 0) return;
+  let scope = heading.parent() as unknown as CheerioNode;
 
   for (let step = 0; step < 3 && scope.length > 0; step += 1) {
+    if (found(scope)) return;
+    scope = scope.parent() as unknown as CheerioNode;
+  }
+}
+
+/** The pack size a product page states beside its heading, when its data states none. */
+function sizeNearHeading($: cheerio.CheerioAPI): SizeReading | undefined {
+  let reading: SizeReading | undefined;
+
+  nearHeading($, (scope) => {
     const found = scope
       .find("*")
       .toArray()
       .map((element) => collapse($(element).text()))
       .find((value) => looksLikeSize(value));
 
-    if (found) return sizeWords(found);
-    scope = scope.parent();
-  }
+    if (found) reading = sizeWords(found);
 
-  return undefined;
+    return reading !== undefined;
+  });
+
+  return reading;
+}
+
+/**
+ * The Sale a product page presents beside its heading: a struck regular
+ * price above the price, and the shop's words for the deal. A page's data
+ * states neither, so this is read from what the page shows a shopper.
+ */
+function saleNearHeading($: cheerio.CheerioAPI, price: number): SaleReading {
+  let sale: SaleReading = {};
+
+  nearHeading($, (scope) => {
+    const struck = struckPrices($, scope).filter((value) => value > price);
+    const dealWords = dealWordsOf($, scope);
+
+    sale = {
+      ...(struck.length > 0 ? { regularPrice: Math.max(...struck) } : {}),
+      ...(dealWords ? { dealWords } : {}),
+    };
+
+    return struck.length > 0 || dealWords !== undefined;
+  });
+
+  return sale;
 }
 
 function microdataValue($: cheerio.CheerioAPI, scope: CheerioNode, name: string): string | null {
@@ -877,7 +1076,13 @@ export function readProduct(html: string, url: string): ProductReading | null {
 
     if (!named || price === null || !inCurrency) return null;
 
-    return { name: named, price, currency: inCurrency, ...sized(size ?? sizeNearHeading($)) };
+    return {
+      name: named,
+      price,
+      currency: inCurrency,
+      ...sized(size ?? sizeNearHeading($)),
+      ...saleNearHeading($, price),
+    };
   };
 
   // A product page often lists related products in the same data. The one

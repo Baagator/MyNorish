@@ -125,6 +125,8 @@
     "perUnit": "за {unit}",
     "pieces": "{count, plural, one {штука} few {штуки} many {штук} other {штуки}}",
     "packs": "{count} × {size}",
-    "onePack": "посчитано как одна упаковка"
+    "onePack": "посчитано как одна упаковка",
+    "sale": "Скидка",
+    "regularPrice": "Обычная цена {price}"
   }
 }

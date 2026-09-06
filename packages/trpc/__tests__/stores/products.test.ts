@@ -141,13 +141,20 @@ describe("chooseProduct", () => {
       pack,
     });
 
-    expect(storeProductsRepository.setPackSizeByHand).toHaveBeenCalledExactlyOnceWith(PRODUCT, pack);
+    expect(storeProductsRepository.setPackSizeByHand).toHaveBeenCalledExactlyOnceWith(
+      PRODUCT,
+      pack
+    );
     expect(storeEmitter.emitToHousehold).toHaveBeenCalledWith(
       ctx.householdKey,
       "productUpdated",
       expect.objectContaining({ product: expect.objectContaining({ id: PRODUCT }) })
     );
-    expect(storeProductsRepository.upsertProductLink).toHaveBeenCalledWith(STORE, "oude kaas", PRODUCT);
+    expect(storeProductsRepository.upsertProductLink).toHaveBeenCalledWith(
+      STORE,
+      "oude kaas",
+      PRODUCT
+    );
   });
 
   it("leaves the Pack Size alone where the field was left alone", async () => {
@@ -193,7 +200,39 @@ describe("chooseProduct", () => {
     });
 
     expect(storeProductsRepository.upsertReadProduct).toHaveBeenCalledWith(
-      expect.objectContaining({ size: "930 g", pack: { quantity: 930, unit: "gram", byWeight: false } })
+      expect.objectContaining({
+        size: "930 g",
+        pack: { quantity: 930, unit: "gram", byWeight: false },
+      })
+    );
+  });
+
+  it("stores the Sale a search result presents with the product it becomes", async () => {
+    storesRepository.getStoreById.mockResolvedValue({
+      id: STORE,
+      website: "https://www.dirk.nl",
+      searchAddress: "https://www.dirk.nl/zoeken/producten/{query}",
+    });
+    storeProductsRepository.upsertReadProduct.mockResolvedValue({ id: MANUAL_ID, storeId: STORE });
+
+    await caller.chooseProduct({
+      storeId: STORE,
+      name: "oude kaas",
+      choice: {
+        kind: "candidate",
+        candidate: {
+          name: "Oude kaas",
+          url: "https://www.dirk.nl/boodschappen/kaas/oude-kaas/97752",
+          price: 1.69,
+          currency: "EUR",
+          regularPrice: 2.65,
+          dealWords: "ACTIE",
+        },
+      },
+    });
+
+    expect(storeProductsRepository.upsertReadProduct).toHaveBeenCalledWith(
+      expect.objectContaining({ price: 1.69, regularPrice: 2.65, dealWords: "ACTIE" })
     );
   });
 

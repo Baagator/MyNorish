@@ -1,10 +1,11 @@
 "use client";
 
+import type { PackSizeWords } from "@/lib/format-price";
 import type { Key } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePanelPortalContainer } from "@/components/Panel/Panel";
 import { useShopSearch, useStoreProducts } from "@/hooks/stores";
-import { formatPackSize, formatShelfPrice, type PackSizeWords } from "@/lib/format-price";
+import { formatPackSize, formatShelfPrice } from "@/lib/format-price";
 import {
   PACK_UNIT_KEYS,
   packFromKey,
@@ -12,7 +13,7 @@ import {
   packKeyLabel,
   packUnitKey,
 } from "@/lib/pack-size-editor";
-import { ComboBox, Header, Input, Label, ListBox, Select, TextField } from "@heroui/react";
+import { Chip, ComboBox, Header, Input, Label, ListBox, Select, TextField } from "@heroui/react";
 import { useLocale, useTranslations } from "next-intl";
 
 import type {
@@ -65,6 +66,10 @@ interface ProductRow {
   size: string | null;
   /** What one Shelf Price buys, as read or as set by hand. */
   pack: PackSize | null;
+  /** The regular price the shop struck through, where this is a Sale. */
+  regularPrice: number | null;
+  /** The shop's own words for its deal, on Sale or not. */
+  dealWords: string | null;
   choice: StoreProductChoice;
 }
 
@@ -82,17 +87,37 @@ function priceDetail(
   return [formatShelfPrice(locale, price, currency), packWords].filter(Boolean).join(" · ");
 }
 
-function candidateRow(candidate: PricedCandidate, locale: string, words: PackSizeWords): ProductRow {
+function candidateRow(
+  candidate: PricedCandidate,
+  locale: string,
+  words: PackSizeWords
+): ProductRow {
   return {
     key: candidate.url,
     name: candidate.name,
-    detail: priceDetail(locale, candidate.price, candidate.currency, candidate.size, candidate.pack, words),
+    detail: priceDetail(
+      locale,
+      candidate.price,
+      candidate.currency,
+      candidate.size,
+      candidate.pack,
+      words
+    ),
     price: candidate.price,
     currency: candidate.currency,
     size: candidate.size ?? null,
     pack: candidate.pack ?? null,
+    regularPrice: onSale(candidate.price, candidate.regularPrice),
+    dealWords: candidate.dealWords ?? null,
     choice: { kind: "candidate", candidate },
   };
+}
+
+/** The regular price where it is one: above the price, which is what a Sale is. */
+function onSale(price: number, regularPrice: number | null | undefined): number | null {
+  return regularPrice !== null && regularPrice !== undefined && regularPrice > price
+    ? regularPrice
+    : null;
 }
 
 function productRow(product: StoreProductDto, locale: string, words: PackSizeWords): ProductRow {
@@ -106,8 +131,35 @@ function productRow(product: StoreProductDto, locale: string, words: PackSizeWor
     currency: product.currency,
     size: product.size,
     pack,
+    regularPrice: onSale(product.price, product.regularPrice),
+    dealWords: product.dealWords,
     choice: { kind: "product", storeProductId: product.id },
   };
+}
+
+/** One row of the dropdown: the name, and beside it the price, a Sale where there is one, the deal's words. */
+function RowContent({ row, locale, sale }: { row: ProductRow; locale: string; sale: string }) {
+  return (
+    <div className="flex w-full items-center justify-between gap-3">
+      <span className="min-w-0 flex-1 truncate">
+        {row.name}
+        {row.dealWords ? <span className="text-muted"> · {row.dealWords}</span> : null}
+      </span>
+      <span className="text-muted flex shrink-0 items-center gap-1.5 text-xs tabular-nums">
+        {row.regularPrice !== null && (
+          <>
+            <s data-testid="product-option-regular">
+              {formatShelfPrice(locale, row.regularPrice, row.currency)}
+            </s>
+            <Chip color="accent" data-testid="product-option-sale" size="sm" variant="soft">
+              {sale}
+            </Chip>
+          </>
+        )}
+        <span>{row.detail}</span>
+      </span>
+    </div>
+  );
 }
 
 /** Which row the held choice is, so the field reads what is linked. */
@@ -469,7 +521,9 @@ export function GroceryProductField({
   const [packQuantity, setPackQuantity] = useState(() =>
     shownPack ? String(shownPack.quantity) : ""
   );
-  const [packKey, setPackKey] = useState<string>(() => (shownPack ? packUnitKey(shownPack) : "gram"));
+  const [packKey, setPackKey] = useState<string>(() =>
+    shownPack ? packUnitKey(shownPack) : "gram"
+  );
   const packEditedFor = useRef<string | null>(null);
 
   // A product picked or read anew brings its own Pack Size into the editor,
@@ -566,10 +620,7 @@ export function GroceryProductField({
                     id={row.key}
                     textValue={row.name}
                   >
-                    <div className="flex w-full items-center justify-between gap-3">
-                      <span className="min-w-0 flex-1 truncate">{row.name}</span>
-                      <span className="text-muted shrink-0 text-xs tabular-nums">{row.detail}</span>
-                    </div>
+                    <RowContent locale={locale} row={row} sale={tPrice("sale")} />
                   </ListBox.Item>
                 ))}
               </ListBox.Section>
@@ -586,10 +637,7 @@ export function GroceryProductField({
                     id={row.key}
                     textValue={row.name}
                   >
-                    <div className="flex w-full items-center justify-between gap-3">
-                      <span className="min-w-0 flex-1 truncate">{row.name}</span>
-                      <span className="text-muted shrink-0 text-xs tabular-nums">{row.detail}</span>
-                    </div>
+                    <RowContent locale={locale} row={row} sale={tPrice("sale")} />
                   </ListBox.Item>
                 ))}
               </ListBox.Section>

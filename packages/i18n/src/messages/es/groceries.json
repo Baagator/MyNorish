@@ -125,6 +125,8 @@
     "perUnit": "por {unit}",
     "pieces": "{count, plural, one {unidad} other {unidades}}",
     "packs": "{count} × {size}",
-    "onePack": "contado como un envase"
+    "onePack": "contado como un envase",
+    "sale": "Oferta",
+    "regularPrice": "Precio normal {price}"
   }
 }

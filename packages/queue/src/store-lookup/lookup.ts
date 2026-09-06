@@ -67,6 +67,10 @@ function productReading(
   // The size and its Pack Size travel together: a page that states no size
   // has no pack either, and the results card's reading stands for both.
   const sized = reading?.size ? reading : fallback;
+  // A Sale the results card presented outlives a product page that does not
+  // restate it: silence about the regular price is not the deal ending.
+  const regularPrice = reading?.regularPrice ?? fallback?.regularPrice ?? null;
+  const dealWords = reading?.dealWords ?? fallback?.dealWords ?? null;
 
   return {
     storeId,
@@ -76,6 +80,8 @@ function productReading(
     currency,
     size: sized?.size ?? null,
     pack: sized?.pack ?? null,
+    regularPrice,
+    dealWords,
   };
 }
 

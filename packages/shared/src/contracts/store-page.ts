@@ -16,6 +16,10 @@ export interface StoreCandidate {
   size?: string;
   /** What one Shelf Price buys, read out of the size words or the page's data. */
   pack?: PackSize;
+  /** The regular price the shop presents beside its price: this is a Sale. */
+  regularPrice?: number;
+  /** The shop's own words for a deal, on Sale or not: "2 voor €5.50", "ACTIE". */
+  dealWords?: string;
 }
 
 /** The authoritative reading of a product page: its Shelf Price. */
@@ -25,6 +29,8 @@ export interface ProductReading {
   currency: string;
   size?: string;
   pack?: PackSize;
+  regularPrice?: number;
+  dealWords?: string;
 }
 
 /** What a homepage states about how it is searched. */

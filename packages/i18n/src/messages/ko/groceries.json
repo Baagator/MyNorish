@@ -125,6 +125,8 @@
     "perUnit": "{unit}당",
     "pieces": "{count, plural, other {개}}",
     "packs": "{count} × {size}",
-    "onePack": "1개 포장으로 계산됨"
+    "onePack": "1개 포장으로 계산됨",
+    "sale": "할인",
+    "regularPrice": "정가 {price}"
   }
 }

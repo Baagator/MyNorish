@@ -259,22 +259,34 @@ export async function clearPendingLink(storeId: string, name: string): Promise<b
  * nothing that reads a page overwrites that. The Pack Size is the reading's,
  * unless its owner set one by hand: that is the last word, and the three
  * columns keep it whatever the page says this time.
+ *
+ * A Sale lasts until the shop presents another price. A reading that states
+ * a regular price or deal words writes them; one that states neither but
+ * reads the same price the Sale is at keeps them, because a product page may
+ * not restate what its results card said and silence about the regular price
+ * is not evidence the deal ended; one that reads any other price ends the
+ * Sale (ADR-0029).
  */
 export async function upsertReadProduct(
   reading: StoreProductReadingInput
 ): Promise<StoreProductDto> {
   const pack = packColumns(reading.pack);
+  const price = money(reading.price);
+  const regularPrice = reading.regularPrice == null ? null : money(reading.regularPrice);
+  const dealWords = reading.dealWords ?? null;
   const [row] = await db
     .insert(storeProducts)
     .values({
       storeId: reading.storeId,
       name: reading.name,
       pageUrl: reading.pageUrl,
-      price: money(reading.price),
+      price,
       currency: reading.currency,
       size: reading.size ?? null,
       ...pack,
       packByHand: false,
+      regularPrice,
+      dealWords,
       pricedAt: new Date(),
       isManual: false,
     })
@@ -282,12 +294,14 @@ export async function upsertReadProduct(
       target: [storeProducts.storeId, storeProducts.pageUrl],
       set: {
         name: reading.name,
-        price: money(reading.price),
+        price,
         currency: reading.currency,
         size: reading.size ?? null,
         packQuantity: sql`case when ${storeProducts.packByHand} then ${storeProducts.packQuantity} else ${pack.packQuantity}::numeric end`,
         packUnit: sql`case when ${storeProducts.packByHand} then ${storeProducts.packUnit} else ${pack.packUnit}::text end`,
         packByWeight: sql`case when ${storeProducts.packByHand} then ${storeProducts.packByWeight} else ${pack.packByWeight}::boolean end`,
+        regularPrice: sql`case when ${regularPrice}::numeric is not null then ${regularPrice}::numeric when ${storeProducts.price} = ${price}::numeric then ${storeProducts.regularPrice} else null end`,
+        dealWords: sql`case when ${dealWords}::text is not null then ${dealWords}::text when ${storeProducts.price} = ${price}::numeric then ${storeProducts.dealWords} else null end`,
         pricedAt: new Date(),
         updatedAt: new Date(),
         version: sql`${storeProducts.version} + 1`,

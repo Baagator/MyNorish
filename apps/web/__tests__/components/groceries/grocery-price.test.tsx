@@ -60,6 +60,8 @@ function product(overrides: Partial<StoreProductDto>): StoreProductDto {
     packUnit: "gram",
     packByWeight: false,
     packByHand: false,
+    regularPrice: null,
+    dealWords: null,
     pricedAt: new Date(),
     isManual: false,
     version: 1,
@@ -120,6 +122,27 @@ describe("GroceryPrice", () => {
 
     expect(screen.getByTestId("grocery-line-cost")).toHaveTextContent("€4.99 · 500 g");
     expect(screen.getByTestId("grocery-one-pack")).toHaveTextContent("onePack");
+  });
+
+  it("shows a Sale as the shop presents it: the regular Line Cost struck through, and a badge", () => {
+    link("kaas", product({ price: 3.38, regularPrice: 5.3, size: "150 g", packQuantity: 150 }));
+    render(<GroceryPrice line={lineOf(grocery("kaas", 300, "gram"))} />);
+
+    expect(screen.getByTestId("grocery-line-cost")).toHaveTextContent("€6.76");
+    expect(screen.getByTestId("grocery-regular-cost")).toHaveTextContent("€10.60");
+    expect(screen.getByTestId("grocery-sale")).toHaveTextContent("sale");
+    expect(screen.queryByTestId("grocery-deal-words")).not.toBeInTheDocument();
+  });
+
+  it("shows the shop's own words for a deal after the product name, on Sale or not", () => {
+    link("kaas", product({ price: 2.95, dealWords: "2 voor €5.50" }));
+    render(<GroceryPrice line={lineOf(grocery("kaas"))} />);
+
+    expect(screen.getByTestId("grocery-deal-words")).toHaveTextContent("2 voor €5.50");
+    // Words over a regular price are not a Sale, and are never worked into the number.
+    expect(screen.queryByTestId("grocery-sale")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("grocery-regular-cost")).not.toBeInTheDocument();
+    expect(screen.getByTestId("grocery-line-cost")).toHaveTextContent("€2.95");
   });
 
   it("shows a loader, and no words, while the Store is still being asked", () => {

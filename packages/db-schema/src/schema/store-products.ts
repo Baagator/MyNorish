@@ -43,6 +43,14 @@ export const storeProducts = pgTable(
     packUnit: text("pack_unit"),
     packByWeight: boolean("pack_by_weight").notNull().default(false),
     packByHand: boolean("pack_by_hand").notNull().default(false),
+    /**
+     * A Sale: the regular price the shop presents beside its Shelf Price,
+     * and the shop's own words for the deal. Words may stand without a
+     * regular price — a deal the shop keeps as a label over its regular
+     * price, shown and never priced. A hand-typed product is never on Sale.
+     */
+    regularPrice: numeric("regular_price", { precision: 12, scale: 2 }),
+    dealWords: text("deal_words"),
     pricedAt: timestamp("priced_at", { withTimezone: true }).notNull().defaultNow(),
     isManual: boolean("is_manual").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

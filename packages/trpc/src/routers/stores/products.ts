@@ -231,6 +231,8 @@ const chooseProduct = authedProcedure
         currency: candidate.currency,
         size: candidate.size ?? null,
         pack: candidate.pack ?? null,
+        regularPrice: candidate.regularPrice ?? null,
+        dealWords: candidate.dealWords ?? null,
       });
 
       storeProductId = product.id;

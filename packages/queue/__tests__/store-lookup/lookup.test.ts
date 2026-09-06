@@ -126,6 +126,8 @@ describe("matchGroceryName", () => {
       currency: "EUR",
       size: "930 g",
       pack: null,
+      regularPrice: null,
+      dealWords: null,
     });
     expect(mocks.linkIfUnanswered).toHaveBeenCalledWith(STORE, "oude kaas", "product-1");
   });
@@ -137,6 +139,38 @@ describe("matchGroceryName", () => {
 
     expect(mocks.upsertReadProduct).toHaveBeenCalledWith(
       expect.objectContaining({ price: 7.99, name: "Oude kaas" })
+    );
+  });
+
+  it("keeps the Sale the results card presented when the product page does not restate it", async () => {
+    useShop({
+      candidates: [{ ...candidate("Oude kaas"), regularPrice: 9.99, dealWords: "ACTIE" }],
+      product: { name: "Oude kaas", price: 7.99, currency: "EUR" },
+    });
+
+    await matchGroceryName({ storeId: STORE, name: "oude kaas", householdKey: HOUSEHOLD });
+
+    expect(mocks.upsertReadProduct).toHaveBeenCalledWith(
+      expect.objectContaining({ price: 7.99, regularPrice: 9.99, dealWords: "ACTIE" })
+    );
+  });
+
+  it("takes the Sale the product page itself presents ahead of the card's", async () => {
+    useShop({
+      candidates: [{ ...candidate("Oude kaas"), regularPrice: 9.99, dealWords: "ACTIE" }],
+      product: {
+        name: "Oude kaas",
+        price: 7.49,
+        currency: "EUR",
+        regularPrice: 8.99,
+        dealWords: "WEEKEND",
+      },
+    });
+
+    await matchGroceryName({ storeId: STORE, name: "oude kaas", householdKey: HOUSEHOLD });
+
+    expect(mocks.upsertReadProduct).toHaveBeenCalledWith(
+      expect.objectContaining({ price: 7.49, regularPrice: 8.99, dealWords: "WEEKEND" })
     );
   });
 
@@ -155,7 +189,10 @@ describe("matchGroceryName", () => {
     });
     await matchGroceryName({ storeId: STORE, name: "oude kaas", householdKey: HOUSEHOLD });
     expect(mocks.upsertReadProduct).toHaveBeenCalledWith(
-      expect.objectContaining({ size: "1 kg", pack: { quantity: 1, unit: "kilogram", byWeight: false } })
+      expect.objectContaining({
+        size: "1 kg",
+        pack: { quantity: 1, unit: "kilogram", byWeight: false },
+      })
     );
 
     mocks.upsertReadProduct.mockClear();

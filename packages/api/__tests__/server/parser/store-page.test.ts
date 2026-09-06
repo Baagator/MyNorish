@@ -106,6 +106,8 @@ describe("readSearchResults: a shop whose shelf is smaller than its own footer",
         currency: "EUR",
         size: "120 gram",
         pack: { quantity: 120, unit: "gram", byWeight: false },
+        // The shop's own sticker, in the shop's own words.
+        dealWords: "Nieuw",
       },
     ]);
   });
@@ -127,6 +129,8 @@ describe("readSearchResults: what is sold loose, and what one pack holds", () =>
 
     expect(pears).toMatchObject({
       name: "AH Conference los",
+      price: 1.39,
+      regularPrice: 1.99,
       currency: "EUR",
       size: "per kilo",
       pack: { quantity: 1, unit: "kilogram", byWeight: true },
@@ -244,6 +248,87 @@ describe("readSearchResults: what is sold loose, and what one pack holds", () =>
   });
 });
 
+describe("readSearchResults: what a shop presents as a Sale", () => {
+  it("reads Dirk's markdowns as a regular price above the price, with the shop's words", () => {
+    const candidates = readSearchResults(fixture("dirk-search-kaas.html"), DIRK_SEARCH);
+    const onSale = candidates.filter(
+      (candidate) =>
+        candidate.regularPrice !== undefined && candidate.regularPrice > (candidate.price ?? 0)
+    );
+
+    expect(onSale).toHaveLength(31);
+    // The price charged is the marked-down one the page states in its data;
+    // the DOM's "van 2.65" is the regular price and not the price.
+    expect(candidates.find((candidate) => candidate.url.endsWith("/115209"))).toMatchObject({
+      price: 1.69,
+      regularPrice: 2.65,
+    });
+    expect(
+      candidates.filter((candidate) => candidate.dealWords === "VR, ZA & ZO actie")
+    ).toHaveLength(2);
+    expect(candidates.filter((candidate) => candidate.dealWords === "ACTIE")).toHaveLength(16);
+  });
+
+  it("reads Albert Heijn's multi-buy as words on products that are not on Sale", () => {
+    const candidates = readSearchResults(fixture("ah-search-kaas.html"), AH_SEARCH);
+    const twoFor = candidates.filter((candidate) => candidate.dealWords === "2 voor €5.50");
+
+    expect(twoFor).toHaveLength(7);
+    for (const candidate of twoFor) expect(candidate.regularPrice).toBeUndefined();
+    // Nothing on the page is marked down, so nothing is on Sale.
+    expect(candidates.filter((candidate) => candidate.regularPrice !== undefined)).toHaveLength(0);
+  });
+
+  it("reads a Sale on Albert Heijn's loose pears and its Bonus bananas", () => {
+    const candidates = readSearchResults(
+      fixture("ah-search-bananen.html"),
+      "https://www.ah.nl/zoeken?query=bananen"
+    );
+
+    expect(
+      candidates.find((candidate) => candidate.url.endsWith("/chiquita-groen-en-geel-mix-2-pakket"))
+    ).toMatchObject({ price: 3.5, regularPrice: 4.38, dealWords: "BONUS" });
+  });
+
+  it("reads a struck price as the regular price, and a label's higher price before its lower one", () => {
+    const shelf = (card: string) =>
+      `<html><body>${["1", "2", "3"].map((n) => card.replaceAll("N", n)).join("")}</body></html>`;
+    const at = "https://shop.example.nl/zoeken?q=kaas";
+
+    expect(
+      readSearchResults(
+        shelf(
+          `<article><a href="/p/N/kaas">Kaas N</a><del>€ 3,49</del><span>€ 2,99</span></article>`
+        ),
+        at
+      )[0]
+    ).toMatchObject({ price: 2.99, regularPrice: 3.49 });
+
+    expect(
+      readSearchResults(
+        shelf(
+          `<article><a href="/p/N/kaas" aria-label="Kaas N, 150 gram Van €3.49 Voor €2.99, Bonus">Kaas N</a></article>`
+        ),
+        at
+      )[0]
+    ).toMatchObject({ price: 2.99, regularPrice: 3.49 });
+  });
+
+  it("keeps a deal's words on a product whose price is its regular price", () => {
+    const shelf = (card: string) =>
+      `<html><body>${["1", "2", "3"].map((n) => card.replaceAll("N", n)).join("")}</body></html>`;
+    const first = readSearchResults(
+      shelf(
+        `<article><a href="/p/N/kaas">Kaas N</a><div class="promo-badge">2 voor €5.50</div><span>€ 2,99</span></article>`
+      ),
+      "https://shop.example.nl/zoeken?q=kaas"
+    )[0];
+
+    expect(first).toMatchObject({ price: 2.99, dealWords: "2 voor €5.50" });
+    expect(first?.regularPrice).toBeUndefined();
+  });
+});
+
 describe("readProduct", () => {
   it("reads a Shelf Price a shop writes with a capital P", () => {
     expect(readProduct(fixture("dirk-product-97752.html"), DIRK_PRODUCT)).toEqual({
@@ -252,6 +337,23 @@ describe("readProduct", () => {
       currency: "EUR",
       size: "930 g",
       pack: { quantity: 930, unit: "gram", byWeight: false },
+    });
+  });
+
+  it("reads what a Dirk product page on offer presents: the price, the regular price, the words", () => {
+    expect(
+      readProduct(
+        fixture("dirk-product-8781.html"),
+        "https://www.dirk.nl/boodschappen/zuivel-kaas/lactosevrije-zuivel/alpro%20sojadrink%20banaan/8781"
+      )
+    ).toEqual({
+      name: "Alpro Sojadrink banaan",
+      price: 1.29,
+      currency: "EUR",
+      size: "1 liter",
+      pack: { quantity: 1, unit: "liter", byWeight: false },
+      regularPrice: 2.59,
+      dealWords: "ACTIE",
     });
   });
 

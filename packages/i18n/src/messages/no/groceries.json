@@ -125,6 +125,8 @@
     "perUnit": "per {unit}",
     "pieces": "{count, plural, one {stk.} other {stk.}}",
     "packs": "{count} × {size}",
-    "onePack": "telt som én pakke"
+    "onePack": "telt som én pakke",
+    "sale": "Tilbud",
+    "regularPrice": "Ordinær pris {price}"
   }
 }

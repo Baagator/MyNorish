@@ -26,10 +26,29 @@ const SEARCH_IS_SLOW = { current: false };
 const SHOP_IS_DOWN = { current: false };
 
 /** What the shop answers: whatever shares a word with the term. */
-const SHOP: Record<string, { name: string; url: string; price: number; size: string }[]> = {
+const SHOP: Record<
+  string,
+  {
+    name: string;
+    url: string;
+    price: number;
+    size: string;
+    regularPrice?: number;
+    dealWords?: string;
+  }[]
+> = {
   "store-a": [
     { name: "Coca-Cola 1 L", url: "https://a.example/p/cola-1l", price: 1.99, size: "1 L" },
     { name: "Cola Zero 1,5 L", url: "https://a.example/p/cola-zero", price: 2.29, size: "1,5 L" },
+    {
+      name: "Fanta 1 L",
+      url: "https://a.example/p/fanta",
+      price: 1.49,
+      size: "1 L",
+      regularPrice: 1.99,
+      dealWords: "ACTIE",
+    },
+    { name: "Fanta Orange 1 L", url: "https://a.example/p/fanta-orange", price: 1.99, size: "1 L" },
   ],
   "store-b": [{ name: "Cola B 1 L", url: "https://b.example/p/cola-1l", price: 1.49, size: "1 L" }],
 };
@@ -69,6 +88,8 @@ vi.mock("@/hooks/stores", () => ({
           currency: "EUR",
           size: candidate.size,
           pack: readPackSize(candidate.size) ?? undefined,
+          regularPrice: candidate.regularPrice,
+          dealWords: candidate.dealWords,
         })),
         answered: true,
       },
@@ -126,6 +147,8 @@ function product(id: string, storeId: string, name: string, price: number): Stor
     packUnit: "liter",
     packByWeight: false,
     packByHand: false,
+    regularPrice: null,
+    dealWords: null,
     pricedAt: new Date("2026-09-01T00:00:00Z"),
   } as unknown as StoreProductDto;
 }
@@ -1099,6 +1122,37 @@ describe("GroceryProductField", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  describe("a Sale in the dropdown", () => {
+    it("shows the badge, the struck pack price and the shop's words on a result on Sale", async () => {
+      render(
+        <GroceryProductField
+          choice={null}
+          groceryName="fanta"
+          linkedProduct={null}
+          store={STORE_A}
+          onChoice={() => undefined}
+        />
+      );
+
+      await act(async () => {
+        field().focus();
+      });
+
+      // Two products answer "fanta", so the shopper chooses; the row on Sale
+      // reads as the shop presents it.
+      const fanta = screen
+        .getAllByTestId("product-option")
+        .find((node) => node.textContent?.startsWith("Fanta 1 L"));
+
+      expect(fanta).toBeDefined();
+      expect(fanta).toHaveTextContent("ACTIE");
+      expect(fanta?.querySelector("[data-testid='product-option-regular']")).toHaveTextContent(
+        "€1.99"
+      );
+      expect(fanta?.querySelector("[data-testid='product-option-sale']")).toHaveTextContent("sale");
+    });
   });
 
   describe("the Pack Size editor", () => {
