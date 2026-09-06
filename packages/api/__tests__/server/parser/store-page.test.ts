@@ -204,6 +204,164 @@ describe("a bare run of digits, which is how a shop styles a large price", () =>
   });
 });
 
+describe("what a card says, read the way a shopper reads it", () => {
+  const shelf = (card: string) =>
+    `<html><body>${["1", "2", "3"].map((n) => card.replaceAll("N", n)).join("")}</body></html>`;
+  const first = (html: string, at = "https://shop.example.nl/zoeken?q=kaas") =>
+    readSearchResults(html, at)[0];
+
+  it("does not glue a pack count to the price beside it", () => {
+    // Cheerio's `.text()` runs sibling texts together: "x12" + "2,49 €" read
+    // as 122,49 € and a dozen eggs cost a hundred and twenty euros.
+    const html = shelf(
+      `<article><a href="/p/N/oeufs">Oeufs N</a><span>x12</span><span>2,49 €</span></article>`
+    );
+
+    expect(first(html, "https://shop.example.fr/recherche?q=oeufs")).toMatchObject({
+      price: 2.49,
+      currency: "EUR",
+    });
+  });
+
+  it("reads the price the shop charges now, not the one it struck through", () => {
+    const html = shelf(
+      `<article><a href="/p/N/kaas">Kaas N</a><del>€ 3,49</del><span>€ 2,99</span></article>`
+    );
+
+    expect(first(html)?.price).toBe(2.99);
+  });
+
+  it("reads what one pack costs, not the price per kilo beside it", () => {
+    const html = shelf(
+      `<article><a href="/p/N/kaas">Kaas N</a><span>€ 19,93 / kg</span><span>€ 2,99</span></article>`
+    );
+
+    expect(first(html)?.price).toBe(2.99);
+    expect(readPriceInText("€ 19,93 per kg, € 2,99 per stuk")).toEqual({
+      price: 2.99,
+      currency: "EUR",
+    });
+  });
+
+  it("reads a bare decimal in the shop's own currency before guessing at digit runs", () => {
+    // Without a mark the digit run used to take the review count for cents.
+    const html = shelf(
+      `<article><a href="/p/N/kaas">Kaas N</a><span>2,99</span><span class="reviews">17</span></article>`
+    );
+
+    expect(first(html)).toMatchObject({ price: 2.99, currency: "EUR" });
+  });
+
+  it("never reads a price in a lettered currency as a pack size", () => {
+    const html = shelf(
+      `<article><a href="/p/N/ser">Ser N</a><span>12,34 zł</span><span>500 g</span></article>`
+    );
+
+    expect(first(html, "https://sklep.example.pl/szukaj?q=ser")).toMatchObject({
+      price: 12.34,
+      currency: "PLN",
+      size: "500 g",
+    });
+  });
+
+  it("tells the three crowns apart by the shop's own country", () => {
+    expect(readPriceInText("39,90 kr", "DKK")).toEqual({ price: 39.9, currency: "DKK" });
+    expect(readPriceInText("kr. 39,90", "NOK")).toEqual({ price: 39.9, currency: "NOK" });
+    expect(readPriceInText("39,90 kr")).toEqual({ price: 39.9, currency: "SEK" });
+    // A crate is not a crown.
+    expect(readPriceInText("1,50 krat")).toBeNull();
+  });
+
+  it("reads a whole-euro price written with a dash for its cents", () => {
+    expect(readPriceInText("€ 2,-")).toEqual({ price: 2, currency: "EUR" });
+  });
+
+  it("names a card wrapped in one link by its heading, not by everything in it", () => {
+    const html = shelf(
+      `<article><a href="/p/N/kaas"><h3>Kaas N</h3><span>€ 2,91</span><span>500 g</span></a></article>`
+    );
+
+    expect(first(html)).toMatchObject({ name: "Kaas 1", price: 2.91, size: "500 g" });
+  });
+
+  it("grows a card past its own buttons to the price", () => {
+    const html = shelf(
+      `<article><div><a href="/p/N/kaas">Kaas N</a><a href="#">♡</a></div><span>€ 2,99</span></article>`
+    );
+
+    expect(first(html)?.price).toBe(2.99);
+  });
+
+  it("matches a page's anchors to its data past the tracking they carry", () => {
+    const itemList = {
+      "@type": "ItemList",
+      itemListElement: [
+        {
+          "@type": "ListItem",
+          item: { "@type": "Product", name: "Oude kaas", url: "/p/oude-kaas" },
+        },
+      ],
+    };
+    const html = `<html><head><script type="application/ld+json">${JSON.stringify(itemList)}</script></head>
+      <body><article><a href="/p/oude-kaas?ref=search">Oude kaas</a><span>€ 4,99</span></article></body></html>`;
+
+    expect(readSearchResults(html, "https://shop.example.nl/zoeken?q=kaas")).toEqual([
+      {
+        name: "Oude kaas",
+        url: "https://shop.example.nl/p/oude-kaas",
+        price: 4.99,
+        currency: "EUR",
+      },
+    ]);
+  });
+
+  it("takes the currency a page states once for the cards that state none", () => {
+    const html = `<html><body><footer>Bezorgkosten € 4,95</footer>${["1", "2", "3"]
+      .map(
+        (n) =>
+          `<article><a href="/p/${n}/kaas">Kaas ${n}</a><div><span>2</span><span>99</span></div></article>`
+      )
+      .join("")}</body></html>`;
+
+    // A `.com` implies nothing; the page's own mark does.
+    expect(currencyForUrl("https://shop.example.com/")).toBeNull();
+    expect(first(html, "https://shop.example.com/search?q=kaas")).toMatchObject({
+      price: 2.99,
+      currency: "EUR",
+    });
+  });
+});
+
+describe("readProduct on a page that mentions other products", () => {
+  it("reads the product the page is about, not the first one it lists", () => {
+    const data = [
+      {
+        "@type": "ItemList",
+        itemListElement: [
+          {
+            "@type": "Product",
+            name: "Jonge kaas",
+            url: "https://shop.example.nl/p/jonge-kaas",
+            offers: { "@type": "Offer", price: "5.49", priceCurrency: "EUR" },
+          },
+        ],
+      },
+      {
+        "@type": "Product",
+        name: "Oude kaas",
+        url: "https://shop.example.nl/p/oude-kaas",
+        offers: { "@type": "Offer", price: "7.99", priceCurrency: "EUR" },
+      },
+    ];
+    const html = `<html><head><title>Oude kaas</title><script type="application/ld+json">${JSON.stringify(data)}</script></head><body><h1>Oude kaas</h1></body></html>`;
+
+    expect(readProduct(html, "https://shop.example.nl/p/oude-kaas?ref=list")).toMatchObject({
+      name: "Oude kaas",
+      price: 7.99,
+    });
+  });
+});
+
 describe("a results page with only a product or two on it", () => {
   it("reads the one product a page names, where a lone link would be a guess", () => {
     const itemList = {

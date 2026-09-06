@@ -4,7 +4,9 @@ import type { StoreCandidate } from "../contracts/store-page";
  * What a shop's top-level domain implies it charges in. Read only when the
  * page itself states nothing: a self-hosted Norish is used well past the
  * places its authors shop, so the table covers the locales it ships and the
- * neighbours of those.
+ * neighbours of those. `.com` is deliberately absent — a Dutch shop on a
+ * `.com` charges in euros, and a page that states a number with no mark and
+ * no country is a page whose prices go unread rather than misread.
  */
 const TLD_CURRENCIES: Record<string, string> = {
   nl: "EUR",
@@ -36,7 +38,6 @@ const TLD_CURRENCIES: Record<string, string> = {
   nz: "NZD",
   br: "BRL",
   us: "USD",
-  com: "USD",
 };
 
 export function currencyForUrl(pageUrl: string | null | undefined): string | null {

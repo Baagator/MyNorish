@@ -142,33 +142,84 @@ function currencyCode(value: unknown): string | null {
   return CURRENCY_CODES.has(code) ? code : (CURRENCY_SYMBOLS[raw] ?? null);
 }
 
-/** The marks a shop writes a price with, wherever the price sits beside them. */
-const CURRENCY_MARK = "€|£|\\$|₽|₩|zł";
-const MONEY_BEFORE = new RegExp(
-  `(${CURRENCY_MARK}|\\b[A-Z]{3}\\b)\\s?(\\d{1,6}(?:[.,]\\d{3})*[.,]\\d{2})(?!\\d)`,
-  "g"
-);
-const MONEY_AFTER = new RegExp(
-  `(?<![\\d.,])(\\d{1,6}(?:[.,]\\d{3})*[.,]\\d{2})\\s?(${CURRENCY_MARK}|\\b[A-Z]{3}\\b)`,
-  "g"
-);
+/**
+ * The marks a shop writes a price with, wherever the price sits beside them.
+ * `kr` is what three countries call their crown; which one is told by the
+ * shop's own address where the mark alone cannot say.
+ */
+const CURRENCY_MARK = "€|£|\\$|₽|₩|zł|kr\\.?(?![a-z])";
+/** `2,99`, `1.234,56`, and `2,-` — a whole amount with its cents written as a dash. */
+const AMOUNT = "\\d{1,6}(?:[.,]\\d{3})*(?:[.,]\\d{2}|[.,]-)";
+const MONEY_BEFORE = new RegExp(`(${CURRENCY_MARK}|\\b[A-Z]{3}\\b)\\s?(${AMOUNT})(?!\\d)`, "g");
+const MONEY_AFTER = new RegExp(`(?<![\\d.,])(${AMOUNT})\\s?(${CURRENCY_MARK}|\\b[A-Z]{3}\\b)`, "g");
+/**
+ * A price per weight or volume rather than per pack: `€ 19,93 / kg`, `€ 1,99
+ * per 100 g`. The Shelf Price is what one pack costs, and a card states both.
+ * "Per stuk" — per piece — is the pack price and is not this.
+ */
+const PER_UNIT =
+  /^\s*(?:\/|per|pro|par|por|al|za|pr\.?|à)\s*(?:\d+\s*)?(?:kg|g|l|ml|cl|liter|litre|litro|kilo)\b/iu;
+const KRONER = new Set(["DKK", "NOK", "SEK"]);
 
-/** The first price a piece of text states with its currency; nothing without one. */
-export function readPriceInText(value: string): { price: number; currency: string } | null {
+function isPerUnit(value: string, end: number): boolean {
+  return PER_UNIT.test(value.slice(end));
+}
+
+function markedCurrency(mark: string, near: string | null | undefined): string | null {
+  const code = currencyCode(mark.replace(/\.$/, ""));
+
+  if (code === "SEK" && near && KRONER.has(near)) return near;
+
+  return code;
+}
+
+/**
+ * The first price a piece of text states with its currency; nothing without
+ * one, and nothing for a price per kilo. `near` is what the shop's own address
+ * implies it charges in, which only matters for a mark three countries share.
+ */
+export function readPriceInText(
+  value: string,
+  near?: string | null
+): { price: number; currency: string } | null {
   for (const match of value.matchAll(MONEY_BEFORE)) {
-    const currency = currencyCode(match[1]);
+    const currency = markedCurrency(match[1] ?? "", near);
     const price = parsePriceText(match[2]);
 
-    if (currency && price !== null) return { price, currency };
+    if (currency && price !== null && !isPerUnit(value, match.index + match[0].length)) {
+      return { price, currency };
+    }
   }
   for (const match of value.matchAll(MONEY_AFTER)) {
-    const currency = currencyCode(match[2]);
+    const currency = markedCurrency(match[2] ?? "", near);
     const price = parsePriceText(match[1]);
 
-    if (currency && price !== null) return { price, currency };
+    if (currency && price !== null && !isPerUnit(value, match.index + match[0].length)) {
+      return { price, currency };
+    }
   }
 
   return null;
+}
+
+/** Elements whose text is not the product's: scripts, and a price struck through. */
+const NOT_THE_PRICE = new Set(["script", "style", "del", "s", "strike", "template"]);
+
+function textNodesOf(node: AnyNode): string[] {
+  if (node.type === "text") return [node.data];
+  if (node.type === "tag" && NOT_THE_PRICE.has(node.name.toLowerCase())) return [];
+  if ("children" in node) return node.children.flatMap(textNodesOf);
+
+  return [];
+}
+
+/**
+ * A card's text with a space between its pieces. Cheerio's `.text()` glues
+ * sibling texts together, so `<span>x12</span><span>2,49 €</span>` reads as
+ * `x122,49 €` and a dozen eggs cost a hundred and twenty euros.
+ */
+function spacedText(card: CheerioNode): string {
+  return collapse(card.toArray().flatMap(textNodesOf).join(" "));
 }
 
 export function resolveUrl(candidate: unknown, pageUrl: string): string | null {
@@ -207,8 +258,11 @@ const UNIT_WORDS: Record<string, string> = {
 /** A pack size as a shopper reads it: a number and the shop's own word for it. */
 const SIZE_SHAPE = /^(?:ca\.?\s*)?\d+(?:[.,]\d+)?\s*(?:x\s*\d+(?:[.,]\d+)?\s*)?\p{L}{1,12}\.?$/u;
 
+/** `12,34 zł` and `29.90 CHF` have the shape of a size and are prices; they are not sizes. */
 function looksLikeSize(value: string): boolean {
-  return SIZE_SHAPE.test(value.trim());
+  const trimmed = value.trim();
+
+  return SIZE_SHAPE.test(trimmed) && readPriceInText(trimmed) === null;
 }
 
 function readSize(value: unknown): string | null {
@@ -330,7 +384,8 @@ const PRICED_SAMPLE = 6;
 function statesAPrice($: cheerio.CheerioAPI, card: CheerioNode): boolean {
   return (
     readPriceInText(cardLabels($, card)) !== null ||
-    readPriceInText(card.text()) !== null ||
+    readPriceInText(spacedText(card)) !== null ||
+    decimalInCard($, card) !== null ||
     priceFromDigitRun($, card) !== null
   );
 }
@@ -430,9 +485,14 @@ function cardOf(
       .find("a[href]")
       .toArray()
       .some((other) => {
-        const resolved = resolveUrl($(other).attr("href"), pageUrl);
+        const href = ($(other).attr("href") ?? "").trim();
 
-        return resolved !== null && resolved !== url;
+        // A card's own buttons — `href="#"`, `javascript:` — link nowhere else,
+        // and neither does the same page with tracking on it.
+        if (!href || NON_PAGE_PROTOCOL.test(href)) return false;
+        const resolved = resolveUrl(href, pageUrl);
+
+        return resolved !== null && withoutQuery(resolved) !== withoutQuery(url);
       });
 
     if (elsewhere) break;
@@ -480,6 +540,29 @@ function priceFromDigitRun($: cheerio.CheerioAPI, card: CheerioNode): number | n
   return longest ? Number(longest) / 100 : null;
 }
 
+/**
+ * A price a card states as a bare decimal, `2,99` or `7.49`, with no mark
+ * beside it. Read before the digit run: where a card holds one of these, the
+ * digit run would read its review count or its pack size instead.
+ */
+function decimalInCard($: cheerio.CheerioAPI, card: CheerioNode): number | null {
+  let found: number | null = null;
+
+  card.find("*").each((_, element) => {
+    if (found !== null) return;
+    const node = $(element);
+
+    if (node.children().length > 0) return;
+    const value = collapse(node.text());
+
+    if (!/^\d{1,4}[.,]\d{2}$/.test(value)) return;
+    if (looksLikeSize(collapse(node.parent().text()))) return;
+    found = parsePriceText(value);
+  });
+
+  return found;
+}
+
 function cardLabels($: cheerio.CheerioAPI, card: CheerioNode): string {
   const labels: string[] = [];
   const own = card.attr("aria-label");
@@ -503,7 +586,11 @@ function cardName(
 ): string | null {
   const fromImage = card.find("img[alt]").first().attr("alt");
   const fromLabel = label.split(/[,•]/)[0];
+  // An anchor wrapped around the whole card says everything the card says,
+  // price and size included; its heading says what the product is called.
+  const fromHeading = link.find("h1, h2, h3, h4, h5, h6, [itemprop='name']").first().text();
   const candidates = [
+    collapse(fromHeading),
     collapse(link.text()),
     collapse(fromImage ?? ""),
     collapse(link.attr("title") ?? ""),
@@ -532,18 +619,30 @@ function cardSize(texts: string[], label: string): string | undefined {
  * the page states its shelf outright there is nothing to infer: those are the
  * products, however few of them there are.
  */
+function withoutQuery(url: string): string {
+  const at = url.indexOf("?");
+
+  return at < 0 ? url : url.slice(0, at);
+}
+
 function anchorsForUrls(
   $: cheerio.CheerioAPI,
   pageUrl: string,
   wanted: Set<string>
 ): { url: string; element: CheerioNode }[] {
   const found = new Map<string, CheerioNode>();
+  // The page's data names the product page; its anchors may carry a `?ref=`
+  // the data does not. The page is the same page either way.
+  const byPath = new Map([...wanted].map((url) => [withoutQuery(url), url] as const));
 
   $("a[href]").each((_, element) => {
     const resolved = resolveUrl($(element).attr("href"), pageUrl);
 
-    if (!resolved || !wanted.has(resolved) || found.has(resolved)) return;
-    found.set(resolved, $(element) as unknown as CheerioNode);
+    if (!resolved) return;
+    const url = wanted.has(resolved) ? resolved : byPath.get(withoutQuery(resolved));
+
+    if (!url || found.has(url)) return;
+    found.set(url, $(element) as unknown as CheerioNode);
   });
 
   return [...found.entries()].map(([url, element]) => ({ url, element }));
@@ -552,10 +651,9 @@ function anchorsForUrls(
 function readDomCandidates(
   $: cheerio.CheerioAPI,
   pageUrl: string,
-  anchors: { url: string; element: CheerioNode }[]
+  anchors: { url: string; element: CheerioNode }[],
+  fallbackCurrency: string | null
 ): StoreCandidate[] {
-  const fallbackCurrency = currencyForUrl(pageUrl);
-
   return anchors
     .map(({ url, element }) => {
       const card = cardOf($, element, url, pageUrl);
@@ -565,8 +663,9 @@ function readDomCandidates(
 
       if (!name) return null;
       const money =
-        readPriceInText(label) ?? readPriceInText(card.text()) ?? readPriceInText(texts.join(" "));
-      const price = money?.price ?? priceFromDigitRun($, card);
+        readPriceInText(label, fallbackCurrency) ??
+        readPriceInText(spacedText(card), fallbackCurrency);
+      const price = money?.price ?? decimalInCard($, card) ?? priceFromDigitRun($, card);
 
       if (price === undefined || price === null) return { name, url } satisfies StoreCandidate;
       const currency = money?.currency ?? fallbackCurrency;
@@ -593,6 +692,12 @@ export function readSearchResults(html: string, baseUrl: string): StoreCandidate
   const $ = cheerio.load(html);
   const stated = readJsonLdCandidates($, baseUrl);
   const merged = new Map<string, StoreCandidate>();
+  // What the page charges in, for a card that states a number and no mark: a
+  // mark stated anywhere on the page, else what the shop's address implies.
+  const tldCurrency = currencyForUrl(baseUrl);
+  const pageCurrency =
+    readPriceInText(spacedText($("body") as unknown as CheerioNode), tldCurrency)?.currency ??
+    tldCurrency;
 
   for (const candidate of stated) merged.set(candidate.url, candidate);
   // A page that names its products needs no guessing about which links they
@@ -603,7 +708,7 @@ export function readSearchResults(html: string, baseUrl: string): StoreCandidate
       ? anchorsForUrls($, baseUrl, new Set(stated.map((candidate) => candidate.url)))
       : productAnchorGroup($, baseUrl);
 
-  for (const candidate of readDomCandidates($, baseUrl, anchors)) {
+  for (const candidate of readDomCandidates($, baseUrl, anchors, pageCurrency)) {
     const existing = merged.get(candidate.url);
 
     if (!existing) {
@@ -621,7 +726,7 @@ export function readSearchResults(html: string, baseUrl: string): StoreCandidate
   return [...merged.values()].map((candidate) => ({
     ...candidate,
     ...(candidate.price !== undefined && !candidate.currency
-      ? { currency: currencyForUrl(baseUrl) ?? undefined }
+      ? { currency: pageCurrency ?? undefined }
       : {}),
   }));
 }
@@ -724,15 +829,27 @@ export function readProduct(html: string, url: string): ProductReading | null {
     return { name: named, price, currency: inCurrency, ...(packed ? { size: packed } : {}) };
   };
 
-  for (const node of jsonLdNodes($)) {
-    if (!hasType(node, "Product", "IndividualProduct", "ProductModel")) continue;
-    const offer = offerOf(node);
+  // A product page often lists related products in the same data. The one
+  // this page is about is the one whose address is this page's; the first
+  // priced product is only what is left when none says.
+  const products = jsonLdNodes($)
+    .filter((node) => hasType(node, "Product", "IndividualProduct", "ProductModel"))
+    .map((node) => ({ node, offer: offerOf(node) }))
+    .filter((entry) => entry.offer !== null);
+  const own = products.find(
+    ({ node }) => withoutQuery(resolveUrl(prop(node, "url"), url) ?? "") === withoutQuery(url)
+  );
+  const pageCurrency = readPriceInText(
+    spacedText($("body") as unknown as CheerioNode),
+    fallbackCurrency
+  )?.currency;
 
+  for (const { node, offer } of own ? [own, ...products.filter((p) => p !== own)] : products) {
     if (!offer) continue;
     const found = reading(
       readText(prop(node, "name")),
       offer.price,
-      offer.currency ?? readPriceInText($.text())?.currency,
+      offer.currency ?? pageCurrency ?? null,
       sizeOf(node)
     );
 
@@ -742,7 +859,7 @@ export function readProduct(html: string, url: string): ProductReading | null {
   const microdata = readMicrodataProduct($);
 
   if (microdata) {
-    const money = readPriceInText(microdata.money);
+    const money = readPriceInText(microdata.money, fallbackCurrency);
     const found = reading(
       microdata.name,
       money?.price ?? parsePriceText(microdata.money),
