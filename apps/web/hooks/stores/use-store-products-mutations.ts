@@ -5,7 +5,7 @@ import { showSafeErrorToast } from "@/lib/ui/safe-error-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 
-import type { StoreProductChoice } from "@norish/shared/contracts";
+import type { PackSizeDto, StoreProductChoice } from "@norish/shared/contracts";
 
 /**
  * Write what the picker decided. Nothing calls this until the grocery panel's
@@ -21,9 +21,14 @@ export function useChooseProduct() {
   const mutation = useMutation(trpc.stores.chooseProduct.mutationOptions());
   const pricesKey = trpc.stores.groceryPrices.queryKey();
 
-  return (storeId: string, name: string, choice: StoreProductChoice) =>
+  return (
+    storeId: string,
+    name: string,
+    choice: StoreProductChoice,
+    pack?: PackSizeDto | null
+  ) =>
     mutation
-      .mutateAsync({ storeId, name, choice })
+      .mutateAsync({ storeId, name, choice, ...(pack === undefined ? {} : { pack }) })
       .then(() => queryClient.invalidateQueries({ queryKey: pricesKey }))
       .catch((error: unknown) => {
         showSafeErrorToast({

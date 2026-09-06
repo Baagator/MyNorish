@@ -116,9 +116,13 @@
     "byHandCurrency": "Valuta",
     "productLabel": "Prodotto da {store}",
     "cannotSearch": "Non si può cercare in questo negozio",
-    "cannotSearchHint": "Norish non è riuscito a ricavare una pagina di ricerca dal link di {store}. Correggilo in Gestisci negozi e i prezzi seguiranno."
+    "cannotSearchHint": "Norish non è riuscito a ricavare una pagina di ricerca dal link di {store}. Correggilo in Gestisci negozi e i prezzi seguiranno.",
+    "packSize": "Confezione",
+    "packSizeUnit": "Unità"
   },
   "price": {
-    "pending": "Ricerca del prezzo in corso"
+    "pending": "Ricerca del prezzo in corso",
+    "perUnit": "al {unit}",
+    "pieces": "{count, plural, one {pezzo} other {pezzi}}"
   }
 }

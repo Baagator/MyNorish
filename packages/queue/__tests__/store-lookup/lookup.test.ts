@@ -7,7 +7,7 @@
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { StoreCandidate } from "@norish/shared/contracts";
+import type { ProductReading, StoreCandidate } from "@norish/shared/contracts";
 import {
   registerQueueApiHandlers,
   resetQueueApiHandlersForTests,
@@ -52,7 +52,7 @@ function useShop(options: {
   searchHtml?: string;
   productHtml?: string;
   candidates?: StoreCandidate[];
-  product?: { name: string; price: number; currency: string; size?: string } | null;
+  product?: ProductReading | null;
 }) {
   const visited: string[] = [];
 
@@ -125,6 +125,7 @@ describe("matchGroceryName", () => {
       price: 8.49,
       currency: "EUR",
       size: "930 g",
+      pack: null,
     });
     expect(mocks.linkIfUnanswered).toHaveBeenCalledWith(STORE, "oude kaas", "product-1");
   });
@@ -136,6 +137,35 @@ describe("matchGroceryName", () => {
 
     expect(mocks.upsertReadProduct).toHaveBeenCalledWith(
       expect.objectContaining({ price: 7.99, name: "Oude kaas" })
+    );
+  });
+
+  it("stores the Pack Size with the reading, from the page or else from the results card", async () => {
+    const grams = { quantity: 930, unit: "gram" as const, byWeight: false };
+
+    useShop({
+      candidates: [{ ...candidate("Oude kaas"), pack: grams }],
+      product: {
+        name: "Oude kaas",
+        price: 7.99,
+        currency: "EUR",
+        size: "1 kg",
+        pack: { quantity: 1, unit: "kilogram", byWeight: false },
+      },
+    });
+    await matchGroceryName({ storeId: STORE, name: "oude kaas", householdKey: HOUSEHOLD });
+    expect(mocks.upsertReadProduct).toHaveBeenCalledWith(
+      expect.objectContaining({ size: "1 kg", pack: { quantity: 1, unit: "kilogram", byWeight: false } })
+    );
+
+    mocks.upsertReadProduct.mockClear();
+    useShop({
+      candidates: [{ ...candidate("Oude kaas"), pack: grams }],
+      product: { name: "Oude kaas", price: 7.99, currency: "EUR" },
+    });
+    await matchGroceryName({ storeId: STORE, name: "oude kaas", householdKey: HOUSEHOLD });
+    expect(mocks.upsertReadProduct).toHaveBeenCalledWith(
+      expect.objectContaining({ size: "930 g", pack: grams })
     );
   });
 

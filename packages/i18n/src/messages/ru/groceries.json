@@ -116,9 +116,13 @@
     "byHandCurrency": "Валюта",
     "productLabel": "Товар в {store}",
     "cannotSearch": "В этом магазине нельзя искать",
-    "cannotSearchHint": "Norish не смог получить страницу поиска из ссылки магазина {store}. Исправьте её в «Управление магазинами», и цены появятся."
+    "cannotSearchHint": "Norish не смог получить страницу поиска из ссылки магазина {store}. Исправьте её в «Управление магазинами», и цены появятся.",
+    "packSize": "Размер упаковки",
+    "packSizeUnit": "Единица"
   },
   "price": {
-    "pending": "Ищем цену"
+    "pending": "Ищем цену",
+    "perUnit": "за {unit}",
+    "pieces": "{count, plural, one {штука} few {штуки} many {штук} other {штуки}}"
   }
 }

@@ -1,18 +1,33 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import type { Key } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePanelPortalContainer } from "@/components/Panel/Panel";
 import { useShopSearch, useStoreProducts } from "@/hooks/stores";
-import { formatShelfPrice } from "@/lib/format-price";
-import { ComboBox, Header, Input, Label, ListBox, TextField } from "@heroui/react";
+import { formatPackSize, formatShelfPrice, type PackSizeWords } from "@/lib/format-price";
+import {
+  PACK_UNIT_KEYS,
+  packFromKey,
+  packKeyFixesQuantity,
+  packKeyLabel,
+  packUnitKey,
+} from "@/lib/pack-size-editor";
+import { ComboBox, Header, Input, Label, ListBox, Select, TextField } from "@heroui/react";
 import { useLocale, useTranslations } from "next-intl";
 
-import type { StoreDto, StoreProductChoice, StoreProductDto } from "@norish/shared/contracts";
+import type {
+  PackSizeDto,
+  StoreDto,
+  StoreProductChoice,
+  StoreProductDto,
+} from "@norish/shared/contracts";
 import type { PricedCandidate } from "@norish/shared/lib/currency";
+import type { PackSize } from "@norish/shared/lib/pack-size";
 import { chooseUnmistakable, distinctProducts } from "@norish/shared/lib/auto-link";
 import { currencyForUrl, isPriced } from "@norish/shared/lib/currency";
 import { nameWords } from "@norish/shared/lib/normalized-name";
 import { createClientId } from "@norish/shared/lib/operation-helpers";
+import { packSizeOf } from "@norish/shared/lib/pack-size";
 
 /** How long a shopper stops typing before the shop is asked. */
 const SEARCH_DEBOUNCE_MS = 400;
@@ -35,6 +50,9 @@ interface GroceryProductFieldProps {
   linkPending?: boolean;
   choice: StoreProductChoice | null;
   onChoice: (choice: StoreProductChoice | null) => void;
+  /** A Pack Size the shopper set by hand for the product shown: absent while untouched, null once cleared. */
+  pack?: PackSizeDto | null;
+  onPack?: (pack: PackSizeDto | null | undefined) => void;
 }
 
 /** One row of the dropdown, whichever list it came from. */
@@ -45,38 +63,49 @@ interface ProductRow {
   price: number;
   currency: string;
   size: string | null;
+  /** What one Shelf Price buys, as read or as set by hand. */
+  pack: PackSize | null;
   choice: StoreProductChoice;
 }
 
+/** The price, and the shop's size words or else Norish's own for the pack. */
 function priceDetail(
   locale: string,
   price: number,
   currency: string,
-  size: string | null | undefined
+  size: string | null | undefined,
+  pack: PackSize | null | undefined,
+  words: PackSizeWords
 ): string {
-  return [formatShelfPrice(locale, price, currency), size].filter(Boolean).join(" · ");
+  const packWords = size ?? (pack ? formatPackSize(pack, words) : null);
+
+  return [formatShelfPrice(locale, price, currency), packWords].filter(Boolean).join(" · ");
 }
 
-function candidateRow(candidate: PricedCandidate, locale: string): ProductRow {
+function candidateRow(candidate: PricedCandidate, locale: string, words: PackSizeWords): ProductRow {
   return {
     key: candidate.url,
     name: candidate.name,
-    detail: priceDetail(locale, candidate.price, candidate.currency, candidate.size),
+    detail: priceDetail(locale, candidate.price, candidate.currency, candidate.size, candidate.pack, words),
     price: candidate.price,
     currency: candidate.currency,
     size: candidate.size ?? null,
+    pack: candidate.pack ?? null,
     choice: { kind: "candidate", candidate },
   };
 }
 
-function productRow(product: StoreProductDto, locale: string): ProductRow {
+function productRow(product: StoreProductDto, locale: string, words: PackSizeWords): ProductRow {
+  const pack = packSizeOf(product);
+
   return {
     key: product.id,
     name: product.name,
-    detail: priceDetail(locale, product.price, product.currency, product.size),
+    detail: priceDetail(locale, product.price, product.currency, product.size, pack, words),
     price: product.price,
     currency: product.currency,
     size: product.size,
+    pack,
     choice: { kind: "product", storeProductId: product.id },
   };
 }
@@ -145,9 +174,19 @@ export function GroceryProductField({
   linkPending = false,
   choice,
   onChoice,
+  pack: handSetPack,
+  onPack = () => undefined,
 }: GroceryProductFieldProps) {
   const t = useTranslations("groceries.picker");
+  const tPrice = useTranslations("groceries.price");
   const locale = useLocale();
+  const packWords = useMemo<PackSizeWords>(
+    () => ({
+      per: (unit) => tPrice("perUnit", { unit }),
+      pieces: (count) => tPrice("pieces", { count }),
+    }),
+    [tPrice]
+  );
   const portalContainer = usePanelPortalContainer();
   const canSearch = Boolean(store.searchAddress);
   const pointsAtShop = Boolean(store.website ?? store.searchAddress);
@@ -217,10 +256,10 @@ export function GroceryProductField({
         product.id === picked ||
         answers(product.name, searchedTerm || groceryName)
     )
-    .map((product) => productRow(product, locale));
+    .map((product) => productRow(product, locale, packWords));
   const fromShop = candidates
     .filter((candidate) => !storedByPage.has(candidate.url))
-    .map((candidate) => candidateRow(candidate, locale));
+    .map((candidate) => candidateRow(candidate, locale, packWords));
   // One product, one row, however many addresses the shop lists it under: AH
   // lists a loaf under two product numbers with nothing to tell them apart.
   // The Store's own copy stands for the shop's, and a row that is picked
@@ -413,6 +452,64 @@ export function GroceryProductField({
   const showsPrice =
     Boolean(picked) || Boolean(linkedProduct) || foundNothing || noAnswer || byHand || !canSearch;
 
+  // The Pack Size of the product shown — picked, or linked — which the editor
+  // under the price opens on. A shopper who types over it sets it by hand,
+  // and that is the last word until the field is cleared; a different
+  // product picked afterwards is a different pack, read afresh.
+  const shownPack = useMemo<PackSize | null>(() => {
+    if (handSetPack !== undefined) return handSetPack;
+    const row = picked ? rows.find((candidate) => candidate.key === picked) : null;
+
+    if (row) return row.pack;
+
+    return linkedProduct ? packSizeOf(linkedProduct) : null;
+    // The rows are rebuilt every render; what matters is which one is picked.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [handSetPack, picked, linkedProduct]);
+  const [packQuantity, setPackQuantity] = useState(() =>
+    shownPack ? String(shownPack.quantity) : ""
+  );
+  const [packKey, setPackKey] = useState<string>(() => (shownPack ? packUnitKey(shownPack) : "gram"));
+  const packEditedFor = useRef<string | null>(null);
+
+  // A product picked or read anew brings its own Pack Size into the editor,
+  // unless the shopper has already typed one for exactly this product.
+  useEffect(() => {
+    const shownFor = picked ?? linkedProduct?.id ?? null;
+
+    if (packEditedFor.current !== null && packEditedFor.current === shownFor) return;
+    packEditedFor.current = null;
+    setPackQuantity(shownPack ? String(shownPack.quantity) : "");
+    setPackKey(shownPack ? packUnitKey(shownPack) : "gram");
+  }, [shownPack, picked, linkedProduct?.id]);
+
+  const editPack = useCallback(
+    (quantity: string, key: string) => {
+      packEditedFor.current = picked ?? linkedProduct?.id ?? "";
+      setPackQuantity(quantity);
+      setPackKey(key);
+      onPack(packFromKey(key, quantity));
+    },
+    [linkedProduct?.id, onPack, picked]
+  );
+  const packOptions = useMemo(() => {
+    const keys: string[] = [...PACK_UNIT_KEYS];
+
+    if (!keys.includes(packKey)) keys.push(packKey);
+
+    return keys.map((key) => ({
+      key,
+      label:
+        key === "piece"
+          ? packWords.pieces(2)
+          : key === "per-kilogram"
+            ? packWords.per("kg")
+            : key === "per-100-gram"
+              ? packWords.per("100 g")
+              : packKeyLabel(key, packWords.per),
+    }));
+  }, [packKey, packWords]);
+
   // Hooks first, and only then: a Store that points at no shop has nothing to
   // ask and nothing to show.
   if (!pointsAtShop) return null;
@@ -575,6 +672,50 @@ export function GroceryProductField({
                 variant="secondary"
               />
             </TextField>
+          </div>
+          {/* What one Shelf Price buys: the two knobs the Line Cost turns are the amount and this */}
+          <div className="flex gap-3" data-testid="pack-size">
+            {!packKeyFixesQuantity(packKey) && (
+              <TextField
+                className="flex-1"
+                value={packQuantity}
+                onChange={(value) => editPack(value, packKey)}
+              >
+                <Label>{t("packSize")}</Label>
+                <Input
+                  className={FIELD_CLASS}
+                  data-testid="pack-size-quantity"
+                  inputMode="decimal"
+                  placeholder="500"
+                  style={FIELD_STYLE}
+                  variant="secondary"
+                />
+              </TextField>
+            )}
+            <Select
+              className={packKeyFixesQuantity(packKey) ? "flex-1" : "w-36"}
+              selectedKey={packKey}
+              variant="secondary"
+              onSelectionChange={(key: Key | null) => {
+                if (key !== null) editPack(packQuantity, String(key));
+              }}
+            >
+              <Label>{packKeyFixesQuantity(packKey) ? t("packSize") : t("packSizeUnit")}</Label>
+              <Select.Trigger className="min-h-12 items-center" data-testid="pack-size-unit">
+                <Select.Value />
+                <Select.Indicator />
+              </Select.Trigger>
+              <Select.Popover UNSTABLE_portalContainer={portalContainer}>
+                <ListBox>
+                  {packOptions.map((option) => (
+                    <ListBox.Item key={option.key} id={option.key} textValue={option.label}>
+                      {option.label}
+                      <ListBox.ItemIndicator />
+                    </ListBox.Item>
+                  ))}
+                </ListBox>
+              </Select.Popover>
+            </Select>
           </div>
         </div>
       )}

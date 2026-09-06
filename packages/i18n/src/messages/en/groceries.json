@@ -116,9 +116,13 @@
     "byHandCurrency": "Currency",
     "productLabel": "Product at {store}",
     "cannotSearch": "This shop cannot be searched",
-    "cannotSearchHint": "Norish could not read a search page out of {store}'s shop link. Correct it in Manage Stores and prices follow."
+    "cannotSearchHint": "Norish could not read a search page out of {store}'s shop link. Correct it in Manage Stores and prices follow.",
+    "packSize": "Pack size",
+    "packSizeUnit": "Unit"
   },
   "price": {
-    "pending": "Looking up the price"
+    "pending": "Looking up the price",
+    "perUnit": "per {unit}",
+    "pieces": "{count, plural, one {piece} other {pieces}}"
   }
 }

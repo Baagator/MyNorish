@@ -32,6 +32,17 @@ export const storeProducts = pgTable(
     currency: text("currency").notNull(),
     /** The shop's own words for the pack: "150 gram", "1,5 l", "per stuk". */
     size: text("size"),
+    /**
+     * The Pack Size: what one Shelf Price buys, as a quantity and a unit of
+     * the unit table, read out of the size words or set by hand. By weight
+     * means sold loose — the price is for `packQuantity` of `packUnit`, and
+     * any amount of it is bought. A hand-set one is flagged and no reading
+     * replaces it.
+     */
+    packQuantity: numeric("pack_quantity", { precision: 12, scale: 3 }),
+    packUnit: text("pack_unit"),
+    packByWeight: boolean("pack_by_weight").notNull().default(false),
+    packByHand: boolean("pack_by_hand").notNull().default(false),
     pricedAt: timestamp("priced_at", { withTimezone: true }).notNull().defaultNow(),
     isManual: boolean("is_manual").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

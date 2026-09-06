@@ -138,8 +138,10 @@ export default function AddGroceryPanel({
                 groceryName={price.groceryName}
                 linkPending={price.linkPending}
                 linkedProduct={price.linkedProduct}
+                pack={price.pack}
                 store={price.store}
                 onChoice={price.setChoice}
+                onPack={price.setPack}
               />
             )}
 

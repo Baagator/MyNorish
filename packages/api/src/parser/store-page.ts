@@ -12,8 +12,11 @@ import type { AnyNode } from "domhandler";
 import * as cheerio from "cheerio";
 
 import type { ProductReading, StoreCandidate } from "@norish/shared/contracts";
+import type { PackSize } from "@norish/shared/lib/pack-size";
 import { currencyForUrl } from "@norish/shared/lib/currency";
 import { parseJsonWithRepair } from "@norish/shared/lib/helpers";
+import { packSizeFromCode, readPackSize } from "@norish/shared/lib/pack-size";
+import { unitLabel } from "@norish/shared/lib/units";
 
 export type { ProductReading, StoreCandidate };
 export { currencyForUrl } from "@norish/shared/lib/currency";
@@ -154,15 +157,21 @@ const MONEY_BEFORE = new RegExp(`(${CURRENCY_MARK}|\\b[A-Z]{3}\\b)\\s?(${AMOUNT}
 const MONEY_AFTER = new RegExp(`(?<![\\d.,])(${AMOUNT})\\s?(${CURRENCY_MARK}|\\b[A-Z]{3}\\b)`, "g");
 /**
  * A price per weight or volume rather than per pack: `€ 19,93 / kg`, `€ 1,99
- * per 100 g`. The Shelf Price is what one pack costs, and a card states both.
- * "Per stuk" — per piece — is the pack price and is not this.
+ * per 100 g`. Beside a pack price it is the comparison number Norish does not
+ * show; as a card's only price it is what a kilo of something sold loose
+ * costs, and that is its Shelf Price (ADR-0029). "Per stuk" — per piece — is
+ * the pack price and is neither.
  */
 const PER_UNIT =
-  /^\s*(?:\/|per|pro|par|por|al|za|pr\.?|à)\s*(?:\d+\s*)?(?:kg|g|l|ml|cl|liter|litre|litro|kilo)\b/iu;
+  /^\s*((?:\/|per|pro|par|por|al|za|pr\.?|à)\s*(?:\d+\s*)?(?:kg|g|l|ml|cl|liter|litre|litro|kilo|gram|kilogram)\b\.?)/iu;
 const KRONER = new Set(["DKK", "NOK", "SEK"]);
 
-function isPerUnit(value: string, end: number): boolean {
-  return PER_UNIT.test(value.slice(end));
+/** The unit of sale stated right after a price, as the shop words it, or null for a pack price. */
+function perUnitAfter(value: string, end: number): string | null {
+  const words = PER_UNIT.exec(value.slice(end))?.[1];
+
+  // A slash is the shop's shorthand; a shopper reads it as "per".
+  return words ? collapse(words).replace(/^\/\s*/, "per ") : null;
 }
 
 function markedCurrency(mark: string, near: string | null | undefined): string | null {
@@ -173,33 +182,60 @@ function markedCurrency(mark: string, near: string | null | undefined): string |
   return code;
 }
 
+/** A price as a piece of text states it, and the unit of sale beside it if the shop names one. */
+export interface PriceInText {
+  price: number;
+  currency: string;
+  /** "per kg", "per 100 gram": the price is for that much of something sold loose. */
+  perUnit?: string;
+}
+
 /**
- * The first price a piece of text states with its currency; nothing without
- * one, and nothing for a price per kilo. `near` is what the shop's own address
- * implies it charges in, which only matters for a mark three countries share.
+ * Every price a piece of text states with its currency, in the order it
+ * states them, each with the unit of sale that follows it if any. `near` is
+ * what the shop's own address implies it charges in, which only matters for
+ * a mark three countries share.
  */
-export function readPriceInText(
-  value: string,
-  near?: string | null
-): { price: number; currency: string } | null {
+export function readPricesInText(value: string, near?: string | null): PriceInText[] {
+  const found: { at: number; reading: PriceInText }[] = [];
+  const claimed = new Set<number>();
+
   for (const match of value.matchAll(MONEY_BEFORE)) {
     const currency = markedCurrency(match[1] ?? "", near);
     const price = parsePriceText(match[2]);
 
-    if (currency && price !== null && !isPerUnit(value, match.index + match[0].length)) {
-      return { price, currency };
-    }
+    if (!currency || price === null) continue;
+    const perUnit = perUnitAfter(value, match.index + match[0].length);
+
+    claimed.add(match.index);
+    found.push({ at: match.index, reading: { price, currency, ...(perUnit ? { perUnit } : {}) } });
   }
   for (const match of value.matchAll(MONEY_AFTER)) {
     const currency = markedCurrency(match[2] ?? "", near);
     const price = parsePriceText(match[1]);
 
-    if (currency && price !== null && !isPerUnit(value, match.index + match[0].length)) {
-      return { price, currency };
+    // `€ 2,99 €` would be one price read twice; the mark before it claimed it.
+    if (!currency || price === null || [...claimed].some((at) => Math.abs(at - match.index) < 4)) {
+      continue;
     }
+    const perUnit = perUnitAfter(value, match.index + match[0].length);
+
+    found.push({ at: match.index, reading: { price, currency, ...(perUnit ? { perUnit } : {}) } });
   }
 
-  return null;
+  return found.sort((a, b) => a.at - b.at).map((entry) => entry.reading);
+}
+
+/**
+ * The price a piece of text charges: the first it states for a pack, or,
+ * where it states prices per kilo and nothing else, the first of those —
+ * that is something sold loose, and its Shelf Price is what a kilo costs.
+ * Nothing without a currency.
+ */
+export function readPriceInText(value: string, near?: string | null): PriceInText | null {
+  const prices = readPricesInText(value, near);
+
+  return prices.find((reading) => !reading.perUnit) ?? prices[0] ?? null;
 }
 
 /** Elements whose text is not the product's: scripts, and a price struck through. */
@@ -238,56 +274,68 @@ export function resolveUrl(candidate: unknown, pageUrl: string): string | null {
   }
 }
 
-/** UN/CEFACT codes, and the codes retailers write in their place, as words a shopper reads. */
-const UNIT_WORDS: Record<string, string> = {
-  GRM: "gram",
-  KGM: "kilogram",
-  MGM: "milligram",
-  LTR: "liter",
-  LT: "liter",
-  MLT: "milliliter",
-  CLT: "centiliter",
-  DLT: "deciliter",
-  ONZ: "ounce",
-  LBR: "pound",
-  C62: "piece",
-  EA: "piece",
-  H87: "piece",
-};
-
-/** A pack size as a shopper reads it: a number and the shop's own word for it. */
-const SIZE_SHAPE = /^(?:ca\.?\s*)?\d+(?:[.,]\d+)?\s*(?:x\s*\d+(?:[.,]\d+)?\s*)?\p{L}{1,12}\.?$/u;
+/**
+ * A pack size as a shopper reads it: a number and the shop's own word for it,
+ * with whatever the shop adds in brackets after it — "1 kg (ca. 5 stuks)".
+ */
+const SIZE_SHAPE =
+  /^(?:ca\.?\s*)?\d+(?:[.,]\d+)?\s*(?:[x×]\s*\d+(?:[.,]\d+)?\s*)?\p{L}{1,12}\.?(?:\s*\([^)]{0,40}\))?$/u;
+/** A unit of sale with no number of packs: "per kg", "per 100 gram", "Per stuk". */
+const PER_UNIT_SHAPE = /^(?:per|\/)\s*(?:\d+(?:[.,]\d+)?\s*)?\p{L}{1,12}\.?$/iu;
 
 /** `12,34 zł` and `29.90 CHF` have the shape of a size and are prices; they are not sizes. */
 function looksLikeSize(value: string): boolean {
   const trimmed = value.trim();
 
-  return SIZE_SHAPE.test(trimmed) && readPriceInText(trimmed) === null;
+  return (
+    (SIZE_SHAPE.test(trimmed) || PER_UNIT_SHAPE.test(trimmed)) && readPriceInText(trimmed) === null
+  );
 }
 
-function readSize(value: unknown): string | null {
-  if (typeof value === "string") return looksLikeSize(value) ? collapse(value) : null;
+/** The shop's size words, and the Pack Size they state where the unit table can read them. */
+interface SizeReading {
+  size: string;
+  pack: PackSize | null;
+}
+
+function sizeWords(words: string): SizeReading {
+  const size = collapse(words);
+
+  return { size, pack: readPackSize(size) };
+}
+
+function readSize(value: unknown): SizeReading | null {
+  if (typeof value === "string") return looksLikeSize(value) ? sizeWords(value) : null;
   if (!isObject(value)) return null;
   const amount = readText(prop(value, "value") ?? prop(value, "amount"));
 
   if (!amount) return null;
-  const unitCode = readText(prop(value, "unitCode"));
+  // A unit code is the surest reading there is; the words are made from it.
+  const pack = packSizeFromCode(amount, readText(prop(value, "unitCode")) ?? readText(prop(value, "unitText")));
+
+  if (pack) return { size: collapse(`${amount} ${unitLabel(pack.unit)}`), pack };
   const unitText = readText(prop(value, "unitText"));
-  const word = (unitCode && UNIT_WORDS[unitCode.toUpperCase()]) ?? unitText ?? null;
+
+  if (unitText) return sizeWords(`${amount} ${unitText}`);
 
   // A size written as "1,5 l" with no unit beside it carries its unit in the text.
-  if (!word) return looksLikeSize(amount) ? collapse(amount) : null;
-
-  return collapse(`${amount} ${word}`);
+  return looksLikeSize(amount) ? sizeWords(amount) : null;
 }
 
-function sizeOf(node: Node): string | undefined {
+function sizeOf(node: Node): SizeReading | undefined {
   return (
     readSize(prop(node, "weight")) ??
     readSize(prop(node, "size")) ??
     readSize(prop(node, "netContent")) ??
     undefined
   );
+}
+
+/** The fields a size reading puts on a candidate or a product: the words, and the pack if read. */
+function sized(reading: SizeReading | null | undefined) {
+  if (!reading) return {};
+
+  return { size: reading.size, ...(reading.pack ? { pack: reading.pack } : {}) };
 }
 
 interface OfferReading {
@@ -346,14 +394,13 @@ function productCandidate(node: Node, pageUrl: string): StoreCandidate | null {
 
   if (!name || !url) return null;
   const offer = offerOf(node);
-  const size = sizeOf(node);
 
   return {
     name,
     url,
     ...(offer ? { price: offer.price } : {}),
     ...(offer?.currency ? { currency: offer.currency } : {}),
-    ...(size ? { size } : {}),
+    ...sized(sizeOf(node)),
   };
 }
 
@@ -600,8 +647,12 @@ function cardName(
   return candidates.find((value) => value.length >= 2) ?? null;
 }
 
-/** The size beside the price, as the shop words it. */
-function cardSize(texts: string[], label: string): string | undefined {
+/**
+ * The size beside the price, as the shop words it: in the label before the
+ * price, else in the card's own text, else the unit of sale the price itself
+ * was stated per.
+ */
+function cardSize(texts: string[], label: string, perUnit: string | undefined): string | undefined {
   const beforePrice = label.match(/([\p{L}\d][\p{L}\d.,\s]{0,20}?)\s*(?:€|£|\$|₽|₩|zł)\s?\d/u)?.[1];
 
   if (beforePrice) {
@@ -611,7 +662,7 @@ function cardSize(texts: string[], label: string): string | undefined {
     if (looksLikeSize(last)) return last;
   }
 
-  return texts.find((value) => looksLikeSize(value) && !/^\d+$/.test(value));
+  return texts.find((value) => looksLikeSize(value) && !/^\d+$/.test(value)) ?? perUnit;
 }
 
 /**
@@ -669,14 +720,14 @@ function readDomCandidates(
 
       if (price === undefined || price === null) return { name, url } satisfies StoreCandidate;
       const currency = money?.currency ?? fallbackCurrency;
-      const size = cardSize(texts, label);
+      const size = cardSize(texts, label, money?.perUnit);
 
       return {
         name,
         url,
         price,
         ...(currency ? { currency } : {}),
-        ...(size ? { size } : {}),
+        ...sized(size ? sizeWords(size) : null),
       } satisfies StoreCandidate;
     })
     .filter((candidate): candidate is StoreCandidate => candidate !== null);
@@ -719,7 +770,8 @@ export function readSearchResults(html: string, baseUrl: string): StoreCandidate
       ...existing,
       price: existing.price ?? candidate.price,
       currency: existing.currency ?? candidate.currency,
-      size: existing.size ?? candidate.size,
+      ...sized(existing.size ? { size: existing.size, pack: existing.pack ?? null } : null),
+      ...(existing.size ? {} : sized(candidate.size ? { size: candidate.size, pack: candidate.pack ?? null } : null)),
     });
   }
 
@@ -754,7 +806,7 @@ function byPageHeading(name: string, heading: string): string {
 }
 
 /** The pack size a product page states beside its heading, when its data states none. */
-function sizeNearHeading($: cheerio.CheerioAPI): string | undefined {
+function sizeNearHeading($: cheerio.CheerioAPI): SizeReading | undefined {
   const heading = $("h1").first();
 
   if (heading.length === 0) return undefined;
@@ -767,7 +819,7 @@ function sizeNearHeading($: cheerio.CheerioAPI): string | undefined {
       .map((element) => collapse($(element).text()))
       .find((value) => looksLikeSize(value));
 
-    if (found) return found;
+    if (found) return sizeWords(found);
     scope = scope.parent();
   }
 
@@ -818,15 +870,14 @@ export function readProduct(html: string, url: string): ProductReading | null {
     name: string | null,
     price: number | null,
     currency: string | null,
-    size: string | undefined
+    size: SizeReading | undefined
   ): ProductReading | null => {
     const named = name ? byPageHeading(withoutSiteSuffix(name, title), heading) : "";
     const inCurrency = currency ?? fallbackCurrency;
 
     if (!named || price === null || !inCurrency) return null;
-    const packed = size ?? sizeNearHeading($);
 
-    return { name: named, price, currency: inCurrency, ...(packed ? { size: packed } : {}) };
+    return { name: named, price, currency: inCurrency, ...sized(size ?? sizeNearHeading($)) };
   };
 
   // A product page often lists related products in the same data. The one

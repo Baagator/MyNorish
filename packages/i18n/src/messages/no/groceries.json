@@ -116,9 +116,13 @@
     "byHandCurrency": "Valuta",
     "productLabel": "Produkt hos {store}",
     "cannotSearch": "Denne butikken kan ikke søkes i",
-    "cannotSearchHint": "Norish klarte ikke å lese en søkeside ut av butikklenken til {store}. Rett den under Administrer butikker, så følger prisene."
+    "cannotSearchHint": "Norish klarte ikke å lese en søkeside ut av butikklenken til {store}. Rett den under Administrer butikker, så følger prisene.",
+    "packSize": "Pakkestørrelse",
+    "packSizeUnit": "Enhet"
   },
   "price": {
-    "pending": "Slår opp prisen"
+    "pending": "Slår opp prisen",
+    "perUnit": "per {unit}",
+    "pieces": "{count, plural, one {stk.} other {stk.}}"
   }
 }

@@ -116,9 +116,13 @@
     "byHandCurrency": "Waluta",
     "productLabel": "Produkt w {store}",
     "cannotSearch": "W tym sklepie nie można szukać",
-    "cannotSearchHint": "Norish nie odczytał strony wyszukiwania z linku sklepu {store}. Popraw go w Zarządzaj sklepami, a ceny się pojawią."
+    "cannotSearchHint": "Norish nie odczytał strony wyszukiwania z linku sklepu {store}. Popraw go w Zarządzaj sklepami, a ceny się pojawią.",
+    "packSize": "Wielkość opakowania",
+    "packSizeUnit": "Jednostka"
   },
   "price": {
-    "pending": "Sprawdzanie ceny"
+    "pending": "Sprawdzanie ceny",
+    "perUnit": "za {unit}",
+    "pieces": "{count, plural, one {sztuka} few {sztuki} many {sztuk} other {sztuki}}"
   }
 }

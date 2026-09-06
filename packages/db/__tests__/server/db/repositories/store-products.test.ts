@@ -14,6 +14,7 @@ import {
   noteProductUnreadable,
   resolveProductLink,
   resolveProductLinks,
+  setPackSizeByHand,
   updateManualProduct,
   upsertProductLink,
   upsertReadProduct,
@@ -108,6 +109,65 @@ describe("store products, product links and misses", () => {
       expect(products).toHaveLength(2);
       expect(products.every((product) => product.pageUrl === null)).toBe(true);
       expect(products.every((product) => product.isManual)).toBe(true);
+    });
+  });
+
+  describe("the Pack Size: what one Shelf Price buys", () => {
+    const grams = (quantity: number) => ({ quantity, unit: "gram" as const, byWeight: false });
+
+    it("is stored with a reading, and replaced by the next", async () => {
+      const first = await upsertReadProduct(reading({ pack: grams(930) }));
+
+      expect(first).toMatchObject({ packQuantity: 930, packUnit: "gram", packByWeight: false });
+
+      const second = await upsertReadProduct(reading({ size: "1 kg", pack: { quantity: 1, unit: "kilogram", byWeight: false } }));
+
+      expect(second).toMatchObject({ packQuantity: 1, packUnit: "kilogram", packByHand: false });
+    });
+
+    it("marks what is sold loose", async () => {
+      const loose = await upsertReadProduct(
+        reading({ size: "per kg", pack: { quantity: 1, unit: "kilogram", byWeight: true } })
+      );
+
+      expect(loose).toMatchObject({ packQuantity: 1, packUnit: "kilogram", packByWeight: true });
+    });
+
+    it("is never overwritten by a reading once set by hand, and reads itself again once cleared", async () => {
+      const read = await upsertReadProduct(reading({ pack: grams(930) }));
+
+      await expect(setPackSizeByHand(read.id, grams(1000))).resolves.toMatchObject({
+        packQuantity: 1000,
+        packByHand: true,
+      });
+
+      // A refresh reads the page again: the shop's number is not the last word.
+      const refreshed = await upsertReadProduct(reading({ price: 8.49, pack: grams(930) }));
+
+      expect(refreshed).toMatchObject({ price: 8.49, packQuantity: 1000, packByHand: true });
+
+      // Cleared, the product says what its own size words say.
+      await expect(setPackSizeByHand(read.id, null)).resolves.toMatchObject({
+        packQuantity: 930,
+        packUnit: "gram",
+        packByHand: false,
+      });
+    });
+
+    it("is taken by a by-hand product too", async () => {
+      const manual = await createManualProduct({
+        id: crypto.randomUUID(),
+        storeId,
+        name: "Kaas van de markt",
+        price: 5,
+        currency: "EUR",
+        pack: grams(500),
+      });
+
+      expect(manual).toMatchObject({ packQuantity: 500, packUnit: "gram", packByHand: true });
+      await expect(
+        updateManualProduct({ id: manual.id, pack: { quantity: 250, unit: "gram", byWeight: false } })
+      ).resolves.toMatchObject({ packQuantity: 250 });
     });
   });
 

@@ -105,8 +105,142 @@ describe("readSearchResults: a shop whose shelf is smaller than its own footer",
         price: 1.39,
         currency: "EUR",
         size: "120 gram",
+        pack: { quantity: 120, unit: "gram", byWeight: false },
       },
     ]);
+  });
+});
+
+describe("readSearchResults: what is sold loose, and what one pack holds", () => {
+  it("prices Albert Heijn's loose pears by the kilo, and reads what its bananas' packs hold", () => {
+    const candidates = readSearchResults(
+      fixture("ah-search-bananen.html"),
+      "https://www.ah.nl/zoeken?query=bananen"
+    );
+
+    expect(candidates).toHaveLength(27);
+    expect(candidates.filter((candidate) => candidate.price !== undefined)).toHaveLength(27);
+
+    // Sold loose: the card's only price is per kilo, and that is its Shelf
+    // Price — what a kilo costs — marked as sold by weight.
+    const pears = candidates.find((candidate) => candidate.url.endsWith("/ah-conference-los"));
+
+    expect(pears).toMatchObject({
+      name: "AH Conference los",
+      currency: "EUR",
+      size: "per kilo",
+      pack: { quantity: 1, unit: "kilogram", byWeight: true },
+    });
+
+    // A kilo bag is a pack that holds a kilo.
+    const bag = candidates.find((candidate) => candidate.url.endsWith("/chiquita-banaan-los"));
+
+    expect(bag).toMatchObject({
+      price: 2.29,
+      size: "1 kilogram",
+      pack: { quantity: 1, unit: "kilogram", byWeight: false },
+    });
+
+    // Five bananas are five pieces.
+    const five = candidates.find((candidate) =>
+      candidate.url.endsWith("/ah-biologisch-fairtrade-bananen")
+    );
+
+    expect(five).toMatchObject({
+      price: 2.39,
+      size: "5 stuks",
+      pack: { quantity: 5, unit: "piece", byWeight: false },
+    });
+
+    // A bunch is the shop's own word and no Pack Size the table can read.
+    const bunch = candidates.find((candidate) => candidate.url.endsWith("/ah-bananen-tros"));
+
+    expect(bunch).toMatchObject({ price: 1.49 });
+    expect(bunch?.pack).toBeUndefined();
+  });
+
+  it("reads Dirk's bananas as the kilo bag the shop sells them in", () => {
+    const candidates = readSearchResults(
+      fixture("dirk-search-bananen.html"),
+      "https://www.dirk.nl/zoeken/producten/bananen"
+    );
+
+    expect(candidates).toHaveLength(65);
+    expect(candidates.filter((candidate) => candidate.price !== undefined)).toHaveLength(65);
+
+    const bananas = candidates.find((candidate) => candidate.name === "Del Monte Bananen");
+
+    // The shop adds how many that is, in brackets; the words are kept whole
+    // and the Pack Size is the kilo in front of them.
+    expect(bananas).toMatchObject({
+      price: 1.39,
+      currency: "EUR",
+      size: "1 kg (ca. 5 stuks)",
+      pack: { quantity: 1, unit: "kilogram", byWeight: false },
+    });
+
+    const multipack = candidates.find((candidate) =>
+      candidate.name.startsWith("Danoontje Kinder Fruitkwark")
+    );
+
+    expect(multipack).toMatchObject({
+      size: "6 x 50 g",
+      pack: { quantity: 300, unit: "gram", byWeight: false },
+    });
+  });
+
+  it("takes a price per kilo as the Shelf Price only where a card states no other", () => {
+    const shelf = (card: string) =>
+      `<html><body>${["1", "2", "3"].map((n) => card.replaceAll("N", n)).join("")}</body></html>`;
+    const loose = readSearchResults(
+      shelf(`<article><a href="/p/N/bananen">Bananen N</a><span>€ 1,99 / kg</span></article>`),
+      "https://shop.example.nl/zoeken?q=bananen"
+    )[0];
+
+    expect(loose).toMatchObject({
+      price: 1.99,
+      currency: "EUR",
+      size: "per kg",
+      pack: { quantity: 1, unit: "kilogram", byWeight: true },
+    });
+
+    const packed = readSearchResults(
+      shelf(
+        `<article><a href="/p/N/kaas">Kaas N</a><span>€ 19,93 / kg</span><span>€ 2,99</span><span>150 g</span></article>`
+      ),
+      "https://shop.example.nl/zoeken?q=kaas"
+    )[0];
+
+    expect(packed).toMatchObject({
+      price: 2.99,
+      size: "150 g",
+      pack: { quantity: 150, unit: "gram", byWeight: false },
+    });
+  });
+
+  it("reads a Pack Size out of a unit code in the page's data ahead of any words", () => {
+    const itemList = {
+      "@type": "ItemList",
+      itemListElement: [
+        {
+          "@type": "ListItem",
+          item: {
+            "@type": "Product",
+            name: "Oude kaas",
+            url: "/p/oude-kaas",
+            weight: { "@type": "QuantitativeValue", value: 500, unitCode: "GRM" },
+          },
+        },
+      ],
+    };
+    const html = `<html><head><script type="application/ld+json">${JSON.stringify(itemList)}</script></head>
+      <body><article><a href="/p/oude-kaas">Oude kaas</a><span>€ 4,99</span><span>2 stuks</span></article></body></html>`;
+
+    expect(readSearchResults(html, "https://shop.example.nl/zoeken?q=kaas")[0]).toMatchObject({
+      price: 4.99,
+      size: "500 g",
+      pack: { quantity: 500, unit: "gram", byWeight: false },
+    });
   });
 });
 
@@ -117,6 +251,7 @@ describe("readProduct", () => {
       price: 7.99,
       currency: "EUR",
       size: "930 g",
+      pack: { quantity: 930, unit: "gram", byWeight: false },
     });
   });
 
@@ -386,6 +521,7 @@ describe("a results page with only a product or two on it", () => {
         price: 4.99,
         currency: "EUR",
         size: "500 g",
+        pack: { quantity: 500, unit: "gram", byWeight: false },
       },
     ]);
   });

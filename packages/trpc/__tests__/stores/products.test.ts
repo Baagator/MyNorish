@@ -21,6 +21,7 @@ const storeProductsRepository = vi.hoisted(() => ({
   getStoreProductById: vi.fn(),
   listStoreProducts: vi.fn(),
   resolveProductLink: vi.fn(),
+  setPackSizeByHand: vi.fn(),
   updateManualProduct: vi.fn(),
   upsertProductLink: vi.fn(),
   upsertReadProduct: vi.fn(),
@@ -119,6 +120,80 @@ describe("chooseProduct", () => {
       ctx.householdKey,
       "productUpdated",
       expect.objectContaining({ product: expect.objectContaining({ id: MANUAL_ID }) })
+    );
+  });
+
+  it("writes a Pack Size the shopper set as the last word for the chosen product", async () => {
+    const PRODUCT = "33333333-3333-4333-8333-333333333333";
+    const pack = { quantity: 500, unit: "gram" as const, byWeight: false };
+
+    storeProductsRepository.getStoreProductById.mockResolvedValue({
+      id: PRODUCT,
+      storeId: STORE,
+      isManual: false,
+    });
+    storeProductsRepository.setPackSizeByHand.mockResolvedValue({ id: PRODUCT, storeId: STORE });
+
+    await caller.chooseProduct({
+      storeId: STORE,
+      name: "oude kaas",
+      choice: { kind: "product", storeProductId: PRODUCT },
+      pack,
+    });
+
+    expect(storeProductsRepository.setPackSizeByHand).toHaveBeenCalledExactlyOnceWith(PRODUCT, pack);
+    expect(storeEmitter.emitToHousehold).toHaveBeenCalledWith(
+      ctx.householdKey,
+      "productUpdated",
+      expect.objectContaining({ product: expect.objectContaining({ id: PRODUCT }) })
+    );
+    expect(storeProductsRepository.upsertProductLink).toHaveBeenCalledWith(STORE, "oude kaas", PRODUCT);
+  });
+
+  it("leaves the Pack Size alone where the field was left alone", async () => {
+    const PRODUCT = "33333333-3333-4333-8333-333333333333";
+
+    storeProductsRepository.getStoreProductById.mockResolvedValue({
+      id: PRODUCT,
+      storeId: STORE,
+      isManual: false,
+    });
+
+    await caller.chooseProduct({
+      storeId: STORE,
+      name: "oude kaas",
+      choice: { kind: "product", storeProductId: PRODUCT },
+    });
+
+    expect(storeProductsRepository.setPackSizeByHand).not.toHaveBeenCalled();
+  });
+
+  it("stores a search result's Pack Size with the product it becomes", async () => {
+    storesRepository.getStoreById.mockResolvedValue({
+      id: STORE,
+      website: "https://www.dirk.nl",
+      searchAddress: "https://www.dirk.nl/zoeken/producten/{query}",
+    });
+    storeProductsRepository.upsertReadProduct.mockResolvedValue({ id: MANUAL_ID, storeId: STORE });
+
+    await caller.chooseProduct({
+      storeId: STORE,
+      name: "oude kaas",
+      choice: {
+        kind: "candidate",
+        candidate: {
+          name: "Oude kaas",
+          url: "https://www.dirk.nl/boodschappen/kaas/oude-kaas/97752",
+          price: 7.99,
+          currency: "EUR",
+          size: "930 g",
+          pack: { quantity: 930, unit: "gram", byWeight: false },
+        },
+      },
+    });
+
+    expect(storeProductsRepository.upsertReadProduct).toHaveBeenCalledWith(
+      expect.objectContaining({ size: "930 g", pack: { quantity: 930, unit: "gram", byWeight: false } })
     );
   });
 

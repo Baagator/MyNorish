@@ -10,6 +10,7 @@ import {
   getStoreProductById,
   listStoreProducts,
   resolveProductLink,
+  setPackSizeByHand,
   updateManualProduct,
   upsertProductLink,
   upsertReadProduct,
@@ -229,6 +230,7 @@ const chooseProduct = authedProcedure
         price: candidate.price,
         currency: candidate.currency,
         size: candidate.size ?? null,
+        pack: candidate.pack ?? null,
       });
 
       storeProductId = product.id;
@@ -240,6 +242,14 @@ const chooseProduct = authedProcedure
 
       storeProductId = product.id;
       storeEmitter.emitToHousehold(ctx.householdKey, "productUpdated", { product });
+    }
+
+    // A Pack Size the shopper set is the last word for whichever product the
+    // choice resolved to; cleared, the product reads its own size words again.
+    if (storeProductId && input.pack !== undefined) {
+      const product = await setPackSizeByHand(storeProductId, input.pack);
+
+      if (product) storeEmitter.emitToHousehold(ctx.householdKey, "productUpdated", { product });
     }
 
     await upsertProductLink(input.storeId, input.name, storeProductId);

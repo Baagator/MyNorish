@@ -1,6 +1,7 @@
 import type { z } from "zod";
 
 import type {
+  PackSizeSchema,
   StoreProductChoiceSchema,
   StoreProductLinkSelectSchema,
   StoreProductManualCreateSchema,
@@ -10,6 +11,7 @@ import type {
 } from "@norish/shared/contracts/zod";
 
 export type StoreProductDto = z.output<typeof StoreProductSelectSchema>;
+export type PackSizeDto = z.output<typeof PackSizeSchema>;
 export type StoreProductLinkDto = z.output<typeof StoreProductLinkSelectSchema>;
 export type StoreProductReadingInput = z.output<typeof StoreProductReadingSchema>;
 export type StoreProductManualCreateInput = z.output<typeof StoreProductManualCreateSchema>;

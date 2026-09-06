@@ -2,6 +2,7 @@ import { and, eq, inArray, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import z from "zod";
 
 import type {
+  PackSizeDto,
   ResolvedProductLink,
   StoreProductDto,
   StoreProductManualCreateInput,
@@ -15,6 +16,7 @@ import {
   StoreProductSelectSchema,
 } from "@norish/shared/contracts/zod";
 import { normalizeGroceryName, productLinkKey } from "@norish/shared/lib/normalized-name";
+import { readPackSize } from "@norish/shared/lib/pack-size";
 
 const ProductSchema = StoreProductSelectSchema;
 const ProductsSchema = z.array(StoreProductSelectSchema);
@@ -38,6 +40,15 @@ function parseProducts(rows: unknown[]): StoreProductDto[] {
 /** The price as Postgres wants it: a fixed-scale decimal, never a float. */
 function money(value: number): string {
   return value.toFixed(2);
+}
+
+/** The three columns a Pack Size is stored in, or their absence. */
+function packColumns(pack: PackSizeDto | null | undefined) {
+  return {
+    packQuantity: pack ? pack.quantity.toFixed(3) : null,
+    packUnit: pack ? pack.unit : null,
+    packByWeight: pack?.byWeight ?? false,
+  };
 }
 
 /**
@@ -245,11 +256,14 @@ export async function clearPendingLink(storeId: string, name: string): Promise<b
  * A product read from a shop page. The page is what makes it the same product,
  * so a second reading of the same page updates the one row rather than adding
  * another. A by-hand product is never touched here — its owner typed it, and
- * nothing that reads a page overwrites that.
+ * nothing that reads a page overwrites that. The Pack Size is the reading's,
+ * unless its owner set one by hand: that is the last word, and the three
+ * columns keep it whatever the page says this time.
  */
 export async function upsertReadProduct(
   reading: StoreProductReadingInput
 ): Promise<StoreProductDto> {
+  const pack = packColumns(reading.pack);
   const [row] = await db
     .insert(storeProducts)
     .values({
@@ -259,6 +273,8 @@ export async function upsertReadProduct(
       price: money(reading.price),
       currency: reading.currency,
       size: reading.size ?? null,
+      ...pack,
+      packByHand: false,
       pricedAt: new Date(),
       isManual: false,
     })
@@ -269,6 +285,9 @@ export async function upsertReadProduct(
         price: money(reading.price),
         currency: reading.currency,
         size: reading.size ?? null,
+        packQuantity: sql`case when ${storeProducts.packByHand} then ${storeProducts.packQuantity} else ${pack.packQuantity}::numeric end`,
+        packUnit: sql`case when ${storeProducts.packByHand} then ${storeProducts.packUnit} else ${pack.packUnit}::text end`,
+        packByWeight: sql`case when ${storeProducts.packByHand} then ${storeProducts.packByWeight} else ${pack.packByWeight}::boolean end`,
         pricedAt: new Date(),
         updatedAt: new Date(),
         version: sql`${storeProducts.version} + 1`,
@@ -307,6 +326,8 @@ export async function createManualProduct(
       price: money(input.price),
       currency: input.currency,
       size: input.size ?? null,
+      ...packColumns(input.pack),
+      packByHand: Boolean(input.pack),
       pricedAt: new Date(),
       isManual: true,
     })
@@ -327,10 +348,40 @@ export async function updateManualProduct(
       ...(input.price === undefined ? {} : { price: money(input.price), pricedAt: new Date() }),
       ...(input.currency === undefined ? {} : { currency: input.currency }),
       ...(input.size === undefined ? {} : { size: input.size ?? null }),
+      ...(input.pack === undefined
+        ? {}
+        : { ...packColumns(input.pack), packByHand: Boolean(input.pack) }),
       updatedAt: new Date(),
       version: sql`${storeProducts.version} + 1`,
     })
     .where(and(eq(storeProducts.id, input.id), eq(storeProducts.isManual, true)))
+    .returning();
+
+  return row ? parseProduct(row) : null;
+}
+
+/**
+ * A Pack Size set by hand, which is the last word: no reading, match or
+ * refresh replaces it while it stands. Cleared — `null` — the product goes
+ * back to what its own size words say, and readings may fill it in again.
+ */
+export async function setPackSizeByHand(
+  id: string,
+  pack: PackSizeDto | null
+): Promise<StoreProductDto | null> {
+  const existing = await getStoreProductById(id);
+
+  if (!existing) return null;
+  const columns = pack ? packColumns(pack) : packColumns(readPackSize(existing.size));
+  const [row] = await db
+    .update(storeProducts)
+    .set({
+      ...columns,
+      packByHand: pack !== null,
+      updatedAt: new Date(),
+      version: sql`${storeProducts.version} + 1`,
+    })
+    .where(eq(storeProducts.id, id))
     .returning();
 
   return row ? parseProduct(row) : null;

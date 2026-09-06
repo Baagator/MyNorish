@@ -10,6 +10,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import "@testing-library/jest-dom";
 
 import type { StoreDto, StoreProductDto } from "@norish/shared/contracts";
+import { readPackSize } from "@norish/shared/lib/pack-size";
 
 interface SearchCall {
   storeId: string | null;
@@ -67,6 +68,7 @@ vi.mock("@/hooks/stores", () => ({
           price: candidate.price,
           currency: "EUR",
           size: candidate.size,
+          pack: readPackSize(candidate.size) ?? undefined,
         })),
         answered: true,
       },
@@ -120,9 +122,11 @@ function product(id: string, storeId: string, name: string, price: number): Stor
     price,
     currency: "EUR",
     size: "1 L",
-    regularPrice: null,
-    promotionNote: null,
-    readAt: new Date("2026-09-01T00:00:00Z"),
+    packQuantity: 1,
+    packUnit: "liter",
+    packByWeight: false,
+    packByHand: false,
+    pricedAt: new Date("2026-09-01T00:00:00Z"),
   } as unknown as StoreProductDto;
 }
 
@@ -576,6 +580,7 @@ describe("GroceryProductField", () => {
           price: 1.49,
           currency: "EUR",
           size: "1 L",
+          pack: { quantity: 1, unit: "liter", byWeight: false },
         },
       },
     ]);
@@ -1094,5 +1099,85 @@ describe("GroceryProductField", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  describe("the Pack Size editor", () => {
+    it("opens on the linked product's Pack Size and writes one typed over it", () => {
+      const onPack = vi.fn();
+
+      render(
+        <GroceryProductField
+          choice={null}
+          groceryName="cola"
+          linkedProduct={product("prod-a", "store-a", "Coca-Cola 1 L", 1.99)}
+          store={STORE_A}
+          onChoice={() => undefined}
+          onPack={onPack}
+        />
+      );
+
+      expect(screen.getByTestId("pack-size-quantity")).toHaveValue("1");
+      expect(screen.getByTestId("pack-size-unit")).toHaveTextContent("l");
+      // Untouched, the field says nothing about the pack.
+      expect(onPack).not.toHaveBeenCalled();
+
+      fireEvent.change(screen.getByTestId("pack-size-quantity"), { target: { value: "1,5" } });
+
+      expect(onPack).toHaveBeenLastCalledWith({ quantity: 1.5, unit: "liter", byWeight: false });
+
+      // Emptied, the hand-set Pack Size is cleared rather than written as nothing.
+      fireEvent.change(screen.getByTestId("pack-size-quantity"), { target: { value: "" } });
+
+      expect(onPack).toHaveBeenLastCalledWith(null);
+    });
+
+    it("brings a picked result's own Pack Size into the editor", async () => {
+      const onPack = vi.fn();
+
+      render(
+        <GroceryProductField
+          choice={null}
+          groceryName="cola"
+          linkedProduct={null}
+          store={STORE_A}
+          onChoice={() => undefined}
+          onPack={onPack}
+        />
+      );
+
+      await act(async () => {
+        field().focus();
+      });
+
+      const picked = screen
+        .getAllByTestId("product-option")
+        .find((node) => node.textContent?.includes("Cola Zero"));
+
+      await act(async () => {
+        fireEvent.click(picked as HTMLElement);
+      });
+
+      expect(screen.getByTestId("pack-size-quantity")).toHaveValue("1.5");
+      expect(screen.getByTestId("pack-size-unit")).toHaveTextContent("l");
+      expect(onPack).not.toHaveBeenCalled();
+    });
+
+    it("shows a hand-set Pack Size the panel is holding", () => {
+      render(
+        <GroceryProductField
+          choice={null}
+          groceryName="cola"
+          linkedProduct={product("prod-a", "store-a", "Coca-Cola 1 L", 1.99)}
+          pack={{ quantity: 1, unit: "kilogram", byWeight: true }}
+          store={STORE_A}
+          onChoice={() => undefined}
+          onPack={() => undefined}
+        />
+      );
+
+      // Sold by weight: the form fixes the quantity, so there is none to type.
+      expect(screen.queryByTestId("pack-size-quantity")).not.toBeInTheDocument();
+      expect(screen.getByTestId("pack-size-unit")).toHaveTextContent("perUnit kg");
+    });
   });
 });

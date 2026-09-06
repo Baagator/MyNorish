@@ -116,9 +116,13 @@
     "byHandCurrency": "Moeda",
     "productLabel": "Produto em {store}",
     "cannotSearch": "Não dá para buscar nesta loja",
-    "cannotSearchHint": "O Norish não conseguiu tirar uma página de busca do link de {store}. Corrija em Gerenciar lojas e os preços virão."
+    "cannotSearchHint": "O Norish não conseguiu tirar uma página de busca do link de {store}. Corrija em Gerenciar lojas e os preços virão.",
+    "packSize": "Tamanho da embalagem",
+    "packSizeUnit": "Unidade"
   },
   "price": {
-    "pending": "Procurando o preço"
+    "pending": "Procurando o preço",
+    "perUnit": "por {unit}",
+    "pieces": "{count, plural, one {unidade} other {unidades}}"
   }
 }

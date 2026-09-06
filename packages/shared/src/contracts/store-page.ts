@@ -4,14 +4,18 @@
  * they live here rather than in either.
  */
 
+import type { PackSize } from "../lib/pack-size";
+
 /** One product a results page offers: what it is called, where it lives, and what it costs. */
 export interface StoreCandidate {
   name: string;
   url: string;
   price?: number;
   currency?: string;
-  /** The shop's own words for the pack: "150 gram", "1,5 l", "per stuk". */
+  /** The shop's own words for the pack: "150 gram", "1,5 l", "per stuk", "per kg". */
   size?: string;
+  /** What one Shelf Price buys, read out of the size words or the page's data. */
+  pack?: PackSize;
 }
 
 /** The authoritative reading of a product page: its Shelf Price. */
@@ -20,6 +24,7 @@ export interface ProductReading {
   price: number;
   currency: string;
   size?: string;
+  pack?: PackSize;
 }
 
 /** What a homepage states about how it is searched. */

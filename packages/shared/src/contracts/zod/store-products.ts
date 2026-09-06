@@ -4,7 +4,15 @@ import z from "zod";
 import { storeProductLinks, storeProducts } from "@norish/db-schema/schema";
 
 import { httpUrlSchema } from "../../lib/schema";
+import { UNIT_IDS } from "../../lib/units";
 import { clientMintedId } from "./common";
+
+/** A Pack Size as it travels: a quantity, a unit of the unit table, and whether it is sold loose. */
+export const PackSizeSchema = z.object({
+  quantity: z.number().positive().max(1_000_000),
+  unit: z.enum(UNIT_IDS),
+  byWeight: z.boolean(),
+});
 
 export const StoreProductSelectSchema = createSelectSchema(storeProducts)
   .omit({ createdAt: true, updatedAt: true })
@@ -12,6 +20,8 @@ export const StoreProductSelectSchema = createSelectSchema(storeProducts)
     price: z.coerce.number(),
     pageUrl: z.string().nullable(),
     size: z.string().nullable(),
+    packQuantity: z.coerce.number().nullable(),
+    packUnit: z.string().nullable(),
   });
 
 export const StoreProductLinkSelectSchema = createSelectSchema(storeProductLinks).omit({
@@ -34,6 +44,7 @@ export const StoreProductReadingSchema = z.object({
   price: z.number().nonnegative(),
   currency: CurrencyCodeSchema,
   size: z.string().max(80).nullish(),
+  pack: PackSizeSchema.nullish(),
 });
 
 /** A Store Product someone typed, for a shop Norish cannot read. */
@@ -44,6 +55,7 @@ export const StoreProductManualCreateSchema = z.object({
   price: z.number().nonnegative(),
   currency: CurrencyCodeSchema,
   size: z.string().max(80).nullish(),
+  pack: PackSizeSchema.nullish(),
 });
 
 export const StoreProductManualUpdateSchema = z.object({
@@ -52,6 +64,7 @@ export const StoreProductManualUpdateSchema = z.object({
   price: z.number().nonnegative().optional(),
   currency: CurrencyCodeSchema.optional(),
   size: z.string().max(80).nullish(),
+  pack: PackSizeSchema.nullish(),
 });
 
 /** One priced result of a shop's own search, as the reader read it. */
@@ -61,12 +74,16 @@ export const StoreCandidateSchema = z.object({
   price: z.number().nonnegative(),
   currency: CurrencyCodeSchema,
   size: z.string().max(80).nullish(),
+  pack: PackSizeSchema.nullish(),
 });
 
 /**
  * What the picker decided a grocery name means: a product this Store already
  * knows, a result of a search just run, a price typed by hand, or nothing at
- * all — which is a Miss the user chose.
+ * all — which is a Miss the user chose. `pack` beside it is a Pack Size the
+ * shopper set by hand for whichever product the choice resolves to: absent
+ * where the field was left alone, null where it was cleared, so the reading
+ * is the pack again.
  */
 export const StoreProductChoiceSchema = z.object({
   storeId: z.uuid(),
@@ -83,6 +100,7 @@ export const StoreProductChoiceSchema = z.object({
       size: z.string().max(80).nullish(),
     }),
   ]),
+  pack: PackSizeSchema.nullable().optional(),
 });
 
 /** Searching a Store's own shop for a term the user chose. */

@@ -5,7 +5,11 @@
  * the only thing standing between a household's shopping list and somebody
  * else's supermarket.
  */
-import type { StoreProductDto, StoreProductReadingInput } from "@norish/shared/contracts";
+import type {
+  ProductReading,
+  StoreProductDto,
+  StoreProductReadingInput,
+} from "@norish/shared/contracts";
 import type { PricedCandidate } from "@norish/shared/lib/currency";
 import {
   clearPendingLink,
@@ -52,7 +56,7 @@ function announceProduct(householdKey: string, product: StoreProductDto): void {
 function productReading(
   storeId: string,
   pageUrl: string,
-  reading: { name: string; price: number; currency: string; size?: string | null } | null,
+  reading: ProductReading | null,
   fallback: PricedCandidate | null
 ): StoreProductReadingInput | null {
   const name = reading?.name ?? fallback?.name;
@@ -60,8 +64,19 @@ function productReading(
   const currency = reading?.currency ?? fallback?.currency;
 
   if (name === undefined || price === undefined || currency === undefined) return null;
+  // The size and its Pack Size travel together: a page that states no size
+  // has no pack either, and the results card's reading stands for both.
+  const sized = reading?.size ? reading : fallback;
 
-  return { storeId, name, pageUrl, price, currency, size: reading?.size ?? fallback?.size ?? null };
+  return {
+    storeId,
+    name,
+    pageUrl,
+    price,
+    currency,
+    size: sized?.size ?? null,
+    pack: sized?.pack ?? null,
+  };
 }
 
 /**
