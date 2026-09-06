@@ -57,9 +57,15 @@ vi.mock("@/hooks/stores/use-store-prices", () => ({
   }),
 }));
 
-vi.mock("@/hooks/stores/use-store-picker", () => ({
+vi.mock("@/hooks/stores/use-parsed-grocery-name", () => ({
   useParsedGroceryName: (raw: string) => raw.trim(),
+}));
+
+vi.mock("@/hooks/stores/use-store-products-mutations", () => ({
   useChooseProduct: () => chooseProduct,
+}));
+
+vi.mock("@/hooks/stores/use-store-products-query", () => ({
   useShopSearch: () => ({ data: undefined, isPending: true, isFetching: false }),
   useStoreProducts: (storeId: string | null, enabled: boolean) => ({
     data: enabled

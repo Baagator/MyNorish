@@ -4,8 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 
 import type { StoreDto, StoreProductChoice } from "@norish/shared/contracts";
 
-import { useChooseProduct, useParsedGroceryName, useProductLink } from "./use-store-picker";
+import { useParsedGroceryName } from "./use-parsed-grocery-name";
 import { useStorePrices } from "./use-store-prices";
+import { useChooseProduct } from "./use-store-products-mutations";
+import { useProductLink } from "./use-store-products-query";
 
 /** How long a shopper stops typing a grocery's name before its link is read. */
 const LOOKUP_DEBOUNCE_MS = 400;
