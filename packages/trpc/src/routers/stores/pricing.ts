@@ -7,14 +7,23 @@
  */
 import type { GroceryDto, ResolvedProductLink } from "@norish/shared/contracts";
 import { listGroceriesByUsers } from "@norish/db/repositories/groceries";
-import { listStaleProducts, resolveProductLinks } from "@norish/db/repositories/store-products";
+import {
+  listStaleProducts,
+  markLinkPending,
+  resolveProductLinks,
+} from "@norish/db/repositories/store-products";
 import { listStoresByUserIds } from "@norish/db/repositories/stores";
 import { getQueues } from "@norish/queue/registry";
 import { staleBefore } from "@norish/queue/store-lookup/lookup";
-import { addStoreMatchJob, addStoreRefreshJob } from "@norish/queue/store-lookup/producer";
+import {
+  addStoreMatchJob,
+  addStoreRefreshJob,
+  MATCH_RETRY_WINDOW_MS,
+} from "@norish/queue/store-lookup/producer";
 import { trpcLogger as log } from "@norish/shared-server/logger";
 import { storeEmitter } from "@norish/shared-server/realtime/stores";
 import { normalizeGroceryName, productLinkKey } from "@norish/shared/lib/normalized-name";
+import { isPendingLink, pendingLink } from "@norish/shared/lib/product-link";
 
 /**
  * How many stale prices one page view is allowed to send to the shops. A list
@@ -47,9 +56,38 @@ function priceablePairs(groceries: PriceableGrocery[]): { storeId: string; name:
 }
 
 /**
+ * Ask a Store what a name means: a Pending Link first, so every screen in the
+ * household sees the question being asked, then the job. In that order — the
+ * row is what says "being asked", and a job BullMQ refuses as a duplicate has
+ * a row already, whose age the retry window judges rather than any check here.
+ */
+async function askStore(
+  ctx: PricingContext,
+  pair: { storeId: string; name: string }
+): Promise<ResolvedProductLink | null> {
+  const askedBefore = new Date(Date.now() - MATCH_RETRY_WINDOW_MS);
+  const asked = await markLinkPending(pair.storeId, pair.name, askedBefore);
+
+  if (!asked) return null;
+  await addStoreMatchJob(getQueues().storeLookup, {
+    kind: "match",
+    storeId: pair.storeId,
+    name: pair.name,
+    householdKey: ctx.householdKey,
+  }).catch((err: unknown) => {
+    log.error({ err, storeId: pair.storeId }, "Failed to enqueue a store lookup");
+  });
+
+  return pendingLink(pair.storeId, pair.name);
+}
+
+/**
  * What the household's Stores already know about these groceries, and a
- * lookup job for every name they do not. A Miss counts as knowing: a name no
- * shop stocks is not searched again every time the list is opened.
+ * question for every name they do not. A Miss counts as knowing: a name no
+ * shop stocks is not searched again every time the list is opened. A Pending
+ * Link counts as knowing while it is fresh — the question is on the queue —
+ * and as not knowing once it is older than the retry window, so a row a dead
+ * worker left behind stops nothing.
  */
 async function resolveAndQueue(
   ctx: PricingContext,
@@ -71,31 +109,23 @@ async function resolveAndQueue(
   const searchable = new Set(
     stores.filter((store) => store.searchAddress).map((store) => store.id)
   );
-  const known = new Set(links.map((link) => productLinkKey(link.storeId, link.normalizedName)));
-  const unknown = ownPairs.filter(
-    (pair) =>
-      searchable.has(pair.storeId) &&
-      !known.has(productLinkKey(pair.storeId, normalizeGroceryName(pair.name)))
+  const known = new Map(
+    links.map((link) => [productLinkKey(link.storeId, link.normalizedName), link] as const)
+  );
+  const unanswered = ownPairs.filter((pair) => {
+    if (!searchable.has(pair.storeId)) return false;
+    const link = known.get(productLinkKey(pair.storeId, normalizeGroceryName(pair.name)));
+
+    return !link || isPendingLink(link);
+  });
+  const asked = await Promise.all(unanswered.map((pair) => askStore(ctx, pair)));
+  // A question asked just now is a Pending Link the list did not have yet.
+  const fresh = asked.filter(
+    (link): link is ResolvedProductLink =>
+      link !== null && !known.has(productLinkKey(link.storeId, link.normalizedName))
   );
 
-  if (unknown.length > 0) {
-    const queue = getQueues().storeLookup;
-
-    await Promise.all(
-      unknown.map((pair) =>
-        addStoreMatchJob(queue, {
-          kind: "match",
-          storeId: pair.storeId,
-          name: pair.name,
-          householdKey: ctx.householdKey,
-        }).catch((err: unknown) => {
-          log.error({ err, storeId: pair.storeId }, "Failed to enqueue a store lookup");
-        })
-      )
-    );
-  }
-
-  return links;
+  return [...links, ...fresh];
 }
 
 /**

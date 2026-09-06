@@ -117,5 +117,8 @@
     "productLabel": "Product at {store}",
     "cannotSearch": "This shop cannot be searched",
     "cannotSearchHint": "Norish could not read a search page out of {store}'s shop link. Correct it in Manage Stores and prices follow."
+  },
+  "price": {
+    "pending": "Looking up the price"
   }
 }

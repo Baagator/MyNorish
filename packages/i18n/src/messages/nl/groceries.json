@@ -117,5 +117,8 @@
     "productLabel": "Product bij {store}",
     "cannotSearch": "Deze winkel kan niet doorzocht worden",
     "cannotSearchHint": "Norish kon geen zoekpagina uit de winkellink van {store} lezen. Pas hem aan bij Winkels beheren en de prijzen volgen."
+  },
+  "price": {
+    "pending": "Prijs wordt opgezocht"
   }
 }

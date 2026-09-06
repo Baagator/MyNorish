@@ -117,5 +117,8 @@
     "productLabel": "Produkt hos {store}",
     "cannotSearch": "Denne butik kan ikke søges",
     "cannotSearchHint": "Norish kunne ikke læse en søgeside ud af butikslinket til {store}. Ret det under Administrer butikker, så følger priserne."
+  },
+  "price": {
+    "pending": "Slår prisen op"
   }
 }

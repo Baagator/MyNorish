@@ -4,11 +4,13 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import {
+  clearPendingLink,
   createManualProduct,
   getStoreProductById,
   linkIfUnanswered,
   listStaleProducts,
   listStoreProducts,
+  markLinkPending,
   noteProductUnreadable,
   resolveProductLink,
   resolveProductLinks,
@@ -293,6 +295,80 @@ describe("store products, product links and misses", () => {
           .map((link) => link.normalizedName)
           .sort()
       ).toEqual(["kaas", "melk"]);
+    });
+  });
+
+  describe("a Pending Link: the Store has been asked and has not answered", () => {
+    const anHourAgo = () => new Date(Date.now() - 60 * 60 * 1000);
+
+    it("is written for a name nobody has asked about, and reads as neither a link nor a Miss", async () => {
+      await expect(markLinkPending(storeId, "Kaas", anHourAgo())).resolves.toBe(true);
+
+      const resolved = await resolveProductLink(storeId, "kaas");
+
+      expect(resolved).toMatchObject({ normalizedName: "kaas", product: null, triedAt: null });
+    });
+
+    it("is somebody else's question while it is fresh, and the caller's again once it has gone stale", async () => {
+      await markLinkPending(storeId, "kaas", anHourAgo());
+
+      // A second view a moment later finds the question already asked.
+      await expect(markLinkPending(storeId, "kaas", anHourAgo())).resolves.toBe(false);
+
+      // A worker that died left the row behind; an hour on it is asked again.
+      await expect(markLinkPending(storeId, "kaas", new Date())).resolves.toBe(true);
+    });
+
+    it("never overwrites an answer, Miss or match", async () => {
+      const read = await upsertReadProduct(reading());
+
+      await upsertProductLink(storeId, "kaas", read.id);
+      await upsertProductLink(storeId, "sterrenstof", null);
+
+      await expect(markLinkPending(storeId, "kaas", new Date())).resolves.toBe(false);
+      await expect(markLinkPending(storeId, "sterrenstof", new Date())).resolves.toBe(false);
+      await expect(resolveProductLink(storeId, "kaas")).resolves.toMatchObject({
+        product: { id: read.id },
+      });
+      await expect(resolveProductLink(storeId, "sterrenstof")).resolves.toMatchObject({
+        product: null,
+        triedAt: expect.any(Date),
+      });
+    });
+
+    it("becomes the answer the queue writes, or the one a shopper chooses", async () => {
+      const read = await upsertReadProduct(reading());
+
+      await markLinkPending(storeId, "kaas", anHourAgo());
+      await expect(linkIfUnanswered(storeId, "kaas", read.id)).resolves.toBe(true);
+      await expect(resolveProductLink(storeId, "kaas")).resolves.toMatchObject({
+        product: { id: read.id },
+        triedAt: expect.any(Date),
+      });
+
+      await markLinkPending(storeId, "melk", anHourAgo());
+      await linkIfUnanswered(storeId, "melk", null);
+      await expect(resolveProductLink(storeId, "melk")).resolves.toMatchObject({
+        product: null,
+        triedAt: expect.any(Date),
+      });
+
+      await markLinkPending(storeId, "boter", anHourAgo());
+      await upsertProductLink(storeId, "boter", read.id);
+      await expect(resolveProductLink(storeId, "boter")).resolves.toMatchObject({
+        product: { id: read.id },
+      });
+    });
+
+    it("goes when the shop did not answer, and only then", async () => {
+      await markLinkPending(storeId, "kaas", anHourAgo());
+      await expect(clearPendingLink(storeId, "kaas")).resolves.toBe(true);
+      await expect(resolveProductLink(storeId, "kaas")).resolves.toBeNull();
+
+      // A Miss or a link written meanwhile is an answer, and stays.
+      await upsertProductLink(storeId, "sterrenstof", null);
+      await expect(clearPendingLink(storeId, "sterrenstof")).resolves.toBe(false);
+      await expect(resolveProductLink(storeId, "sterrenstof")).resolves.not.toBeNull();
     });
   });
 

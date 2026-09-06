@@ -45,16 +45,31 @@ const LINKS: Record<string, StoreProductDto> = {
  * selected is not in it.
  */
 const ON_THE_LIST = new Set(["store-a|cola"]);
+/** Names the list's Store has been asked about and has not answered: a Pending Link. */
+const ASKED_ON_THE_LIST = new Set<string>();
 
 vi.mock("@/hooks/stores/use-store-prices", () => ({
-  useStorePrices: () => ({
-    priceFor: (storeId: string | null, name: string | null) => {
-      const key = `${storeId}|${(name ?? "").toLowerCase()}`;
+  useStorePrices: () => {
+    const linkFor = (storeId: string | null, name: string | null) => {
+      const normalized = (name ?? "").toLowerCase();
+      const key = `${storeId}|${normalized}`;
 
-      return ON_THE_LIST.has(key) ? (LINKS[key] ?? null) : null;
-    },
-    isLoading: false,
-  }),
+      if (ASKED_ON_THE_LIST.has(key)) {
+        return { storeId, normalizedName: normalized, triedAt: null, product: null };
+      }
+
+      return ON_THE_LIST.has(key)
+        ? { storeId, normalizedName: normalized, triedAt: new Date(), product: LINKS[key] ?? null }
+        : null;
+    };
+
+    return {
+      priceFor: (storeId: string | null, name: string | null) =>
+        linkFor(storeId, name)?.product ?? null,
+      linkFor,
+      isLoading: false,
+    };
+  },
 }));
 
 vi.mock("@/hooks/stores/use-parsed-grocery-name", () => ({
@@ -171,6 +186,33 @@ const GROCERY = {
 
 beforeEach(() => {
   chooseProduct.mockClear();
+  ASKED_ON_THE_LIST.clear();
+});
+
+describe("EditGroceryPanel, on a grocery the Store is still being asked about", () => {
+  it("waits on the Pending Link rather than asking the shop itself", () => {
+    ASKED_ON_THE_LIST.add("store-a|beleg");
+    render(
+      <EditGroceryPanel
+        grocery={{ ...GROCERY, name: "beleg" } as GroceryDto}
+        open={true}
+        recurringGrocery={null}
+        stores={STORES}
+        onDelete={() => undefined}
+        onOpenChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+
+    act(() => {
+      screen.getByTestId("grocery-product-field").focus();
+    });
+
+    // Nothing linked is not an answer yet: the queue is asking, so the field
+    // neither searches the shop for the name nor offers to type a price.
+    expect(screen.queryByTestId("product-searching")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("product-by-hand")).not.toBeInTheDocument();
+  });
 });
 
 describe("EditGroceryPanel, swapping the Store", () => {

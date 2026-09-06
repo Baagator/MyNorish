@@ -117,5 +117,8 @@
     "productLabel": "Produit chez {store}",
     "cannotSearch": "Cette boutique ne peut pas être cherchée",
     "cannotSearchHint": "Norish n'a pas pu tirer de page de recherche du lien de {store}. Corrigez-le dans Gérer les magasins et les prix suivront."
+  },
+  "price": {
+    "pending": "Recherche du prix"
   }
 }

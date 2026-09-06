@@ -49,8 +49,11 @@ export const storeProducts = pgTable(
 /**
  * A Product Link: what a Store has learned a grocery name means. Keyed by name
  * rather than by Grocery on purpose, so it outlives the list line that
- * prompted it. A row with no product **is** a Miss: it holds when the name was
- * last tried and carries no reason.
+ * prompted it. A row with no product and a `triedAt` **is** a Miss: it holds
+ * when the name was last tried and carries no reason. A row with no product
+ * and no `triedAt` is a Pending Link: the Store has been asked and has not
+ * answered yet, which is a fact about the Store and so is kept here rather
+ * than on the screen that asked.
  */
 export const storeProductLinks = pgTable(
   "store_product_links",
@@ -63,7 +66,8 @@ export const storeProductLinks = pgTable(
     storeProductId: uuid("store_product_id").references(() => storeProducts.id, {
       onDelete: "set null",
     }),
-    triedAt: timestamp("tried_at", { withTimezone: true }).notNull().defaultNow(),
+    /** When the shop last answered for this name; null while it is still being asked. */
+    triedAt: timestamp("tried_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     ...versionColumn,

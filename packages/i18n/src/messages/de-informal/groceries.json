@@ -117,5 +117,8 @@
     "productLabel": "Produkt bei {store}",
     "cannotSearch": "Dieser Shop kann nicht durchsucht werden",
     "cannotSearchHint": "Norish konnte aus dem Shop-Link von {store} keine Suchseite lesen. Korrigiere ihn unter Shops verwalten, dann folgen die Preise."
+  },
+  "price": {
+    "pending": "Preis wird nachgeschlagen"
   }
 }

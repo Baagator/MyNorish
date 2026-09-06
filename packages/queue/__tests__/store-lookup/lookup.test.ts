@@ -17,6 +17,7 @@ import { resetStoreVisitPacingForTests } from "@norish/queue/store-lookup/pace";
 
 const mocks = vi.hoisted(() => ({
   getStoreById: vi.fn(),
+  clearPendingLink: vi.fn(),
   linkIfUnanswered: vi.fn(),
   upsertReadProduct: vi.fn(),
   resolveProductLink: vi.fn(),
@@ -27,6 +28,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@norish/db/repositories/stores", () => ({ getStoreById: mocks.getStoreById }));
 vi.mock("@norish/db/repositories/store-products", () => ({
+  clearPendingLink: mocks.clearPendingLink,
   linkIfUnanswered: mocks.linkIfUnanswered,
   upsertReadProduct: mocks.upsertReadProduct,
   resolveProductLink: mocks.resolveProductLink,
@@ -215,6 +217,20 @@ describe("matchGroceryName", () => {
     expect(result).toEqual({ matched: false });
     expect(mocks.linkIfUnanswered).not.toHaveBeenCalled();
     expect(mocks.emitToHousehold).not.toHaveBeenCalled();
+    // The Pending Link the producer wrote goes with it: the name is unknown
+    // again, rather than "being asked" for ever.
+    expect(mocks.clearPendingLink).toHaveBeenCalledExactlyOnceWith(STORE, "oude kaas");
+  });
+
+  it("leaves the Pending Link to become the Miss the shop answered with", async () => {
+    useShop({ candidates: [candidate("Oude kaas 500 g", "a"), candidate("Oude kaas 1 kg", "b")] });
+
+    await matchGroceryName({ storeId: STORE, name: "oude kaas", householdKey: HOUSEHOLD });
+
+    // The conditional write turns the pending row into the Miss; nothing
+    // deletes it first, or the household would see the row go blank between.
+    expect(mocks.clearPendingLink).not.toHaveBeenCalled();
+    expect(mocks.linkIfUnanswered).toHaveBeenCalledExactlyOnceWith(STORE, "oude kaas", null);
   });
 
   it("leaves alone a name somebody answered while the job was queued", async () => {
@@ -299,6 +315,8 @@ describe("matchGroceryName", () => {
 
     expect(visited).toEqual([]);
     expect(mocks.linkIfUnanswered).not.toHaveBeenCalled();
+    // Nothing can be asked, so nothing is left saying it is being asked.
+    expect(mocks.clearPendingLink).toHaveBeenCalledWith(STORE, "oude kaas");
   });
 
   it("tells the household what it learned", async () => {

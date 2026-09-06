@@ -8,6 +8,7 @@
 import type { StoreProductDto, StoreProductReadingInput } from "@norish/shared/contracts";
 import type { PricedCandidate } from "@norish/shared/lib/currency";
 import {
+  clearPendingLink,
   linkIfUnanswered,
   listStaleProducts,
   noteProductUnreadable,
@@ -95,9 +96,10 @@ export async function searchStore(
  * it answered, and nothing it answered with is unmistakably the thing asked
  * for. A shop that did not answer at all — down, rate-limiting, or turning
  * the visit away with nothing to render it with — said nothing, and nothing
- * is written for it: the job stops rather than retrying inside itself, and
- * the next view of the list asks again, an hour on at the soonest. A Miss
- * written for that would have priced the name never.
+ * is written for it: the Pending Link the producer wrote goes, the job stops
+ * rather than retrying inside itself, and the next view of the list asks
+ * again, an hour on at the soonest. A Miss written for that would have priced
+ * the name never.
  *
  * Every write here is conditional on nobody having answered the name in the
  * meantime. The check before the visits only saves the shop a trip; the
@@ -113,7 +115,11 @@ export async function matchGroceryName(input: {
   const { storeId, name, householdKey } = input;
   const store = await getStoreById(storeId);
 
-  if (!store?.searchAddress) return { matched: false };
+  if (!store?.searchAddress) {
+    await clearPendingLink(storeId, name);
+
+    return { matched: false };
+  }
 
   // The job is only ever queued for a name the Store did not know. By the time
   // it runs a shopper may have said which product this is — through the
@@ -139,6 +145,7 @@ export async function matchGroceryName(input: {
 
   if (!shopAnswered) {
     log.info({ storeId, groceryName: name }, "The shop did not answer a lookup");
+    await clearPendingLink(storeId, name);
 
     return { matched: false };
   }
@@ -166,7 +173,11 @@ export async function matchGroceryName(input: {
     chosen
   );
 
-  if (!reading) return { matched: false };
+  if (!reading) {
+    await clearPendingLink(storeId, name);
+
+    return { matched: false };
+  }
 
   await input.onStep?.("saving");
   const product = await upsertReadProduct(reading);

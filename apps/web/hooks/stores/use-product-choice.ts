@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import type { StoreDto, StoreProductChoice } from "@norish/shared/contracts";
+import { isPendingLink } from "@norish/shared/lib/product-link";
 
 import { useParsedGroceryName } from "./use-parsed-grocery-name";
 import { useStorePrices } from "./use-store-prices";
@@ -47,10 +48,14 @@ export function useProductChoice(options: {
     [selectedStoreId, resetOn]
   );
   const chooseProduct = useChooseProduct();
-  const { priceFor } = useStorePrices();
+  const { linkFor } = useStorePrices();
   const groceryName = useParsedGroceryName(itemName);
   const store = stores.find((candidate) => candidate.id === selectedStoreId) ?? null;
-  const onTheList = priceFor(selectedStoreId, groceryName);
+  const listLink = linkFor(selectedStoreId, groceryName);
+  const onTheList = listLink?.product ?? null;
+  // The Store has been asked about this very name and has not answered: the
+  // field waits for that answer rather than asking the shop a second time.
+  const askedOnTheList = isPendingLink(listLink);
   const [settledName, setSettledName] = useState(groceryName);
 
   // The name a panel opens on is what it is about, so it is adopted at once;
@@ -69,14 +74,21 @@ export function useProductChoice(options: {
 
   // The list's own prices answer for the Store each grocery sits under and no
   // other, so a Store the shopper has just selected is read on its own.
-  const lookup = useProductLink(onTheList ? null : selectedStoreId, settledName);
+  const lookup = useProductLink(listLink ? null : selectedStoreId, settledName);
   const linked = onTheList ?? (settledName === groceryName ? (lookup.data?.product ?? null) : null);
-  // Whether the link is still being read: the name has not settled yet, or the
-  // Store is being asked. Until then "nothing linked" is not an answer, and
-  // the field must not treat it as one — by searching the shop for a name
-  // that may well be linked, or by taking a product for it.
+  // Whether the link is still being read: the name has not settled yet, the
+  // Store is being asked by this screen, or the Store is being asked by the
+  // queue — a Pending Link, on the list or read on its own. Until then
+  // "nothing linked" is not an answer, and the field must not treat it as
+  // one — by searching the shop for a name that may well be linked, or by
+  // taking a product for it.
   const linkPending =
-    !onTheList && Boolean(selectedStoreId) && (settledName !== groceryName || lookup.isLoading);
+    !onTheList &&
+    Boolean(selectedStoreId) &&
+    (askedOnTheList ||
+      settledName !== groceryName ||
+      lookup.isLoading ||
+      isPendingLink(lookup.data));
 
   const commit = useCallback(() => {
     // Committed or not, the choice is spent: the panel that stays open for the

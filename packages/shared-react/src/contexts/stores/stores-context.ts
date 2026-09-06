@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { createContext, createElement, useContext, useMemo, useState } from "react";
 
 import type {
+  ResolvedProductLink,
   StoreCreateDto,
   StoreDto,
   StoreProductDto,
@@ -37,6 +38,8 @@ export type StoresContextValue = {
   // Prices
   /** The Store Product a grocery resolves to, or null where its Store answered with a Miss. */
   priceFor: (storeId: string | null, name: string | null) => StoreProductDto | null;
+  /** What its Store knows about the name: a link, a Miss, a Pending Link, or nothing. */
+  linkFor: (storeId: string | null, name: string | null) => ResolvedProductLink | null;
   // UI
   storeManagerOpen: boolean;
   setStoreManagerOpen: (open: boolean) => void;
@@ -51,7 +54,11 @@ type CreateStoresContextOptions = {
   useStorePricesSubscription?: () => void;
 };
 
-const useNoPrices = (): StorePricesResult => ({ priceFor: () => null, isLoading: false });
+const useNoPrices = (): StorePricesResult => ({
+  priceFor: () => null,
+  linkFor: () => null,
+  isLoading: false,
+});
 const useNoPricesSubscription = () => undefined;
 
 export function createStoresContext({
@@ -72,7 +79,7 @@ export function createStoresContext({
     useStoresSubscription();
 
     // A price a housemate just linked lands here without a reload.
-    const { priceFor } = useStorePrices();
+    const { priceFor, linkFor } = useStorePrices();
 
     useStorePricesSubscription();
 
@@ -85,10 +92,11 @@ export function createStoresContext({
         isLoading,
         ...storeMutations,
         priceFor,
+        linkFor,
         storeManagerOpen,
         setStoreManagerOpen,
       }),
-      [stores, isLoading, storeMutations, priceFor, storeManagerOpen]
+      [stores, isLoading, storeMutations, priceFor, linkFor, storeManagerOpen]
     );
 
     return createElement(StoresContext.Provider, { value }, children);

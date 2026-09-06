@@ -2,6 +2,7 @@ import type { Job } from "bullmq";
 import { Worker } from "bullmq";
 
 import type { StoreLookupJobData } from "@norish/queue/contracts/job-types";
+import { clearPendingLink } from "@norish/db/repositories/store-products";
 import { getBullClient } from "@norish/queue/redis/bullmq";
 import { createLogger } from "@norish/shared-server/logger";
 
@@ -42,6 +43,20 @@ async function processStoreLookup(job: Job<StoreLookupJobData>): Promise<void> {
 }
 
 /**
+ * A lookup that gave up. A match job that has spent its attempts leaves no
+ * Pending Link behind: the name is unknown again, and the next view of the
+ * list asks. An attempt that will be retried leaves the row where it is —
+ * the question is still being asked.
+ */
+export async function forgetFailedLookup(
+  job: Pick<Job<StoreLookupJobData>, "data" | "attemptsMade" | "opts"> | undefined
+): Promise<void> {
+  if (job?.data.kind !== "match") return;
+  if (job.attemptsMade < (job.opts.attempts ?? 1)) return;
+  await clearPendingLink(job.data.storeId, job.data.name);
+}
+
+/**
  * Always-on, concurrency 1. Always-on because a grocery must be priced while
  * the user is still looking at the list, and because a lazy worker is where
  * the `delay` trap lives; concurrency 1 because one visit at a time to
@@ -59,6 +74,9 @@ export function startStoreLookupWorker(): void {
 
   worker.on("failed", (job, error) => {
     log.error({ jobId: job?.id, err: error }, "Store lookup failed");
+    forgetFailedLookup(job).catch((err: unknown) => {
+      log.error({ jobId: job?.id, err }, "Failed to clear a Pending Link");
+    });
   });
 
   worker.on("error", (error) => {

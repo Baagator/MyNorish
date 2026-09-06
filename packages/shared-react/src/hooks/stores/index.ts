@@ -22,6 +22,7 @@ export { createUseStoresSubscription } from "./use-stores-subscription";
 export {
   createUseStorePrices,
   createUseStorePricesSubscription,
+  PENDING_LINK_MAX_AGE_MS,
   priceKey,
   type StorePricesResult,
 } from "./use-store-prices";

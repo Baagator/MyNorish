@@ -42,7 +42,8 @@ function money(value: number): string {
 
 /**
  * What a Store has learned one grocery name means, product and all, in one
- * query. A row with no product is a Miss and reads as one.
+ * query. A row with no product is a Miss, or a Pending Link while `triedAt`
+ * is still empty, and reads as one.
  */
 export async function resolveProductLink(
   storeId: string,
@@ -132,7 +133,7 @@ export async function upsertProductLink(
 
   await db
     .insert(storeProductLinks)
-    .values({ storeId, normalizedName, storeProductId })
+    .values({ storeId, normalizedName, storeProductId, triedAt: new Date() })
     .onConflictDoUpdate({
       target: [storeProductLinks.storeId, storeProductLinks.normalizedName],
       set: {
@@ -164,7 +165,7 @@ export async function linkIfUnanswered(
 
   const rows = await db
     .insert(storeProductLinks)
-    .values({ storeId, normalizedName, storeProductId })
+    .values({ storeId, normalizedName, storeProductId, triedAt: new Date() })
     .onConflictDoUpdate({
       target: [storeProductLinks.storeId, storeProductLinks.normalizedName],
       set: {
@@ -175,6 +176,66 @@ export async function linkIfUnanswered(
       },
       setWhere: isNull(storeProductLinks.storeProductId),
     })
+    .returning({ id: storeProductLinks.id });
+
+  return rows.length > 0;
+}
+
+/**
+ * The Store has been asked what this name means. A Pending Link is written
+ * before the question goes on the queue, because nothing else on the wire
+ * says "being asked", and only where nobody has answered: a link or a Miss is
+ * left exactly as it is. A Pending Link a dead worker left behind must not
+ * stop the question for ever, so one older than `askedBefore` is asked again
+ * and stamped so. Returns whether the question is the caller's to enqueue —
+ * a fresh Pending Link somebody else wrote is theirs.
+ */
+export async function markLinkPending(
+  storeId: string,
+  name: string,
+  askedBefore: Date
+): Promise<boolean> {
+  const normalizedName = normalizeGroceryName(name);
+
+  if (!normalizedName) return false;
+
+  const rows = await db
+    .insert(storeProductLinks)
+    .values({ storeId, normalizedName, storeProductId: null, triedAt: null })
+    .onConflictDoUpdate({
+      target: [storeProductLinks.storeId, storeProductLinks.normalizedName],
+      set: { updatedAt: new Date(), version: sql`${storeProductLinks.version} + 1` },
+      setWhere: and(
+        isNull(storeProductLinks.storeProductId),
+        isNull(storeProductLinks.triedAt),
+        lt(storeProductLinks.updatedAt, askedBefore)
+      ),
+    })
+    .returning({ id: storeProductLinks.id });
+
+  return rows.length > 0;
+}
+
+/**
+ * A question the shop did not answer. The Pending Link goes, so the name is
+ * unknown again and the next view of the list asks. Only a Pending Link: a
+ * link or a Miss written in the meantime is an answer, and stays.
+ */
+export async function clearPendingLink(storeId: string, name: string): Promise<boolean> {
+  const normalizedName = normalizeGroceryName(name);
+
+  if (!normalizedName) return false;
+
+  const rows = await db
+    .delete(storeProductLinks)
+    .where(
+      and(
+        eq(storeProductLinks.storeId, storeId),
+        eq(storeProductLinks.normalizedName, normalizedName),
+        isNull(storeProductLinks.storeProductId),
+        isNull(storeProductLinks.triedAt)
+      )
+    )
     .returning({ id: storeProductLinks.id });
 
   return rows.length > 0;
