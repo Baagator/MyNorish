@@ -25,6 +25,7 @@ import { calculateNextOccurrence, getTodayString } from "@norish/shared/lib/recu
 
 import { authedProcedure } from "../../middleware";
 import { router } from "../../trpc";
+import { noticeGroceries } from "../stores/pricing";
 import { groceryEmitter } from "./emitter";
 
 const createRecurring = authedProcedure
@@ -76,6 +77,10 @@ const createRecurring = authedProcedure
       };
 
       const grocery = await createGrocery(id, groceryData, ctx.userIds);
+
+      // A repeating grocery is a grocery on the list like any other: its Store
+      // is asked what it knows about the name, exactly as the add panel asks.
+      await noticeGroceries(ctx, [grocery]);
 
       log.info(
         { userId: ctx.user.id, recurringId: created.id, groceryId: id },
@@ -158,6 +163,9 @@ const updateRecurring = authedProcedure
           await upsertIngredientStorePreference(ctx.user.id, normalized, storeId);
         }
 
+        // Renamed or moved, the grocery asks its Store a new question.
+        await noticeGroceries(ctx, [outcome.value.grocery]);
+
         log.debug(
           { userId: ctx.user.id, recurringGroceryId, groceryId },
           "Recurring grocery updated"
@@ -238,6 +246,9 @@ const detachRecurring = authedProcedure
 
           await upsertIngredientStorePreference(ctx.user.id, normalized, storeId);
         }
+
+        // Detaching edits the grocery too — a new name or Store is a new question.
+        await noticeGroceries(ctx, [outcome.value]);
 
         log.info(
           { userId: ctx.user.id, recurringGroceryId, groceryId },
