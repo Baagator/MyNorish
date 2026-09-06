@@ -220,6 +220,18 @@ describe("readSearchResults: what is sold loose, and what one pack holds", () =>
       size: "150 g",
       pack: { quantity: 150, unit: "gram", byWeight: false },
     });
+
+    // The pack price as bare digits beside a marked price per kilo, which is
+    // how a shop that styles its euros and cents apart prints the two.
+    const digits = readSearchResults(
+      shelf(
+        `<article><a href="/p/N/kaas">Kaas N</a><span>€ 19,93 / kg</span><div><span>2</span><span>99</span></div><span>150 g</span></article>`
+      ),
+      "https://shop.example.nl/zoeken?q=kaas"
+    )[0];
+
+    expect(digits).toMatchObject({ price: 2.99, currency: "EUR", size: "150 g" });
+    expect(digits?.pack).toEqual({ quantity: 150, unit: "gram", byWeight: false });
   });
 
   it("reads a Pack Size out of a unit code in the page's data ahead of any words", () => {

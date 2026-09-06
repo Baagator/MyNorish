@@ -68,9 +68,12 @@ function productReading(
   // has no pack either, and the results card's reading stands for both.
   const sized = reading?.size ? reading : fallback;
   // A Sale the results card presented outlives a product page that does not
-  // restate it: silence about the regular price is not the deal ending.
-  const regularPrice = reading?.regularPrice ?? fallback?.regularPrice ?? null;
-  const dealWords = reading?.dealWords ?? fallback?.dealWords ?? null;
+  // restate it: silence about the regular price is not the deal ending. A
+  // page that states another price is the deal ending, and the card's Sale
+  // does not travel to it.
+  const samePrice = reading === null || fallback === null || reading.price === fallback.price;
+  const regularPrice = reading?.regularPrice ?? (samePrice ? fallback?.regularPrice : null) ?? null;
+  const dealWords = reading?.dealWords ?? (samePrice ? fallback?.dealWords : null) ?? null;
 
   return {
     storeId,
@@ -135,12 +138,15 @@ export async function matchGroceryName(input: {
 }): Promise<{ matched: boolean }> {
   const { storeId, name, householdKey } = input;
   const store = await getStoreById(storeId);
-
-  if (!store?.searchAddress) {
+  // Nothing was learned: the Pending Link the producer wrote goes, so the
+  // name is unknown again rather than "being asked" for ever.
+  const gaveUp = async (): Promise<{ matched: boolean }> => {
     await clearPendingLink(storeId, name);
 
     return { matched: false };
-  }
+  };
+
+  if (!store?.searchAddress) return gaveUp();
 
   // The job is only ever queued for a name the Store did not know. By the time
   // it runs a shopper may have said which product this is — through the
@@ -166,9 +172,8 @@ export async function matchGroceryName(input: {
 
   if (!shopAnswered) {
     log.info({ storeId, groceryName: name }, "The shop did not answer a lookup");
-    await clearPendingLink(storeId, name);
 
-    return { matched: false };
+    return gaveUp();
   }
 
   const chosen = chooseUnmistakable(candidates, name);
@@ -194,11 +199,7 @@ export async function matchGroceryName(input: {
     chosen
   );
 
-  if (!reading) {
-    await clearPendingLink(storeId, name);
-
-    return { matched: false };
-  }
+  if (!reading) return gaveUp();
 
   await input.onStep?.("saving");
   const product = await upsertReadProduct(reading);

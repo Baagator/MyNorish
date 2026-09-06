@@ -46,10 +46,17 @@ describe("the Pack Size editor's keys", () => {
     expect(packFromKey("nonsense", "2")).toBeNull();
   });
 
-  it("labels the keys the fixed list does not carry", () => {
-    const per = (unit: string) => `per ${unit}`;
+  it("labels every key: the symbol, the word for pieces, or the form of sale", () => {
+    const words = {
+      per: (unit: string) => `per ${unit}`,
+      pieces: (count: number) => (count === 1 ? "piece" : "pieces"),
+    };
 
-    expect(packKeyLabel("per-milliliter", per)).toBe("per ml");
-    expect(packKeyLabel("deciliter", per)).toBe("dl");
+    expect(packKeyLabel("gram", words)).toBe("g");
+    expect(packKeyLabel("piece", words)).toBe("pieces");
+    expect(packKeyLabel("per-kilogram", words)).toBe("per kg");
+    expect(packKeyLabel("per-100-gram", words)).toBe("per 100 g");
+    expect(packKeyLabel("per-milliliter", words)).toBe("per ml");
+    expect(packKeyLabel("deciliter", words)).toBe("dl");
   });
 });

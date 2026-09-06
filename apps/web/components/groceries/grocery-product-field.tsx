@@ -5,6 +5,7 @@ import type { Key } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePanelPortalContainer } from "@/components/Panel/Panel";
 import { useShopSearch, useStoreProducts } from "@/hooks/stores";
+import { usePackSizeWords } from "@/hooks/stores/use-pack-size-words";
 import { formatPackSize, formatShelfPrice } from "@/lib/format-price";
 import {
   PACK_UNIT_KEYS,
@@ -29,6 +30,7 @@ import { currencyForUrl, isPriced } from "@norish/shared/lib/currency";
 import { nameWords } from "@norish/shared/lib/normalized-name";
 import { createClientId } from "@norish/shared/lib/operation-helpers";
 import { packSizeOf } from "@norish/shared/lib/pack-size";
+import { saleRegularPrice } from "@norish/shared/lib/sale";
 
 /** How long a shopper stops typing before the shop is asked. */
 const SEARCH_DEBOUNCE_MS = 400;
@@ -107,17 +109,10 @@ function candidateRow(
     currency: candidate.currency,
     size: candidate.size ?? null,
     pack: candidate.pack ?? null,
-    regularPrice: onSale(candidate.price, candidate.regularPrice),
+    regularPrice: saleRegularPrice(candidate.price, candidate.regularPrice),
     dealWords: candidate.dealWords ?? null,
     choice: { kind: "candidate", candidate },
   };
-}
-
-/** The regular price where it is one: above the price, which is what a Sale is. */
-function onSale(price: number, regularPrice: number | null | undefined): number | null {
-  return regularPrice !== null && regularPrice !== undefined && regularPrice > price
-    ? regularPrice
-    : null;
 }
 
 function productRow(product: StoreProductDto, locale: string, words: PackSizeWords): ProductRow {
@@ -131,7 +126,7 @@ function productRow(product: StoreProductDto, locale: string, words: PackSizeWor
     currency: product.currency,
     size: product.size,
     pack,
-    regularPrice: onSale(product.price, product.regularPrice),
+    regularPrice: saleRegularPrice(product.price, product.regularPrice),
     dealWords: product.dealWords,
     choice: { kind: "product", storeProductId: product.id },
   };
@@ -232,13 +227,7 @@ export function GroceryProductField({
   const t = useTranslations("groceries.picker");
   const tPrice = useTranslations("groceries.price");
   const locale = useLocale();
-  const packWords = useMemo<PackSizeWords>(
-    () => ({
-      per: (unit) => tPrice("perUnit", { unit }),
-      pieces: (count) => tPrice("pieces", { count }),
-    }),
-    [tPrice]
-  );
+  const packWords = usePackSizeWords();
   const portalContainer = usePanelPortalContainer();
   const canSearch = Boolean(store.searchAddress);
   const pointsAtShop = Boolean(store.website ?? store.searchAddress);
@@ -551,17 +540,7 @@ export function GroceryProductField({
 
     if (!keys.includes(packKey)) keys.push(packKey);
 
-    return keys.map((key) => ({
-      key,
-      label:
-        key === "piece"
-          ? packWords.pieces(2)
-          : key === "per-kilogram"
-            ? packWords.per("kg")
-            : key === "per-100-gram"
-              ? packWords.per("100 g")
-              : packKeyLabel(key, packWords.per),
-    }));
+    return keys.map((key) => ({ key, label: packKeyLabel(key, packWords) }));
   }, [packKey, packWords]);
 
   // Hooks first, and only then: a Store that points at no shop has nothing to

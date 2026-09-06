@@ -150,10 +150,14 @@ export function groupLineCost(lines: LineAmount[], product: LineProduct): LineCo
   if (combined) return lineCost(combined, product);
 
   const costs = lines.map((line) => lineCost(line, product));
+  const packs = costs.reduce((sum, line) => sum + line.packs, 0);
+
+  // More than the cap by any route, this one included.
+  if (packs > MAX_PACKS) return onePack(product.price, false);
 
   return {
     cost: round2(costs.reduce((sum, line) => sum + line.cost, 0)),
-    packs: costs.reduce((sum, line) => sum + line.packs, 0),
+    packs,
     matched: costs.every((line) => line.matched),
     byWeight: costs.every((line) => line.byWeight),
   };

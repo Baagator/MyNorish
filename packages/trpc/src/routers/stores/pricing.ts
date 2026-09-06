@@ -92,10 +92,10 @@ async function askStore(
 async function resolveAndQueue(
   ctx: PricingContext,
   groceries: PriceableGrocery[]
-): Promise<ResolvedProductLink[]> {
+): Promise<{ known: ResolvedProductLink[]; fresh: ResolvedProductLink[] }> {
   const pairs = priceablePairs(groceries);
 
-  if (pairs.length === 0) return [];
+  if (pairs.length === 0) return { known: [], fresh: [] };
 
   const stores = await listStoresByUserIds(ctx.userIds);
   // A grocery is priced through a Store of its own household and no other:
@@ -104,7 +104,7 @@ async function resolveAndQueue(
   const own = new Set(stores.map((store) => store.id));
   const ownPairs = pairs.filter((pair) => own.has(pair.storeId));
 
-  if (ownPairs.length === 0) return [];
+  if (ownPairs.length === 0) return { known: [], fresh: [] };
   const links = await resolveProductLinks(ownPairs);
   const searchable = new Set(
     stores.filter((store) => store.searchAddress).map((store) => store.id)
@@ -119,13 +119,14 @@ async function resolveAndQueue(
     return !link || isPendingLink(link);
   });
   const asked = await Promise.all(unanswered.map((pair) => askStore(ctx, pair)));
-  // A question asked just now is a Pending Link the list did not have yet.
+  // A question asked just now is a Pending Link the list did not have yet,
+  // and one every screen in the household should see being asked.
   const fresh = asked.filter(
     (link): link is ResolvedProductLink =>
       link !== null && !known.has(productLinkKey(link.storeId, link.normalizedName))
   );
 
-  return [...links, ...fresh];
+  return { known: links, fresh };
 }
 
 /**
@@ -138,7 +139,8 @@ export async function noticeGroceries(
   ctx: PricingContext,
   groceries: PriceableGrocery[]
 ): Promise<ResolvedProductLink[]> {
-  const links = await resolveAndQueue(ctx, groceries);
+  const { known, fresh } = await resolveAndQueue(ctx, groceries);
+  const links = [...known, ...fresh];
 
   for (const link of links) {
     storeEmitter.emitToHousehold(ctx.householdKey, "linkUpdated", { link });
@@ -155,9 +157,16 @@ export async function noticeGroceries(
  */
 export async function priceTheList(ctx: PricingContext): Promise<ResolvedProductLink[]> {
   const groceries = await listGroceriesByUsers(ctx.userIds, { includeDone: true });
-  // The list is the answer here; nothing is announced, because everyone
-  // reading it is asking for exactly this.
-  const links = await resolveAndQueue(ctx, groceries);
+  // The list is the answer here, and what the Stores already knew is not
+  // announced: everyone reading it is asking for exactly this. A question
+  // asked just now is news, though — a Pending Link the household's other
+  // screens do not have — and rides the same event the answer will.
+  const { known, fresh } = await resolveAndQueue(ctx, groceries);
+
+  for (const link of fresh) {
+    storeEmitter.emitToHousehold(ctx.householdKey, "linkUpdated", { link });
+  }
+  const links = [...known, ...fresh];
   const productIds = links
     .map((link) => link.product?.id)
     .filter((id): id is string => id !== undefined);

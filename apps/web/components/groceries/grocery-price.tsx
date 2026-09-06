@@ -1,6 +1,7 @@
 "use client";
 
 import { useStoresContext } from "@/app/(app)/groceries/stores-context";
+import { usePackSizeWords } from "@/hooks/stores/use-pack-size-words";
 import { useUnitFormatter } from "@/hooks/use-unit-formatter";
 import { formatPackSize, formatShelfPrice } from "@/lib/format-price";
 import { Chip, Spinner } from "@heroui/react";
@@ -9,6 +10,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { groupLineCost } from "@norish/shared/lib/line-cost";
 import { packSizeOf } from "@norish/shared/lib/pack-size";
 import { isPendingLink } from "@norish/shared/lib/product-link";
+import { saleRegularPrice } from "@norish/shared/lib/sale";
 
 import type { PricedLine } from "./store-total";
 
@@ -39,6 +41,7 @@ export function GroceryPrice({ line }: { line: PricedLine }) {
   const locale = useLocale();
   const t = useTranslations("groceries.price");
   const { formatAmountUnit } = useUnitFormatter();
+  const packWords = usePackSizeWords();
   const link = linkFor(line.storeId, line.name);
 
   if (!link) return null;
@@ -56,14 +59,9 @@ export function GroceryPrice({ line }: { line: PricedLine }) {
   const pack = packSizeOf(product);
   const cost = groupLineCost(line.amounts, { price: product.price, pack });
   // The regular Line Cost: the same packs at the price the shop struck through.
-  const onSale = product.regularPrice !== null && product.regularPrice > product.price;
-  const regular = onSale
-    ? groupLineCost(line.amounts, { price: product.regularPrice ?? 0, pack }).cost
-    : null;
-  const packWords = {
-    per: (unit: string) => t("perUnit", { unit }),
-    pieces: (count: number) => t("pieces", { count }),
-  };
+  const regularPrice = saleRegularPrice(product.price, product.regularPrice);
+  const regular =
+    regularPrice === null ? null : groupLineCost(line.amounts, { price: regularPrice, pack }).cost;
   // The shop's own words for a pack it read; Norish's for one set by hand.
   const size =
     product.packByHand && pack ? formatPackSize(pack, packWords) : (product.size ?? null);
@@ -98,7 +96,7 @@ export function GroceryPrice({ line }: { line: PricedLine }) {
           )}
           {detail ? ` · ${detail}` : ""}
         </span>
-        {onSale && (
+        {regular !== null && (
           <Chip color="accent" data-testid="grocery-sale" size="sm" variant="soft">
             {t("sale")}
           </Chip>

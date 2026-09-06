@@ -6,32 +6,18 @@
  * a list of — so this is a fixed table in code that nobody can misconfigure,
  * seeded from the units map's fourteen locales, parse-ingredient's built-ins
  * and the words shops print on their shelves. See ADR-0029.
+ *
+ * This is deliberately not `normalizeUnit` in `unit-localization.ts`, which
+ * reads the administrator's units map: that map is for recognising what a
+ * recipe says, and a unit a household adds to it has no magnitude Norish
+ * could price with. A unit this table does not know prices as one pack.
  */
 import unitsMap from "@norish/config/units.default.json";
 
 /** Mass in grams, volume in millilitres, count in pieces; a container on a grocery means packs. */
 export type UnitFamily = "mass" | "volume" | "count" | "pack";
 
-/** A unit a Pack Size can be stated in, and a grocery amount reconciled through. */
-export type UnitId =
-  | "gram"
-  | "kilogram"
-  | "milligram"
-  | "ounce"
-  | "pound"
-  | "milliliter"
-  | "centiliter"
-  | "deciliter"
-  | "liter"
-  | "fluid_ounce"
-  | "teaspoon"
-  | "tablespoon"
-  | "cup"
-  | "piece"
-  | "dozen"
-  | "pack";
-
-/** Every unit id, for a schema to enumerate. */
+/** Every unit a Pack Size can be stated in, and a grocery amount reconciled through. */
 export const UNIT_IDS = [
   "gram",
   "kilogram",
@@ -49,7 +35,9 @@ export const UNIT_IDS = [
   "piece",
   "dozen",
   "pack",
-] as const satisfies readonly UnitId[];
+] as const;
+
+export type UnitId = (typeof UNIT_IDS)[number];
 
 export interface ResolvedUnit {
   id: UnitId;

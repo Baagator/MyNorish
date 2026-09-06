@@ -1,5 +1,7 @@
+import type { PackSizeWords } from "@/lib/format-price";
+import { formatPackSize } from "@/lib/format-price";
+
 import type { PackSize } from "@norish/shared/lib/pack-size";
-import type { UnitId } from "@norish/shared/lib/units";
 import { isUnitId, unitLabel } from "@norish/shared/lib/units";
 
 /**
@@ -23,8 +25,6 @@ export const PACK_UNIT_KEYS = [
   "per-100-gram",
 ] as const;
 
-export type PackUnitKey = (typeof PACK_UNIT_KEYS)[number] | `per-${UnitId}` | UnitId;
-
 /** The forms whose quantity the form itself fixes. */
 const FIXED: Record<string, PackSize> = {
   "per-kilogram": { quantity: 1, unit: "kilogram", byWeight: true },
@@ -32,10 +32,10 @@ const FIXED: Record<string, PackSize> = {
 };
 
 /** The select key a Pack Size is shown under. */
-export function packUnitKey(pack: PackSize): PackUnitKey {
+export function packUnitKey(pack: PackSize): string {
   if (!pack.byWeight) return pack.unit;
   for (const [key, fixed] of Object.entries(FIXED)) {
-    if (fixed.unit === pack.unit && fixed.quantity === pack.quantity) return key as PackUnitKey;
+    if (fixed.unit === pack.unit && fixed.quantity === pack.quantity) return key;
   }
 
   return `per-${pack.unit}`;
@@ -65,12 +65,20 @@ export function packFromKey(key: string, quantity: string): PackSize | null {
   return { quantity: amount, unit, byWeight };
 }
 
-/** The label of a key the fixed list does not carry: "per 500 ml", "dl". */
-export function packKeyLabel(key: string, per: (unit: string) => string): string {
+/**
+ * What a key is called in the select: the unit's symbol, the word for pieces,
+ * or the form of sale — "per kg", "per 100 g", and "per ml" for a form read
+ * from a shop that the fixed list does not carry.
+ */
+export function packKeyLabel(key: string, words: PackSizeWords): string {
+  const fixed = FIXED[key];
+
+  if (fixed) return formatPackSize(fixed, words);
+  if (key === "piece") return words.pieces(2);
   if (key.startsWith("per-")) {
     const unit = key.slice("per-".length);
 
-    return per(isUnitId(unit) ? unitLabel(unit) : unit);
+    return words.per(isUnitId(unit) ? unitLabel(unit) : unit);
   }
 
   return isUnitId(key) ? unitLabel(key) : key;

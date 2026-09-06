@@ -245,6 +245,19 @@ describe("groupLineCost", () => {
     });
   });
 
+  it("caps the packs of the summed route too", () => {
+    const lines = [
+      { amount: 20, unit: null },
+      { amount: 5, unit: "piece" },
+    ];
+
+    expect(groupLineCost(lines, { price: 1.99, pack: litres(1) })).toMatchObject({
+      cost: 1.99,
+      packs: 1,
+      matched: false,
+    });
+  });
+
   it("prices a lone line exactly as the line itself", () => {
     expect(
       groupLineCost([{ amount: 700, unit: "gram" }], { price: 2.99, pack: grams(500) })

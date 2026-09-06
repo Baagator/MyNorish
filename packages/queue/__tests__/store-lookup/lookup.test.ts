@@ -155,6 +155,22 @@ describe("matchGroceryName", () => {
     );
   });
 
+  it("leaves the card's Sale behind when the product page states another price", async () => {
+    useShop({
+      candidates: [
+        { ...candidate("Oude kaas", PRODUCT_PAGE, 7.99), regularPrice: 9.99, dealWords: "ACTIE" },
+      ],
+      product: { name: "Oude kaas", price: 8.49, currency: "EUR" },
+    });
+
+    await matchGroceryName({ storeId: STORE, name: "oude kaas", householdKey: HOUSEHOLD });
+
+    // The page is the authority, and the page presented no Sale at €8.49.
+    expect(mocks.upsertReadProduct).toHaveBeenCalledWith(
+      expect.objectContaining({ price: 8.49, regularPrice: null, dealWords: null })
+    );
+  });
+
   it("takes the Sale the product page itself presents ahead of the card's", async () => {
     useShop({
       candidates: [{ ...candidate("Oude kaas"), regularPrice: 9.99, dealWords: "ACTIE" }],

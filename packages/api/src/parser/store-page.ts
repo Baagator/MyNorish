@@ -16,7 +16,8 @@ import type { PackSize } from "@norish/shared/lib/pack-size";
 import { currencyForUrl } from "@norish/shared/lib/currency";
 import { parseJsonWithRepair } from "@norish/shared/lib/helpers";
 import { packSizeFromCode, readPackSize } from "@norish/shared/lib/pack-size";
-import { unitLabel } from "@norish/shared/lib/units";
+import { saleRegularPrice } from "@norish/shared/lib/sale";
+import { resolveUnit, unitLabel } from "@norish/shared/lib/units";
 
 export type { ProductReading, StoreCandidate };
 export { currencyForUrl } from "@norish/shared/lib/currency";
@@ -160,18 +161,22 @@ const MONEY_AFTER = new RegExp(`(?<![\\d.,])(${AMOUNT})\\s?(${CURRENCY_MARK}|\\b
  * per 100 g`. Beside a pack price it is the comparison number Norish does not
  * show; as a card's only price it is what a kilo of something sold loose
  * costs, and that is its Shelf Price (ADR-0029). "Per stuk" — per piece — is
- * the pack price and is neither.
+ * the pack price and is neither: the unit table says which words are a
+ * weight or a volume, so no list of them lives here.
  */
 const PER_UNIT =
-  /^\s*((?:\/|per|pro|par|por|al|za|pr\.?|à)\s*(?:\d+\s*)?(?:kg|g|l|ml|cl|liter|litre|litro|kilo|gram|kilogram)\b\.?)/iu;
+  /^\s*((?:\/|per|pro|par|por|al|za|pr\.?|à)\s*(?:\d+\s*)?(\p{L}+(?: \p{L}+)?))\b\.?/iu;
 const KRONER = new Set(["DKK", "NOK", "SEK"]);
 
 /** The unit of sale stated right after a price, as the shop words it, or null for a pack price. */
 function perUnitAfter(value: string, end: number): string | null {
-  const words = PER_UNIT.exec(value.slice(end))?.[1];
+  const match = PER_UNIT.exec(value.slice(end));
+  const family = resolveUnit(match?.[2])?.family;
+
+  if (!match || (family !== "mass" && family !== "volume")) return null;
 
   // A slash is the shop's shorthand; a shopper reads it as "per".
-  return words ? collapse(words).replace(/^\/\s*/, "per ") : null;
+  return collapse(match[1] ?? "").replace(/^\/\s*/, "per ");
 }
 
 function markedCurrency(mark: string, near: string | null | undefined): string | null {
@@ -262,7 +267,7 @@ function isStruck(node: AnyNode): boolean {
  * deal's words, and a price inside it ("2 voor €5.50") is part of the words
  * and never the price charged.
  */
-const DEAL_LABEL_CLASS = /promo|deal|discount|bonus|badge|sticker|price-?label|shield/i;
+const DEAL_LABEL_CLASS = /promo|deal|discount|badge|sticker|price-?label/i;
 
 function isDealLabel(node: AnyNode): boolean {
   return node.type === "tag" && DEAL_LABEL_CLASS.test(classOf(node));
@@ -751,12 +756,13 @@ function saleOf(
   if (regular !== null && charged === regular) {
     charged = labelPrices.find((value) => value < regular) ?? price;
   }
+  const regularPrice = saleRegularPrice(charged, regular);
   const dealWords = dealWordsOf($, card);
 
   return {
     price: charged,
     sale: {
-      ...(regular !== null && regular > charged ? { regularPrice: regular } : {}),
+      ...(regularPrice !== null ? { regularPrice } : {}),
       ...(dealWords ? { dealWords } : {}),
     },
   };
@@ -865,13 +871,21 @@ function readDomCandidates(
       const name = cardName($, card, element, label);
 
       if (!name) return null;
-      const money =
+      const marked =
         readPriceInText(label, fallbackCurrency) ??
         readPriceInText(spacedText(card), fallbackCurrency);
-      const price = money?.price ?? decimalInCard($, card) ?? priceFromDigitRun($, card);
+      // A price per kilo is the card's price only where the card states no
+      // pack price at all — not even as bare digits, which is how a shop
+      // that prints "€ 19,93 / kg" beside them styles its pack price.
+      const unmarked =
+        marked === null || marked.perUnit
+          ? (decimalInCard($, card) ?? priceFromDigitRun($, card))
+          : null;
+      const money = marked && (!marked.perUnit || unmarked === null) ? marked : null;
+      const price = money?.price ?? unmarked;
 
       if (price === undefined || price === null) return { name, url } satisfies StoreCandidate;
-      const currency = money?.currency ?? fallbackCurrency;
+      const currency = marked?.currency ?? fallbackCurrency;
       const size = cardSize(texts, label, money?.perUnit);
       const { price: charged, sale } = saleOf($, card, label, price);
 
@@ -931,9 +945,7 @@ export function readSearchResults(html: string, baseUrl: string): StoreCandidate
         ? {}
         : sized(candidate.size ? { size: candidate.size, pack: candidate.pack ?? null } : null)),
       // A Sale is what the card presents; the data states no regular price.
-      ...(candidate.regularPrice !== undefined &&
-      charged !== undefined &&
-      candidate.regularPrice > charged
+      ...(charged !== undefined && saleRegularPrice(charged, candidate.regularPrice) !== null
         ? { regularPrice: candidate.regularPrice }
         : {}),
       ...(candidate.dealWords ? { dealWords: candidate.dealWords } : {}),
@@ -1011,15 +1023,16 @@ function saleNearHeading($: cheerio.CheerioAPI, price: number): SaleReading {
   let sale: SaleReading = {};
 
   nearHeading($, (scope) => {
-    const struck = struckPrices($, scope).filter((value) => value > price);
+    const struck = struckPrices($, scope);
+    const regularPrice = struck.length > 0 ? saleRegularPrice(price, Math.max(...struck)) : null;
     const dealWords = dealWordsOf($, scope);
 
     sale = {
-      ...(struck.length > 0 ? { regularPrice: Math.max(...struck) } : {}),
+      ...(regularPrice !== null ? { regularPrice } : {}),
       ...(dealWords ? { dealWords } : {}),
     };
 
-    return struck.length > 0 || dealWords !== undefined;
+    return regularPrice !== null || dealWords !== undefined;
   });
 
   return sale;

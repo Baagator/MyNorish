@@ -156,7 +156,7 @@ Norish asks the shop only once you use the field, so opening a grocery to
 rename it sends nobody to a supermarket, and a Store with no shop link shows
 the field greyed out rather than pretending it can search.
 
-Those three fields are yours to correct. Type over the price and it becomes
+Those fields are yours to correct. Type over the price and it becomes
 **your** price for that name at that Store: Norish never writes over a price it
 read from a shop's own page, so a correction sits beside what the shop said
 rather than through it.

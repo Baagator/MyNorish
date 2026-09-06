@@ -42,7 +42,13 @@ export function useProductChoice(options: {
     /** A Pack Size set by hand: absent while the field is untouched, null once cleared. */
     pack?: PackSizeDto | null;
   } | null>(null);
-  const current = held && held.storeId === selectedStoreId && held.about === resetOn ? held : null;
+  /** Whether what is held is about this Store and this grocery, and so is readable at all. */
+  const isCurrent = useCallback(
+    (state: { storeId: string | null; about: unknown } | null) =>
+      state !== null && state.storeId === selectedStoreId && state.about === resetOn,
+    [selectedStoreId, resetOn]
+  );
+  const current = isCurrent(held) ? held : null;
   const choice = current?.choice ?? null;
   const pack = current?.pack;
   const setChoice = useCallback(
@@ -52,22 +58,19 @@ export function useProductChoice(options: {
         about: resetOn,
         choice: next,
         // A Pack Size typed for one product is not the next product's.
-        ...(prev && prev.storeId === selectedStoreId && prev.about === resetOn && prev.choice === next
-          ? { pack: prev.pack }
-          : {}),
+        ...(isCurrent(prev) && prev?.choice === next ? { pack: prev?.pack } : {}),
       })),
-    [selectedStoreId, resetOn]
+    [selectedStoreId, resetOn, isCurrent]
   );
   const setPack = useCallback(
     (next: PackSizeDto | null | undefined) =>
       setHeld((prev) => ({
         storeId: selectedStoreId,
         about: resetOn,
-        choice:
-          prev && prev.storeId === selectedStoreId && prev.about === resetOn ? prev.choice : null,
+        choice: isCurrent(prev) ? (prev?.choice ?? null) : null,
         ...(next === undefined ? {} : { pack: next }),
       })),
-    [selectedStoreId, resetOn]
+    [selectedStoreId, resetOn, isCurrent]
   );
   const chooseProduct = useChooseProduct();
   const { linkFor } = useStorePrices();
@@ -118,7 +121,10 @@ export function useProductChoice(options: {
     // A Pack Size set for the product already linked is written against that
     // product, with the link restated as it is.
     const chosen =
-      choice ?? (pack !== undefined && linked ? { kind: "product" as const, storeProductId: linked.id } : null);
+      choice ??
+      (pack !== undefined && linked
+        ? { kind: "product" as const, storeProductId: linked.id }
+        : null);
 
     setHeld(null);
     if (!chosen || !selectedStoreId || !groceryName) return;

@@ -17,8 +17,10 @@ function pending(name: string): ResolvedProductLink {
   return { storeId: STORE, normalizedName: name, triedAt: null, product: null };
 }
 
+type UseTRPC = Parameters<typeof createUseStorePrices>[0]["useTRPC"];
+
 /** The shape the hook reads off the tRPC binding, and nothing more of it. */
-function fakeTrpc(links: () => ResolvedProductLink[]) {
+function fakeTrpc(links: () => ResolvedProductLink[]): ReturnType<UseTRPC> {
   return {
     stores: {
       groceryPrices: {
@@ -30,10 +32,16 @@ function fakeTrpc(links: () => ResolvedProductLink[]) {
       },
       linkFor: { queryKey: () => ["stores", "linkFor"] },
     },
-  };
+  } as unknown as ReturnType<UseTRPC>;
 }
 
-function Probe({ useStorePrices, name }: { useStorePrices: () => any; name: string }) {
+function Probe({
+  useStorePrices,
+  name,
+}: {
+  useStorePrices: ReturnType<typeof createUseStorePrices>;
+  name: string;
+}) {
   const { linkFor } = useStorePrices();
   const link = linkFor(STORE, name);
 
@@ -58,7 +66,7 @@ describe("a Pending Link on the screen", () => {
   });
 
   async function mount(name: string, links: () => ResolvedProductLink[]) {
-    const useStorePrices = createUseStorePrices({ useTRPC: () => fakeTrpc(links) as any });
+    const useStorePrices = createUseStorePrices({ useTRPC: () => fakeTrpc(links) });
 
     render(
       <QueryClientProvider client={client}>

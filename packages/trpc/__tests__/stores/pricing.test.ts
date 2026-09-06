@@ -69,6 +69,26 @@ describe("asking a Store what a name means", () => {
     });
   });
 
+  it("tells the household about a question the list view asked, and about nothing it already knew", async () => {
+    const miss = { storeId: STORE, normalizedName: "melk", triedAt: new Date(), product: null };
+
+    groceriesRepository.listGroceriesByUsers.mockResolvedValue([
+      { name: "kaas", storeId: STORE },
+      { name: "melk", storeId: STORE },
+    ]);
+    storeProductsRepository.resolveProductLinks.mockResolvedValue([miss]);
+
+    const links = await priceTheList(ctx);
+    const pending = { storeId: STORE, normalizedName: "kaas", triedAt: null, product: null };
+
+    expect(links).toEqual([miss, pending]);
+    expect(storeEmitter.emitToHousehold).toHaveBeenCalledExactlyOnceWith(
+      "household-1",
+      "linkUpdated",
+      { link: pending }
+    );
+  });
+
   it("asks again only for a Pending Link older than the retry window", async () => {
     const before = Date.now();
 
