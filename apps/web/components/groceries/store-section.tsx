@@ -28,6 +28,7 @@ import { DynamicHeroIcon } from "./dynamic-hero-icon";
 import { GroceryItem } from "./grocery-item";
 import { getStoreColorClasses } from "./store-colors";
 import { StoreHeadingTotal } from "./store-heading-total";
+import { lineOf } from "./store-total";
 
 interface StoreSectionProps {
   store: StoreDto | null; // null = Unsorted
@@ -121,6 +122,8 @@ function StoreSectionComponent({
       };
   const activeCount = groceries.filter((g) => !g.isDone).length;
   const doneCount = groceries.filter((g) => g.isDone).length;
+  // The flat list prices every row as its own purchase.
+  const priceLines = useMemo(() => groceries.map(lineOf), [groceries]);
 
   // Get ordered item IDs from DnD context - this updates during drag
   const orderedItemIds = getItemsForContainer(containerId);
@@ -194,7 +197,7 @@ function StoreSectionComponent({
         </div>
 
         {/* What is still to buy at this Store costs this */}
-        <StoreHeadingTotal lines={groceries} storeId={store?.id ?? null} />
+        <StoreHeadingTotal lines={priceLines} storeId={store?.id ?? null} />
 
         {/* Expand/collapse chevron */}
         <motion.div

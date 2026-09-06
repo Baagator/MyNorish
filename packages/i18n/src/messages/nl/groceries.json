@@ -123,6 +123,8 @@
   "price": {
     "pending": "Prijs wordt opgezocht",
     "perUnit": "per {unit}",
-    "pieces": "{count, plural, one {stuk} other {stuks}}"
+    "pieces": "{count, plural, one {stuk} other {stuks}}",
+    "packs": "{count} × {size}",
+    "onePack": "geteld als één verpakking"
   }
 }

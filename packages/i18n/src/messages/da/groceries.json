@@ -123,6 +123,8 @@
   "price": {
     "pending": "Slår prisen op",
     "perUnit": "pr. {unit}",
-    "pieces": "{count, plural, one {stk.} other {stk.}}"
+    "pieces": "{count, plural, one {stk.} other {stk.}}",
+    "packs": "{count} × {size}",
+    "onePack": "talt som én pakke"
   }
 }

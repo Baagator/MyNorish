@@ -123,6 +123,8 @@
   "price": {
     "pending": "Recherche du prix",
     "perUnit": "par {unit}",
-    "pieces": "{count, plural, one {pièce} other {pièces}}"
+    "pieces": "{count, plural, one {pièce} other {pièces}}",
+    "packs": "{count} × {size}",
+    "onePack": "compté comme un seul paquet"
   }
 }

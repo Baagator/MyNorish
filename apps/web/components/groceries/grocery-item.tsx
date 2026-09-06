@@ -9,6 +9,7 @@ import type { GroceryDto, RecurringGroceryDto, StoreDto } from "@norish/shared/c
 
 import { GroceryCheckbox } from "./grocery-checkbox";
 import { GroceryPrice } from "./grocery-price";
+import { lineOf } from "./store-total";
 
 interface GroceryItemProps {
   grocery: GroceryDto;
@@ -89,8 +90,8 @@ function GroceryItemComponent({
         )}
       </button>
 
-      {/* What one pack of this costs at its Store, or a way to say so */}
-      <GroceryPrice grocery={grocery} />
+      {/* What this costs at its Store: as many packs as the amount needs */}
+      <GroceryPrice line={lineOf(grocery)} />
     </div>
   );
 }

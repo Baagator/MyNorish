@@ -123,6 +123,8 @@
   "price": {
     "pending": "Preis wird nachgeschlagen",
     "perUnit": "pro {unit}",
-    "pieces": "{count, plural, one {Stück} other {Stück}}"
+    "pieces": "{count, plural, one {Stück} other {Stück}}",
+    "packs": "{count} × {size}",
+    "onePack": "als eine Packung berechnet"
   }
 }

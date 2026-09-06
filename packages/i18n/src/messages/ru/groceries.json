@@ -123,6 +123,8 @@
   "price": {
     "pending": "Ищем цену",
     "perUnit": "за {unit}",
-    "pieces": "{count, plural, one {штука} few {штуки} many {штук} other {штуки}}"
+    "pieces": "{count, plural, one {штука} few {штуки} many {штук} other {штуки}}",
+    "packs": "{count} × {size}",
+    "onePack": "посчитано как одна упаковка"
   }
 }

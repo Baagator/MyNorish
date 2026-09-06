@@ -123,6 +123,8 @@
   "price": {
     "pending": "Търсене на цената",
     "perUnit": "за {unit}",
-    "pieces": "{count, plural, one {брой} other {броя}}"
+    "pieces": "{count, plural, one {брой} other {броя}}",
+    "packs": "{count} × {size}",
+    "onePack": "броено като една опаковка"
   }
 }

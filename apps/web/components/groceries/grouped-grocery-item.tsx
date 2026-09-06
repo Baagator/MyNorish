@@ -13,6 +13,7 @@ import type { GroceryGroup, GroupedGrocerySource } from "@norish/shared/lib/groc
 
 import { GroceryCheckbox } from "./grocery-checkbox";
 import { GroceryPrice } from "./grocery-price";
+import { lineOfGroup } from "./store-total";
 
 /**
  * Format inline source breakdown showing recipe names and amounts.
@@ -31,20 +32,6 @@ function formatInlineSourceBreakdown(
       return amount ? `${name} (${amount})` : name;
     })
     .join(", ");
-}
-
-/**
- * The line a group is priced by: a group shares one name at one Store, so one
- * Shelf Price is what its row shows and what the heading counts it as. An
- * outstanding line stands for the group while there is one; a group that is
- * all ticked off is priced by its first, which the heading then leaves out.
- */
-export function groupPriceLine(group: GroceryGroup): GroceryDto {
-  const line = group.sources.find((source) => !source.grocery.isDone) ?? group.sources[0];
-
-  if (!line) throw new Error("A grocery group has no groceries");
-
-  return line.grocery;
 }
 
 interface GroupedGroceryItemProps {
@@ -192,8 +179,8 @@ function GroupedGroceryItemComponent({
           )}
         </button>
 
-        {/* One Shelf Price per row, for a lone grocery and for a group alike */}
-        <GroceryPrice grocery={groupPriceLine(group)} />
+        {/* One purchase per row: a group is priced from its combined amount */}
+        <GroceryPrice line={lineOfGroup(group)} />
 
         {/* Expand/collapse button for groups */}
         {!isSingleItem && (

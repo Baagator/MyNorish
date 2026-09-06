@@ -123,6 +123,8 @@
   "price": {
     "pending": "Sprawdzanie ceny",
     "perUnit": "za {unit}",
-    "pieces": "{count, plural, one {sztuka} few {sztuki} many {sztuk} other {sztuki}}"
+    "pieces": "{count, plural, one {sztuka} few {sztuki} many {sztuk} other {sztuki}}",
+    "packs": "{count} × {size}",
+    "onePack": "policzono jako jedno opakowanie"
   }
 }

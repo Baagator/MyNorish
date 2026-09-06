@@ -123,6 +123,8 @@
   "price": {
     "pending": "Buscando el precio",
     "perUnit": "por {unit}",
-    "pieces": "{count, plural, one {unidad} other {unidades}}"
+    "pieces": "{count, plural, one {unidad} other {unidades}}",
+    "packs": "{count} × {size}",
+    "onePack": "contado como un envase"
   }
 }

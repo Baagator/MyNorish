@@ -123,6 +123,8 @@
   "price": {
     "pending": "가격을 찾는 중",
     "perUnit": "{unit}당",
-    "pieces": "{count, plural, other {개}}"
+    "pieces": "{count, plural, other {개}}",
+    "packs": "{count} × {size}",
+    "onePack": "1개 포장으로 계산됨"
   }
 }
