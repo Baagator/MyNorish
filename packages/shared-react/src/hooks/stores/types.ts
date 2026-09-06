@@ -43,7 +43,8 @@ export type StoresMutationsResult = {
   checkSearchAddress: (
     storeId: string,
     term: string | null,
-    searchAddress: string | null
+    searchAddress: string | null,
+    website: string | null
   ) => Promise<StoreSearchAddressResult>;
   isCreating: boolean;
   isUpdating: boolean;

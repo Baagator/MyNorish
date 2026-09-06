@@ -249,10 +249,16 @@ const checkSearchAddress = authedProcedure
     if (!store) throw new TRPCError({ code: "NOT_FOUND", message: "Store not found" });
     await assertHouseholdAccess(ctx.user.id, store.userId);
 
-    let searchAddress = input.searchAddress ?? store.searchAddress;
+    // What the client just saved wins over what the row still says, and a
+    // field the client cleared is cleared: `null` is an answer, `undefined`
+    // is the field not having been sent. The update this rides beside is
+    // optimistic and may land after this read.
+    let searchAddress =
+      input.searchAddress === undefined ? store.searchAddress : input.searchAddress;
+    const website = input.website === undefined ? store.website : input.website;
 
-    if (!searchAddress && store.website) {
-      searchAddress = await requireQueueApiHandler("discoverSearchAddress")(store.website);
+    if (!searchAddress && website) {
+      searchAddress = await requireQueueApiHandler("discoverSearchAddress")(website);
 
       if (searchAddress) {
         const saved = await updateStore({ id: store.id, searchAddress });

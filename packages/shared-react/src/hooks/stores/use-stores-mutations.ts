@@ -163,9 +163,10 @@ export function createUseStoresMutations({
     const checkSearchAddress = (
       storeId: string,
       term: string | null,
-      searchAddress: string | null
+      searchAddress: string | null,
+      website: string | null
     ): Promise<StoreSearchAddressResult> =>
-      checkMutation.mutateAsync({ storeId, term, searchAddress }).then((result) => {
+      checkMutation.mutateAsync({ storeId, term, searchAddress, website }).then((result) => {
         invalidate();
 
         return result;

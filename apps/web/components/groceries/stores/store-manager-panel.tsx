@@ -22,6 +22,7 @@ import type {
   StoreDto,
   StoreSearchAddressResult,
 } from "@norish/shared/contracts";
+import { deriveSearchAddress } from "@norish/shared/lib/search-address";
 
 import { DeleteStoreModal } from "./delete-store-modal";
 import { storeLinkFields, StoreSearchAddressField } from "./store-search-address-field";
@@ -41,6 +42,17 @@ type EditingStore = {
 };
 /** What the shop said when its Search Address was last tried, if it was. */
 type ShopCheck = { storeName: string; result: StoreSearchAddressResult | null };
+
+/**
+ * Whether the form can be saved: a name, and a shop link that is either empty
+ * or one Norish can read. A link it cannot read would be saved as no link at
+ * all, silently taking the Store's website and Search Address with it.
+ */
+function canSave(editing: EditingStore): boolean {
+  const link = editing.link.trim();
+
+  return editing.name.trim() !== "" && (link === "" || deriveSearchAddress(link) !== null);
+}
 
 export function StoreManagerPanel({ open, onOpenChange, stores }: StoreManagerPanelProps) {
   const { createStore, updateStore, deleteStore, reorderStores, checkSearchAddress } =
@@ -75,10 +87,18 @@ export function StoreManagerPanel({ open, onOpenChange, stores }: StoreManagerPa
     });
   };
   const handleSave = async () => {
-    if (!editingStore || !editingStore.name.trim()) return;
+    if (!editingStore || !canSave(editingStore)) return;
 
     const { website, searchAddress, term } = storeLinkFields(editingStore.link);
     const storeName = editingStore.name.trim();
+    // Re-saving a Store with the link it already had asks the shop nothing:
+    // the address was checked when it was pasted, and a paste re-read from the
+    // Store carries no term to check it with.
+    const before = editingStore.id ? stores.find((store) => store.id === editingStore.id) : null;
+    const linkChanged =
+      !before ||
+      (before.website ?? null) !== website ||
+      (before.searchAddress ?? null) !== searchAddress;
 
     let savedId = editingStore.id;
 
@@ -105,9 +125,9 @@ export function StoreManagerPanel({ open, onOpenChange, stores }: StoreManagerPa
     setEditingStore(null);
     // Verification informs, it never gates: the Store is stored by now, and
     // this only tells the user what the address it was given actually found.
-    if (savedId && (website ?? searchAddress)) {
+    if (savedId && (website ?? searchAddress) && linkChanged) {
       setShopCheck({ storeName, result: null });
-      checkSearchAddress(savedId, term, searchAddress)
+      checkSearchAddress(savedId, term, searchAddress, website)
         .then((result) => setShopCheck({ storeName, result }))
         .catch(() => setShopCheck(null));
     }
@@ -435,7 +455,7 @@ function StoreEditForm({ editing, onChange, onSave, onCancel, translations }: St
         </ActionButton>
         <ActionButton
           action={editing.id ? "save" : "create"}
-          isDisabled={!editing.name.trim()}
+          isDisabled={!canSave(editing)}
           onPress={onSave}
         >
           {editing.id ? tActions("save") : t("create")}

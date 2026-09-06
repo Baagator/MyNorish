@@ -87,11 +87,14 @@ export const StoreSearchAddressCheckSchema = z.object({
   storeId: z.uuid(),
   term: z.string().max(200).nullish(),
   /**
-   * The address the client just saved. A store update is optimistic and may
-   * still be in flight, so without this the check can probe the address the
-   * user has just replaced.
+   * The address and website the client just saved. A store update is
+   * optimistic and may still be in flight, so without these the check can
+   * probe the address the user has just replaced — or, for a homepage pasted
+   * into an existing Store, read no website at all and never go looking for
+   * its search page.
    */
   searchAddress: StoreSearchAddressSchema.nullish(),
+  website: StoreWebsiteSchema.nullish(),
 });
 
 // Store delete schema with snapshot-based grocery handling

@@ -31,7 +31,8 @@ export type StoresContextValue = {
   checkSearchAddress: (
     storeId: string,
     term: string | null,
-    searchAddress: string | null
+    searchAddress: string | null,
+    website: string | null
   ) => Promise<StoreSearchAddressResult>;
   // Prices
   /** The Store Product a grocery resolves to, or null where its Store answered with a Miss. */
