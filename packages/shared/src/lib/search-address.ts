@@ -33,8 +33,36 @@ export type SearchAddressDerivation =
   | { kind: "address"; searchAddress: string; website: string; term: string | null }
   | { kind: "website"; website: string };
 
-/** ASCII literals a machine writes, in every language a shop is written in. */
-const MACHINE_LITERALS = new Set(["true", "false", "yes", "no", "on", "off", "null", "none"]);
+/**
+ * ASCII literals a machine writes, in every language a shop is written in:
+ * flags, and the values a search form gives its own mode fields —
+ * `searchType=keyword`, `view=grid`, `sort=relevance`. Values, never names.
+ */
+const MACHINE_LITERALS = new Set([
+  "true",
+  "false",
+  "yes",
+  "no",
+  "on",
+  "off",
+  "null",
+  "none",
+  "all",
+  "any",
+  "default",
+  "keyword",
+  "keywords",
+  "search",
+  "query",
+  "text",
+  "product",
+  "products",
+  "relevance",
+  "asc",
+  "desc",
+  "list",
+  "grid",
+]);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** `nl`, `en-US`, `pt_BR`: a bare pair of letters, or a language and its region. */
 const LOCALE_TAG = /^[a-z]{2}([-_][a-z]{2,4})?$/i;

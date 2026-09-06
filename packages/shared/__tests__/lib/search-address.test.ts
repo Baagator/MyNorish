@@ -43,6 +43,20 @@ describe("deriveSearchAddress: the shops we happen to know", () => {
   });
 });
 
+describe("deriveSearchAddress: a search form's own words are not the term", () => {
+  it("does not take a mode word a form wrote for the word a person typed", () => {
+    // `searchType=keyword` is the form talking to itself; the term is the
+    // other value. A four-letter term beside another parameter is given up on
+    // rather than guessed at, and a longer one is taken.
+    expect(
+      deriveSearchAddress("https://www.jumbo.com/producten/?searchType=keyword&searchTerms=kaas")
+    ).toMatchObject({ kind: "website" });
+    expect(
+      addressOf("https://www.jumbo.com/producten/?searchType=keyword&searchTerms=pindakaas")
+    ).toBe("https://www.jumbo.com/producten/?searchType=keyword&searchTerms={query}");
+  });
+});
+
 describe("deriveSearchAddress: shops whose words this repo has never heard", () => {
   it("finds the slot in a German search parameter", () => {
     expect(addressOf("https://shop.example.de/suche?suchbegriff=k%C3%A4se&seite=1")).toBe(
