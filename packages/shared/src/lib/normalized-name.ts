@@ -27,3 +27,12 @@ export function nameWords(name: string): string[] {
     .split(" ")
     .filter((word) => word.length > 0);
 }
+
+/**
+ * What a Store knows about one grocery name, as one key. Every place that
+ * holds Product Links in a map — the pricing router, the repository, the
+ * client's price cache — spells the key with this and nothing else.
+ */
+export function productLinkKey(storeId: string, normalizedName: string): string {
+  return `${storeId}|${normalizedName}`;
+}

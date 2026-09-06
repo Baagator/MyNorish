@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSubscription } from "@trpc/tanstack-react-query";
 
 import type { ResolvedProductLink, StoreProductDto } from "@norish/shared/contracts";
-import { normalizeGroceryName } from "@norish/shared/lib/normalized-name";
+import { normalizeGroceryName, productLinkKey } from "@norish/shared/lib/normalized-name";
 
 import type { CreateStoresHooksOptions } from "./types";
 
@@ -13,12 +13,12 @@ export type StorePricesData = ResolvedProductLink[];
 export function priceKey(storeId: string | null, name: string | null): string | null {
   const normalized = normalizeGroceryName(name);
 
-  return storeId && normalized ? `${storeId}|${normalized}` : null;
+  return storeId && normalized ? productLinkKey(storeId, normalized) : null;
 }
 
 /** The same key, for a link that already carries its normalized name. */
 function linkKey(link: Pick<ResolvedProductLink, "storeId" | "normalizedName">): string {
-  return `${link.storeId}|${link.normalizedName}`;
+  return productLinkKey(link.storeId, link.normalizedName);
 }
 
 export interface StorePricesResult {
