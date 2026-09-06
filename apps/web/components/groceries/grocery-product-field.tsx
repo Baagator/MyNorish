@@ -1,20 +1,12 @@
 "use client";
 
 import type { PackSizeWords } from "@/lib/format-price";
-import type { Key } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePanelPortalContainer } from "@/components/Panel/Panel";
 import { useShopSearch, useStoreProducts } from "@/hooks/stores";
 import { usePackSizeWords } from "@/hooks/stores/use-pack-size-words";
 import { formatPackSize, formatShelfPrice } from "@/lib/format-price";
-import {
-  PACK_UNIT_KEYS,
-  packFromKey,
-  packKeyFixesQuantity,
-  packKeyLabel,
-  packUnitKey,
-} from "@/lib/pack-size-editor";
-import { Chip, ComboBox, Header, Input, Label, ListBox, Select, TextField } from "@heroui/react";
+import { Chip, ComboBox, Header, Input, Label, ListBox, TextField } from "@heroui/react";
 import { useLocale, useTranslations } from "next-intl";
 
 import type {
@@ -29,7 +21,7 @@ import { chooseUnmistakable, distinctProducts } from "@norish/shared/lib/auto-li
 import { currencyForUrl, isPriced } from "@norish/shared/lib/currency";
 import { nameWords } from "@norish/shared/lib/normalized-name";
 import { createClientId } from "@norish/shared/lib/operation-helpers";
-import { packSizeOf } from "@norish/shared/lib/pack-size";
+import { packSizeOf, readPackSize } from "@norish/shared/lib/pack-size";
 import { saleRegularPrice } from "@norish/shared/lib/sale";
 
 /** How long a shopper stops typing before the shop is asked. */
@@ -493,55 +485,49 @@ export function GroceryProductField({
   const showsPrice =
     Boolean(picked) || Boolean(linkedProduct) || foundNothing || noAnswer || byHand || !canSearch;
 
-  // The Pack Size of the product shown — picked, or linked — which the editor
-  // under the price opens on. A shopper who types over it sets it by hand,
-  // and that is the last word until the field is cleared; a different
-  // product picked afterwards is a different pack, read afresh.
-  const shownPack = useMemo<PackSize | null>(() => {
-    if (handSetPack !== undefined) return handSetPack;
+  // The pack of the product shown — picked, or linked — in the words the
+  // shop prints on it, which is what the field under the price opens on. A
+  // shopper who types over it sets the Pack Size by hand, in the same words,
+  // and that is the last word until the field is emptied; a different product
+  // picked afterwards is a different pack, read afresh. What the words mean
+  // is the reader's business, never the shopper's.
+  const shownPackWords = useMemo<string>(() => {
+    if (handSetPack !== undefined) return handSetPack ? formatPackSize(handSetPack, packWords) : "";
     const row = picked ? rows.find((candidate) => candidate.key === picked) : null;
+    const pack = row ? row.pack : linkedProduct ? packSizeOf(linkedProduct) : null;
+    const size = row ? row.size : (linkedProduct?.size ?? null);
+    const byHand = !row && Boolean(linkedProduct?.packByHand);
 
-    if (row) return row.pack;
+    if (pack && (byHand || !size)) return formatPackSize(pack, packWords);
 
-    return linkedProduct ? packSizeOf(linkedProduct) : null;
+    return size ?? "";
     // The rows are rebuilt every render; what matters is which one is picked.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [handSetPack, picked, linkedProduct]);
-  const [packQuantity, setPackQuantity] = useState(() =>
-    shownPack ? String(shownPack.quantity) : ""
-  );
-  const [packKey, setPackKey] = useState<string>(() =>
-    shownPack ? packUnitKey(shownPack) : "gram"
-  );
+  }, [handSetPack, picked, linkedProduct, packWords]);
+  const [packText, setPackText] = useState(shownPackWords);
   const packEditedFor = useRef<string | null>(null);
 
-  // A product picked or read anew brings its own Pack Size into the editor,
-  // unless the shopper has already typed one for exactly this product.
+  // A product picked or read anew brings its own pack words into the field,
+  // unless the shopper has already typed some for exactly this product.
   useEffect(() => {
     const shownFor = picked ?? linkedProduct?.id ?? null;
 
     if (packEditedFor.current !== null && packEditedFor.current === shownFor) return;
     packEditedFor.current = null;
-    setPackQuantity(shownPack ? String(shownPack.quantity) : "");
-    setPackKey(shownPack ? packUnitKey(shownPack) : "gram");
-  }, [shownPack, picked, linkedProduct?.id]);
+    setPackText(shownPackWords);
+  }, [shownPackWords, picked, linkedProduct?.id]);
 
   const editPack = useCallback(
-    (quantity: string, key: string) => {
+    (text: string) => {
       packEditedFor.current = picked ?? linkedProduct?.id ?? "";
-      setPackQuantity(quantity);
-      setPackKey(key);
-      onPack(packFromKey(key, quantity));
+      setPackText(text);
+      // Emptied, the pack goes back to what the shop's words say; words the
+      // reader can make a pack of are the pack; anything else, typed on the
+      // way to something readable, changes nothing.
+      onPack(text.trim() === "" ? null : (readPackSize(text) ?? undefined));
     },
     [linkedProduct?.id, onPack, picked]
   );
-  const packOptions = useMemo(() => {
-    const keys: string[] = [...PACK_UNIT_KEYS];
-
-    if (!keys.includes(packKey)) keys.push(packKey);
-
-    return keys.map((key) => ({ key, label: packKeyLabel(key, packWords) }));
-  }, [packKey, packWords]);
 
   // Hooks first, and only then: a Store that points at no shop has nothing to
   // ask and nothing to show.
@@ -700,50 +686,17 @@ export function GroceryProductField({
               />
             </TextField>
           </div>
-          {/* What one Shelf Price buys: the two knobs the Line Cost turns are the amount and this */}
-          <div className="flex gap-3" data-testid="pack-size">
-            {!packKeyFixesQuantity(packKey) && (
-              <TextField
-                className="flex-1"
-                value={packQuantity}
-                onChange={(value) => editPack(value, packKey)}
-              >
-                <Label>{t("packSize")}</Label>
-                <Input
-                  className={FIELD_CLASS}
-                  data-testid="pack-size-quantity"
-                  inputMode="decimal"
-                  placeholder="500"
-                  style={FIELD_STYLE}
-                  variant="secondary"
-                />
-              </TextField>
-            )}
-            <Select
-              className={packKeyFixesQuantity(packKey) ? "flex-1" : "w-36"}
-              selectedKey={packKey}
+          {/* What one Shelf Price buys, in the words the shop prints on the pack */}
+          <TextField value={packText} onChange={editPack}>
+            <Label>{t("packSize")}</Label>
+            <Input
+              className={FIELD_CLASS}
+              data-testid="pack-size"
+              placeholder="500 g"
+              style={FIELD_STYLE}
               variant="secondary"
-              onSelectionChange={(key: Key | null) => {
-                if (key !== null) editPack(packQuantity, String(key));
-              }}
-            >
-              <Label>{packKeyFixesQuantity(packKey) ? t("packSize") : t("packSizeUnit")}</Label>
-              <Select.Trigger className="min-h-12 items-center" data-testid="pack-size-unit">
-                <Select.Value />
-                <Select.Indicator />
-              </Select.Trigger>
-              <Select.Popover UNSTABLE_portalContainer={portalContainer}>
-                <ListBox>
-                  {packOptions.map((option) => (
-                    <ListBox.Item key={option.key} id={option.key} textValue={option.label}>
-                      {option.label}
-                      <ListBox.ItemIndicator />
-                    </ListBox.Item>
-                  ))}
-                </ListBox>
-              </Select.Popover>
-            </Select>
-          </div>
+            />
+          </TextField>
         </div>
       )}
     </div>

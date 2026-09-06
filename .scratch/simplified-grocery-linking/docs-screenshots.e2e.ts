@@ -102,7 +102,7 @@ test("captures the Pack Size under the product in the grocery panel", async () =
   await page.goto("/groceries");
   await page.getByText("tarwebloem", { exact: true }).first().click();
   await expect(page.getByTestId("grocery-product-field")).toHaveValue("Tarwebloem");
-  await expect(page.getByTestId("pack-size-quantity")).toHaveValue("500");
+  await expect(page.getByTestId("pack-size")).toHaveValue("500 g");
   await page.waitForTimeout(400);
   await page.screenshot({ path: path.join(SHOTS, "groceries-pack-size.png") });
   await page.getByRole("button", { name: "Close panel" }).click();

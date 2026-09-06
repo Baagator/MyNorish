@@ -117,8 +117,7 @@
     "productLabel": "Produkt hos {store}",
     "cannotSearch": "Denne butikken kan ikke søkes i",
     "cannotSearchHint": "Norish klarte ikke å lese en søkeside ut av butikklenken til {store}. Rett den under Administrer butikker, så følger prisene.",
-    "packSize": "Pakkestørrelse",
-    "packSizeUnit": "Enhet"
+    "packSize": "Pakkestørrelse"
   },
   "price": {
     "pending": "Slår opp prisen",

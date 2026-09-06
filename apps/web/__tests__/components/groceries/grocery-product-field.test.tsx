@@ -1155,8 +1155,8 @@ describe("GroceryProductField", () => {
     });
   });
 
-  describe("the Pack Size editor", () => {
-    it("opens on the linked product's Pack Size and writes one typed over it", () => {
+  describe("the Pack Size field", () => {
+    it("opens on the shop's own words for the pack and takes words typed over them", () => {
       const onPack = vi.fn();
 
       render(
@@ -1170,22 +1170,28 @@ describe("GroceryProductField", () => {
         />
       );
 
-      expect(screen.getByTestId("pack-size-quantity")).toHaveValue("1");
-      expect(screen.getByTestId("pack-size-unit")).toHaveTextContent("l");
+      expect(screen.getByTestId("pack-size")).toHaveValue("1 L");
       // Untouched, the field says nothing about the pack.
       expect(onPack).not.toHaveBeenCalled();
 
-      fireEvent.change(screen.getByTestId("pack-size-quantity"), { target: { value: "1,5" } });
-
+      // Words the reader can make a pack of are the pack; the shopper never
+      // sees a quantity, a unit or a by-weight flag.
+      fireEvent.change(screen.getByTestId("pack-size"), { target: { value: "1,5 l" } });
       expect(onPack).toHaveBeenLastCalledWith({ quantity: 1.5, unit: "liter", byWeight: false });
 
-      // Emptied, the hand-set Pack Size is cleared rather than written as nothing.
-      fireEvent.change(screen.getByTestId("pack-size-quantity"), { target: { value: "" } });
+      fireEvent.change(screen.getByTestId("pack-size"), { target: { value: "per kg" } });
+      expect(onPack).toHaveBeenLastCalledWith({ quantity: 1, unit: "kilogram", byWeight: true });
 
+      // Words on the way to something readable change nothing.
+      fireEvent.change(screen.getByTestId("pack-size"), { target: { value: "6 x" } });
+      expect(onPack).toHaveBeenLastCalledWith(undefined);
+
+      // Emptied, the hand-set Pack Size is cleared rather than written as nothing.
+      fireEvent.change(screen.getByTestId("pack-size"), { target: { value: "" } });
       expect(onPack).toHaveBeenLastCalledWith(null);
     });
 
-    it("brings a picked result's own Pack Size into the editor", async () => {
+    it("brings a picked result's own pack words into the field", async () => {
       const onPack = vi.fn();
 
       render(
@@ -1211,12 +1217,11 @@ describe("GroceryProductField", () => {
         fireEvent.click(picked as HTMLElement);
       });
 
-      expect(screen.getByTestId("pack-size-quantity")).toHaveValue("1.5");
-      expect(screen.getByTestId("pack-size-unit")).toHaveTextContent("l");
+      expect(screen.getByTestId("pack-size")).toHaveValue("1,5 L");
       expect(onPack).not.toHaveBeenCalled();
     });
 
-    it("shows a hand-set Pack Size the panel is holding", () => {
+    it("shows a hand-set Pack Size the panel is holding, in Norish's words", () => {
       render(
         <GroceryProductField
           choice={null}
@@ -1229,9 +1234,7 @@ describe("GroceryProductField", () => {
         />
       );
 
-      // Sold by weight: the form fixes the quantity, so there is none to type.
-      expect(screen.queryByTestId("pack-size-quantity")).not.toBeInTheDocument();
-      expect(screen.getByTestId("pack-size-unit")).toHaveTextContent("perUnit kg");
+      expect(screen.getByTestId("pack-size")).toHaveValue("perUnit kg");
     });
   });
 });

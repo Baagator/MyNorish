@@ -117,8 +117,7 @@
     "productLabel": "{store}의 상품",
     "cannotSearch": "이 상점은 검색할 수 없습니다",
     "cannotSearchHint": "Norish가 {store}의 상점 링크에서 검색 페이지를 읽지 못했습니다. 상점 관리에서 고치면 가격이 따라옵니다.",
-    "packSize": "포장 단위",
-    "packSizeUnit": "단위"
+    "packSize": "포장 단위"
   },
   "price": {
     "pending": "가격을 찾는 중",

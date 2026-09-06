@@ -117,8 +117,7 @@
     "productLabel": "Produkt bei {store}",
     "cannotSearch": "Dieser Shop kann nicht durchsucht werden",
     "cannotSearchHint": "Norish konnte aus dem Shop-Link von {store} keine Suchseite lesen. Korrigiere ihn unter Shops verwalten, dann folgen die Preise.",
-    "packSize": "Packungsgröße",
-    "packSizeUnit": "Einheit"
+    "packSize": "Packungsgröße"
   },
   "price": {
     "pending": "Preis wird nachgeschlagen",

@@ -370,17 +370,18 @@ test("a Pack Size corrected in the panel changes the row's packs after Save", as
   // "Tarwebloem" is linked to a 500 g pack; the shopper knows it is a kilo bag.
   await page.getByText("tarwebloem", { exact: true }).first().click();
   await expect(page.getByTestId("grocery-product-field")).toHaveValue("Tarwebloem");
-  await expect(page.getByTestId("pack-size-quantity")).toHaveValue("500");
+  // The pack in the shop's own words, and corrected in the same words.
+  await expect(page.getByTestId("pack-size")).toHaveValue("500 g");
 
-  await page.getByTestId("pack-size-quantity").fill("1000");
+  await page.getByTestId("pack-size").fill("1 kg");
   await page.getByRole("button", { name: "Save", exact: true }).click();
 
   // The correction is the last word: stored by hand, and the row now counts
   // one pack of a kilo where it counted two of 500 g.
   await expect
-    .poll(async () => (await readPackSize("Tarwebloem"))?.quantity, { timeout: 30_000 })
-    .toBe("1000.000");
-  expect((await readPackSize("Tarwebloem"))?.byHand).toBe(true);
+    .poll(async () => (await readPackSize("Tarwebloem"))?.unit, { timeout: 30_000 })
+    .toBe("kilogram");
+  expect(await readPackSize("Tarwebloem")).toMatchObject({ quantity: "1.000", byHand: true });
   await expect(rowFor("tarwebloem").getByTestId("grocery-price")).toHaveAttribute(
     "data-grocery-packs",
     "1",

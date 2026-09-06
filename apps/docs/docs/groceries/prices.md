@@ -59,46 +59,29 @@ when it is more than twelve hours old and you are looking at the list.
 
 ### How many packs
 
-Norish counts the packs the way a till does. It reads the **Pack Size** —
-what one Shelf Price buys — out of the shop's own size words, and holds your
-grocery's amount against it:
+Norish counts packs the way a till does, from your grocery's own amount and
+what the shop says one pack holds: "700 g flour" against a 500 g pack is two
+packs, "12 eggs" against a box of ten is two boxes, and what the shop sells
+loose is priced by weight, so 700 g of bananas priced per kilo costs seven
+tenths of it and the row reads `€1.39 · 700 g`. A grocery with no amount
+costs one pack. Where Norish cannot make the two meet — a pinch of
+something sold by the jar, say — the row still shows a price: it counts one
+pack, with a quiet note under the product name saying so.
 
-- **"700 g flour"** against a 500 g pack is two packs. Packs are whole and
-  rounded up strictly: 410 g against a pack of "ca. 405 g" is two, because a
-  pack you cannot buy 1.02 of is a pack.
-- **"2 cola"** is two of whatever the shop sells: a bare number is a number
-  of packs.
-- **"12 eggs"** against a box of ten is two boxes: when the shop counts the
-  pack in pieces too, a bare number is a number of pieces.
-- **"2 pak melk"** is two packs: a container word — pack, box, bottle, can,
-  jar, bag — means packs.
-- **"700 g bananas"** sold per kilo costs seven tenths of the kilo price. What
-  a shop sells loose is priced by weight, so 300 g of it is not rounded up to
-  a kilo. The row reads the cost and the weight priced: `€1.39 · 700 g`.
-- A grocery with **no amount** costs one pack.
+### Correcting the pack
 
-A line Norish cannot work out — a measure against something counted in
-pieces, a unit it does not know such as a pinch or a slice, a product it read
-no Pack Size for, or more than 24 packs — still shows a price: it counts one
-pack, with a quiet note under the product name saying so. A linked product is
-never priced at nothing.
+Where the shop's words were read wrong, or the shop stated no size, the
+grocery's own panel has the fix. Under the **Product** field, beside the
+price, **Pack size** holds the pack in the words the shop prints on it —
+`500 g`, `1,5 l`, `6 x 33 cl`, `10 stuks`, `per kg`. Type what is on the
+pack and press **Save**; the row counts its packs afresh.
 
-### Correcting the Pack Size
+![The grocery panel, with the pack under the product](/img/screenshots/groceries-pack-size.png)
 
-Where the reading is wrong, or the shop stated no size, the grocery's own
-panel has the fix. Under the **Product** field, beside the price, the **Pack
-size** is a quantity and a unit — grams, kilos, millilitres, litres, ounces,
-pounds, pieces, or the two forms shops print for what is sold loose, per kg
-and per 100 g. Change it and press **Save**, and the row counts its packs
-afresh.
-
-![The grocery panel, with the Pack Size under the product](/img/screenshots/groceries-pack-size.png)
-
-A Pack Size you set is the last word: no later reading, match or refresh
-overwrites it, and your household sees the correction too. Clear the field
-and Norish goes back to reading it from the shop's words. A product you typed
-by hand takes a Pack Size the same way, so a shop Norish cannot read still
-prices by amount.
+A pack you typed is the last word: no later reading overwrites it, and your
+household sees the correction too. Empty the field and Norish goes back to
+the shop's words. A product you typed by hand takes a pack the same way, so
+a shop Norish cannot read still prices by amount.
 
 ### The Store's heading
 
