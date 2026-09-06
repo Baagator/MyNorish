@@ -119,8 +119,8 @@ Something a Store sells, as Norish last read it: a name, the page it lives on, a
 _Avoid_: Grocery (that is the list line), Article, SKU
 
 **Shelf Price**:
-What one pack of a Store Product costs, in the shop's own currency and the shop's own words for the size ("150 gram", "1,5 l", "per stuk") — the number on the shelf edge, not a comparable price per kilo. Norish keeps only the price it last read and the moment it read it; a Shelf Price has no history, and the one it replaces is gone.
-_Avoid_: Unit price, Price per unit (both mean euros-per-kilo to a shopper, which is a different number Norish does not yet show)
+What the shop charges for its unit of sale of a Store Product — one pack, or one kilo of what is sold loose — in the shop's own currency and the shop's own words for the size ("150 gram", "1,5 l", "per stuk", "per kg"): the number on the shelf edge, not the comparable price per kilo printed beside a pack. Norish keeps only the price it last read and the moment it read it; a Shelf Price has no history, and the one it replaces is gone.
+_Avoid_: Unit price, Price per unit (both mean the comparison number beside a pack to a shopper, which Norish does not show)
 
 **Product Link**:
 What a Store has learned a grocery name means: a Store, a normalized grocery name, and the Store Product it resolves to. It is deliberately keyed by name rather than by Grocery, so it outlives the list line that prompted it — next week's "melk" is priced without asking the shop again — and so a rename asks a new question instead of carrying the old answer to a name it was never about.
@@ -129,6 +129,22 @@ _Avoid_: Match, Mapping, Assignment (a Grocery is assigned to a Store; it is lin
 **Miss**:
 A Product Link that resolved to nothing, holding when it was last tried. It exists so a name the shop does not stock is not searched again every time the list is opened. A Miss is not an error: it shows the user an unpriced Grocery and an invitation to pick or type a price, and nothing else.
 _Avoid_: Failure, Not found, Unmatched
+
+**Pending Link**:
+A Product Link the Store has been asked for and has not yet answered. It is a fact about the Store rather than about the screen that asked, so every member of the household sees the same waiting row until it becomes a link or a Miss; a shop that says nothing leaves no Pending Link behind, and the name is asked again later.
+_Avoid_: Loading, In flight, Lookup (that is the queue's work, not the link's state)
+
+**Pack Size**:
+What one Shelf Price buys, as a quantity and a unit: 500 grams, 1.5 litres, 6 pieces, or a kilo of what is sold loose. Norish reads it out of the shop's size words, and its owner may set it by hand when the reading is wrong; a hand-set Pack Size is the last word and no later reading replaces it.
+_Avoid_: Size (that is the shop's words), Unit (that is the grocery's own measure), Package, Quantity
+
+**Line Cost**:
+What a Grocery costs at its Store: as many whole packs as its amount needs, at the Shelf Price, or its weight at a by-weight price. A bare number is a number of packs, unless the shop counts the pack in pieces, in which case it is a number of pieces. A grocery whose amount cannot be matched against the Pack Size, or that states no amount, costs one pack. A Store's total is the sum of the Line Costs still to buy under it, and a deal that only pays off across packs is shown in the shop's words and never worked into the number.
+_Avoid_: Price (that is the Shelf Price), Subtotal, Amount (that is the grocery's measure)
+
+**Sale**:
+A Shelf Price the shop presents with the regular price it replaces beside it, together with the shop's own words for the deal. It is whatever the shop shows as the price, so a deal the shop keeps as a label over its regular price is shown in words and not priced, and Norish never guesses whether a card or a membership stands behind a number. A Sale lasts until the shop presents another price.
+_Avoid_: Discount, Promotion, Offer (the shop's markup word, which is not always a markdown), Bonus
 
 ### Imports & AI
 

@@ -795,6 +795,19 @@
             Rejects a model-based reader, per-shop adapters, and JSON-LD only.
           </p>
         </li>
+        <li>
+          <a href="groceries/0029-line-cost-is-pack-arithmetic-over-what-the-shop-presents.md"
+            >ADR-0029 &mdash; Line Cost is pack arithmetic over what the shop presents</a
+          >
+          <p>
+            <b>Accepted.</b> A grocery's amount is priced as whole packs of the Store Product's
+            Pack Size, rounded up strictly; a bare number is packs unless the shop counts the pack
+            in pieces; what is sold loose is priced by weight, which amends ADR-0028's rejection
+            of per-unit prices. A Sale is only what the shop presents beside its price, so Dirk's
+            markdowns are priced and AH's "2 voor €5.50" is shown as words. Rejects a rounding
+            tolerance, deal arithmetic, card-word vocabularies, and a per-line pack override.
+          </p>
+        </li>
       </ul>
 
       <h2>Validation policy</h2>
