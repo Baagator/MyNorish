@@ -64,8 +64,12 @@ Adding a grocery never waits on a shop:
   the moment it lands — on your housemates' screens too.
 
 Norish links a grocery to a product by itself only where you would not
-hesitate: the names match, or every word of your grocery's name appears in
-exactly one product's name. Anything less certain is left to you.
+hesitate: your grocery's name is a product's name to the letter, or every word
+of it appears in exactly one product's name. Anything less certain is left to
+you. A name that matches to the letter is taken however many listings carry
+it, the first in the shop's own order; a product the shop lists twice under
+two product numbers counts once in the dropdown, since there is nothing to
+choose between.
 
 ## Choosing the product yourself
 
