@@ -1,7 +1,10 @@
 import { TRPCError } from "@trpc/server";
 
-import type { ResolvedProductLink, StoreCandidate } from "@norish/shared/contracts";
-import { assertHouseholdAccess } from "@norish/auth/permissions";
+import type {
+  ResolvedProductLink,
+  StoreCandidate,
+  StoreProductChoice,
+} from "@norish/shared/contracts";
 import {
   createManualProduct,
   getStoreProductById,
@@ -11,7 +14,7 @@ import {
   upsertProductLink,
   upsertReadProduct,
 } from "@norish/db/repositories/store-products";
-import { getStoreById, getStoreOwnerId } from "@norish/db/repositories/stores";
+import { getStoreById } from "@norish/db/repositories/stores";
 import { searchStore } from "@norish/queue/store-lookup/lookup";
 import { trpcLogger as log } from "@norish/shared-server/logger";
 import {
@@ -22,20 +25,13 @@ import {
   StoreProductsListInputSchema,
   StoreShopSearchSchema,
 } from "@norish/shared/contracts/zod";
+import { resolveSearchAddress } from "@norish/shared/lib/search-address";
 
-import type { StoreProcedureContext } from "./stores-helpers";
 import { authedProcedure } from "../../middleware";
 import { router } from "../../trpc";
 import { storeEmitter } from "./emitter";
 import { priceTheList } from "./pricing";
-
-/** A Store belongs to one household; its products and links follow it exactly. */
-async function assertStoreAccess(ctx: StoreProcedureContext, storeId: string): Promise<void> {
-  const ownerId = await getStoreOwnerId(storeId);
-
-  if (!ownerId) throw new TRPCError({ code: "NOT_FOUND", message: "Store not found" });
-  await assertHouseholdAccess(ctx.user.id, ownerId);
-}
+import { assertStoreAccess } from "./stores-helpers";
 
 const listProducts = authedProcedure
   .input(StoreProductsListInputSchema)
@@ -109,23 +105,93 @@ const updateProduct = authedProcedure
  */
 const searchShop = authedProcedure
   .input(StoreShopSearchSchema)
-  .query(async ({ ctx, input }): Promise<{ candidates: StoreCandidate[] }> => {
+  .query(async ({ ctx, input }): Promise<{ candidates: StoreCandidate[]; answered: boolean }> => {
     await assertStoreAccess(ctx, input.storeId);
     const store = await getStoreById(input.storeId);
 
-    if (!store?.searchAddress) return { candidates: [] };
+    if (!store?.searchAddress) return { candidates: [], answered: false };
 
     // The same paced visit the lookup queue makes, so the picker cannot race
-    // the queue at the same shop.
-    const { candidates } = await searchStore(store.searchAddress, input.term);
+    // the queue at the same shop. Whether the shop answered at all travels
+    // with the answer: a shop that is down has not said it stocks nothing.
+    const { candidates, answered } = await searchStore(store.searchAddress, input.term);
 
     log.info(
-      { userId: ctx.user.id, storeId: input.storeId, count: candidates.length },
+      { userId: ctx.user.id, storeId: input.storeId, count: candidates.length, answered },
       "Searched a shop for the picker"
     );
 
-    return { candidates };
+    return { candidates, answered };
   });
+
+function hostOf(address: string | null | undefined): string | null {
+  if (!address) return null;
+  try {
+    return new URL(resolveSearchAddress(address, "term")).hostname.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A search result the picker offered is a page of the Store's own shop. The
+ * server never saw the search that produced it, so the one thing it can hold
+ * the page to is the shop: the host of the Store's Search Address or website.
+ */
+async function assertCandidateIsTheShops(storeId: string, pageUrl: string): Promise<void> {
+  const store = await getStoreById(storeId);
+  const shop = hostOf(store?.searchAddress) ?? hostOf(store?.website);
+  const page = hostOf(pageUrl);
+
+  if (!shop || !page || (page !== shop && !page.endsWith(`.${shop}`))) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Not a page of this Store's shop" });
+  }
+}
+
+/**
+ * A by-hand price, written as the shopper's own: a new product for a name
+ * nobody typed a price for before, and the same product corrected where the
+ * shopper typed over one they made earlier. A correction is not a second
+ * product, or the Store's shelf would fill with every price they ever typed.
+ * A product read from a page is never edited this way — the field mints a
+ * fresh id for a price typed over one of those.
+ */
+async function writeManualProduct(
+  storeId: string,
+  choice: Extract<StoreProductChoice, { kind: "manual" }>
+) {
+  const existing = choice.id ? await getStoreProductById(choice.id) : null;
+
+  if (!existing) {
+    return createManualProduct({
+      id: choice.id,
+      storeId,
+      name: choice.name,
+      price: choice.price,
+      currency: choice.currency,
+      size: choice.size ?? null,
+    });
+  }
+  if (existing.storeId !== storeId) {
+    throw new TRPCError({ code: "NOT_FOUND", message: "Product not found in this store" });
+  }
+  const updated = await updateManualProduct({
+    id: existing.id,
+    name: choice.name,
+    price: choice.price,
+    currency: choice.currency,
+    size: choice.size ?? null,
+  });
+
+  if (!updated) {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: "Only a by-hand product can be edited",
+    });
+  }
+
+  return updated;
+}
 
 /**
  * What the picker decided a grocery name means. Nothing is written until the
@@ -151,6 +217,11 @@ const chooseProduct = authedProcedure
 
     if (input.choice.kind === "candidate") {
       const { candidate } = input.choice;
+
+      // A candidate came from the Store's own shop, so its page is on that
+      // shop's host. Anything else is not a product page Norish will read and
+      // refresh on the household's behalf.
+      await assertCandidateIsTheShops(input.storeId, candidate.url);
       const product = await upsertReadProduct({
         storeId: input.storeId,
         name: candidate.name,
@@ -165,14 +236,7 @@ const chooseProduct = authedProcedure
     }
 
     if (input.choice.kind === "manual") {
-      const product = await createManualProduct({
-        id: input.choice.id,
-        storeId: input.storeId,
-        name: input.choice.name,
-        price: input.choice.price,
-        currency: input.choice.currency,
-        size: input.choice.size ?? null,
-      });
+      const product = await writeManualProduct(input.storeId, input.choice);
 
       storeProductId = product.id;
       storeEmitter.emitToHousehold(ctx.householdKey, "productUpdated", { product });

@@ -35,6 +35,7 @@ import { parseIngredientWithDefaults } from "@norish/shared/lib/helpers";
 import { authedProcedure } from "../../middleware";
 import { router } from "../../trpc";
 import { noticeGroceries } from "../stores/pricing";
+import { assertStoreAccess } from "../stores/stores-helpers";
 import { groceryEmitter } from "./emitter";
 import {
   assignGroceryToStoreData,
@@ -90,6 +91,9 @@ const update = authedProcedure.input(GroceryUpdateInputSchema).mutation(({ ctx, 
       }
 
       await assertHouseholdAccess(ctx.user.id, ownerId);
+      // The Store the grocery is filed under, and priced through, is the
+      // household's own — as it is for a drag or an assignment.
+      if (storeId) await assertStoreAccess(ctx, storeId);
 
       const units = await getUnits();
       const parsedIngredient = parseIngredientWithDefaults(raw, units)[0];

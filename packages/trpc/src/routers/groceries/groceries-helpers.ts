@@ -28,6 +28,7 @@ import { trpcLogger as log } from "@norish/shared-server/logger";
 import { AssignGroceryToStoreInputSchema } from "@norish/shared/contracts/zod";
 
 import { noticeGroceries } from "../stores/pricing";
+import { assertStoreAccess } from "../stores/stores-helpers";
 import { groceryEmitter } from "./emitter";
 
 export type GroceryProcedureContext = {
@@ -122,6 +123,13 @@ export async function createGroceriesData(
   const groceriesToUpdate: Array<{ id: string; amount: number | null; storeId?: string | null }> =
     [];
   const returnIds: string[] = [];
+
+  // A Store the client files a grocery under is the household's own; the
+  // grocery is priced through it, and another household's Store is not a
+  // heading here.
+  const named = new Set(input.map((grocery) => grocery.storeId).filter((id): id is string => !!id));
+
+  for (const storeId of named) await assertStoreAccess(ctx, storeId);
 
   for (const grocery of input) {
     const normalizedName = normalizeForMerge(grocery.name);

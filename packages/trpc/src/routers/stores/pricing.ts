@@ -14,7 +14,7 @@ import { staleBefore } from "@norish/queue/store-lookup/lookup";
 import { addStoreMatchJob, addStoreRefreshJob } from "@norish/queue/store-lookup/producer";
 import { trpcLogger as log } from "@norish/shared-server/logger";
 import { storeEmitter } from "@norish/shared-server/realtime/stores";
-import { normalizeGroceryName } from "@norish/shared/lib/normalized-name";
+import { normalizeGroceryName, productLinkKey } from "@norish/shared/lib/normalized-name";
 
 /**
  * How many stale prices one page view is allowed to send to the shops. A list
@@ -37,7 +37,7 @@ function priceablePairs(groceries: PriceableGrocery[]): { storeId: string; name:
     const normalized = normalizeGroceryName(name);
 
     if (!grocery.storeId || !name || !normalized) return [];
-    const key = `${grocery.storeId}|${normalized}`;
+    const key = productLinkKey(grocery.storeId, normalized);
 
     if (seen.has(key)) return [];
     seen.add(key);
@@ -59,18 +59,23 @@ async function resolveAndQueue(
 
   if (pairs.length === 0) return [];
 
-  const [links, stores] = await Promise.all([
-    resolveProductLinks(pairs),
-    listStoresByUserIds(ctx.userIds),
-  ]);
+  const stores = await listStoresByUserIds(ctx.userIds);
+  // A grocery is priced through a Store of its own household and no other:
+  // a store id that is not the household's is not a question for any shop,
+  // and its links are not this household's to read.
+  const own = new Set(stores.map((store) => store.id));
+  const ownPairs = pairs.filter((pair) => own.has(pair.storeId));
+
+  if (ownPairs.length === 0) return [];
+  const links = await resolveProductLinks(ownPairs);
   const searchable = new Set(
     stores.filter((store) => store.searchAddress).map((store) => store.id)
   );
-  const known = new Set(links.map((link) => `${link.storeId}|${link.normalizedName}`));
-  const unknown = pairs.filter(
+  const known = new Set(links.map((link) => productLinkKey(link.storeId, link.normalizedName)));
+  const unknown = ownPairs.filter(
     (pair) =>
       searchable.has(pair.storeId) &&
-      !known.has(`${pair.storeId}|${normalizeGroceryName(pair.name)}`)
+      !known.has(productLinkKey(pair.storeId, normalizeGroceryName(pair.name)))
   );
 
   if (unknown.length > 0) {
