@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import type { PackSizeDto, StoreDto, StoreProductChoice } from "@norish/shared/contracts";
+import type { StoreDto, StoreProductChoice } from "@norish/shared/contracts";
 import { isPendingLink } from "@norish/shared/lib/product-link";
 
 import { useParsedGroceryName } from "./use-parsed-grocery-name";
@@ -39,8 +39,6 @@ export function useProductChoice(options: {
     storeId: string | null;
     about: unknown;
     choice: StoreProductChoice | null;
-    /** A Pack Size set by hand: absent while the field is untouched, null once cleared. */
-    pack?: PackSizeDto | null;
   } | null>(null);
   /** Whether what is held is about this Store and this grocery, and so is readable at all. */
   const isCurrent = useCallback(
@@ -50,27 +48,10 @@ export function useProductChoice(options: {
   );
   const current = isCurrent(held) ? held : null;
   const choice = current?.choice ?? null;
-  const pack = current?.pack;
   const setChoice = useCallback(
     (next: StoreProductChoice | null) =>
-      setHeld((prev) => ({
-        storeId: selectedStoreId,
-        about: resetOn,
-        choice: next,
-        // A Pack Size typed for one product is not the next product's.
-        ...(isCurrent(prev) && prev?.choice === next ? { pack: prev?.pack } : {}),
-      })),
-    [selectedStoreId, resetOn, isCurrent]
-  );
-  const setPack = useCallback(
-    (next: PackSizeDto | null | undefined) =>
-      setHeld((prev) => ({
-        storeId: selectedStoreId,
-        about: resetOn,
-        choice: isCurrent(prev) ? (prev?.choice ?? null) : null,
-        ...(next === undefined ? {} : { pack: next }),
-      })),
-    [selectedStoreId, resetOn, isCurrent]
+      setHeld({ storeId: selectedStoreId, about: resetOn, choice: next }),
+    [selectedStoreId, resetOn]
   );
   const chooseProduct = useChooseProduct();
   const { linkFor } = useStorePrices();
@@ -118,30 +99,21 @@ export function useProductChoice(options: {
   const commit = useCallback(() => {
     // Committed or not, the choice is spent: the panel that stays open for the
     // next grocery must not still be holding this one's product.
-    // A Pack Size set for the product already linked is written against that
-    // product, with the link restated as it is.
-    const chosen =
-      choice ??
-      (pack !== undefined && linked
-        ? { kind: "product" as const, storeProductId: linked.id }
-        : null);
+    const chosen = choice;
 
     setHeld(null);
     if (!chosen || !selectedStoreId || !groceryName) return;
     // An untouched field has nothing to say: only a choice the user actually
     // made is written, and never over the same product it already pointed at.
-    if (chosen.kind === "product" && chosen.storeProductId === linked?.id && pack === undefined) {
+    if (chosen.kind === "product" && chosen.storeProductId === linked?.id) {
       return;
     }
-    void chooseProduct(selectedStoreId, groceryName, chosen, pack);
-  }, [choice, chooseProduct, groceryName, linked, pack, selectedStoreId]);
+    void chooseProduct(selectedStoreId, groceryName, chosen);
+  }, [choice, chooseProduct, groceryName, linked, selectedStoreId]);
 
   return {
     choice,
     setChoice,
-    /** A Pack Size the shopper set by hand, if they touched the field. */
-    pack,
-    setPack,
     groceryName,
     store,
     /** What this grocery is linked to now, if anything. */

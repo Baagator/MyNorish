@@ -15,6 +15,26 @@ const pieces = (quantity: number): PackSize => ({ quantity, unit: "piece", byWei
 const perKilo: PackSize = { quantity: 1, unit: "kilogram", byWeight: true };
 
 describe("lineCost", () => {
+  it("prices five Danio products at five shelf prices when the shop states no pack size", () => {
+    expect(lineCost({ amount: 5, unit: null }, { price: 2.99, pack: null })).toEqual({
+      cost: 14.95, purchaseAmount: 5, packs: 5, matched: true, byWeight: false,
+    });
+  });
+
+  it("prices an explicit purchase amount without replacing the grocery requirement", () => {
+    expect(lineCost({ amount: 800, unit: "gram", purchaseAmount: 3 }, { price: 5.25, pack: grams(400) })).toMatchObject({
+      cost: 15.75, packs: 3, matched: true,
+    });
+  });
+
+  it("clears a purchase override back to the calculated requirement", () => {
+    expect(lineCost({ amount: 800, unit: "gram", purchaseAmount: null }, { price: 5.25, pack: grams(400) })).toMatchObject({ cost: 10.5, purchaseAmount: 2 });
+  });
+
+  it("allows fractional purchase amounts for products sold by weight", () => {
+    expect(lineCost({ amount: 500, unit: "gram", purchaseAmount: 0.7 }, { price: 1.99, pack: perKilo })).toMatchObject({ cost: 1.39, purchaseAmount: 0.7 });
+  });
+
   it.each([
     [
       "700 g of a 500 g pack",
@@ -194,6 +214,14 @@ describe("lineCost", () => {
 });
 
 describe("groupLineCost", () => {
+  it("adds explicit purchases to the remaining combined recipe requirement", () => {
+    expect(groupLineCost([
+      { amount: 100, unit: "gram", purchaseAmount: 3 },
+      { amount: 200, unit: "gram" },
+      { amount: 200, unit: "gram" },
+    ], { price: 2.5, pack: grams(500) })).toMatchObject({ cost: 10, purchaseAmount: 4 });
+  });
+
   it("prices lines that share a family as one combined amount", () => {
     const lines = [
       { amount: 300, unit: "gram" },

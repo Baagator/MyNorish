@@ -21,7 +21,9 @@ export function lineOf(grocery: GroceryDto): PricedLine {
     storeId: grocery.storeId ?? null,
     name: grocery.name,
     isDone: grocery.isDone,
-    amounts: [{ amount: grocery.amount, unit: grocery.unit }],
+    amounts: [
+      { amount: grocery.amount, unit: grocery.unit, purchaseAmount: grocery.purchaseAmount },
+    ],
   };
 }
 
@@ -41,6 +43,7 @@ export function lineOfGroup(group: GroceryGroup): PricedLine {
     isDone: group.allDone,
     amounts: group.sources.map((source) => ({
       amount: source.grocery.amount,
+      purchaseAmount: source.grocery.purchaseAmount,
       unit: source.grocery.unit,
     })),
   };

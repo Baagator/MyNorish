@@ -194,6 +194,7 @@
      three fields in a row must not show three shapes. */
   .input,
   .combo-box__input-group,
+  .number-field__group,
   .select__trigger {
     border-radius: 9999px;
   }

@@ -42,6 +42,7 @@ type GroceryMergeCandidate = {
   name: string | null;
   unit: string | null;
   amount: number | null;
+  purchaseAmount?: number | null;
   isDone: boolean;
   recipeIngredientId: string | null;
   recurringGroceryId: string | null;
@@ -114,6 +115,7 @@ export async function createGroceriesData(
       name: string | null;
       unit: string | null;
       amount: number | null;
+      purchaseAmount?: number | null;
       isDone: boolean;
       recipeIngredientId: string | null;
       recurringGroceryId: string | null;
@@ -139,7 +141,7 @@ export async function createGroceriesData(
     const existing = lookupKey ? existingByKey.get(lookupKey) : null;
 
     const shouldMerge =
-      existing && (existing.unit === grocery.unit || (!existing.unit && !grocery.unit));
+      existing && existing.purchaseAmount == null && grocery.purchaseAmount == null && (existing.unit === grocery.unit || (!existing.unit && !grocery.unit));
 
     if (shouldMerge && existing) {
       const existingAmount = existing.amount ?? 1;
@@ -178,6 +180,7 @@ export async function createGroceriesData(
         name: grocery.name,
         unit: grocery.unit,
         amount: grocery.amount,
+        purchaseAmount: grocery.purchaseAmount,
         isDone: grocery.isDone ?? false,
         recipeIngredientId: grocery.recipeIngredientId ?? null,
         recurringGroceryId: grocery.recurringGroceryId ?? null,
@@ -192,6 +195,7 @@ export async function createGroceriesData(
         name: grocery.name,
         unit: grocery.unit,
         amount: grocery.amount,
+        purchaseAmount: grocery.purchaseAmount,
         isDone: false,
         recipeIngredientId: grocery.recipeIngredientId ?? null,
         recurringGroceryId: null,

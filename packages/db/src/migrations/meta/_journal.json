@@ -344,6 +344,13 @@
       "when": 1788708141497,
       "tag": "0048_sale",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1788770323663,
+      "tag": "0049_grocery_purchase_amount",
+      "breakpoints": true
     }
   ]
 }

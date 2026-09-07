@@ -15,8 +15,8 @@ import { createFakeShop } from "../harness/fake-shop";
 import { expect, test } from "./fixture";
 import {
   createShopStore,
+  readGroceryAmount,
   readGroceryStore,
-  readPackSize,
   readStoredLink,
 } from "./grocery-prices-support";
 
@@ -315,7 +315,7 @@ test("700 g of a 500 g pack is two packs, on the row and at the heading", async 
   await expect(row.getByTestId("grocery-product")).toHaveText("Tarwebloem", { timeout: 60_000 });
   // The Line Cost first, the packs after: two 500 g packs at €1.15.
   await expect(row.getByTestId("grocery-line-cost")).toContainText(/2[.,]30/);
-  await expect(row.getByTestId("grocery-line-cost")).toContainText("2 × 500 g");
+  await expect(row.getByTestId("grocery-line-cost")).toContainText("2 × €1.15");
   await expect(row.getByTestId("grocery-price")).toHaveAttribute("data-grocery-packs", "2");
 
   // The heading is the sum of the Line Costs under it, so two packs count
@@ -361,31 +361,60 @@ test("what is sold loose is priced by the weight the line states", async () => {
   // 700 g of something priced per kilo at €1.89 is €1.32, and the row says
   // what weight it priced rather than a number of packs.
   await expect(row.getByTestId("grocery-line-cost")).toContainText(/1[.,]32/);
-  await expect(row.getByTestId("grocery-line-cost")).toContainText("700");
+  await expect(row.getByTestId("grocery-line-cost")).toContainText("0.7 × €1.89");
 });
 
-test("a Pack Size corrected in the panel changes the row's packs after Save", async () => {
+test("editing the purchase amount preserves the requirement and survives reload", async () => {
   await page.goto("/groceries");
-
-  // "Tarwebloem" is linked to a 500 g pack; the shopper knows it is a kilo bag.
   await page.getByText("tarwebloem", { exact: true }).first().click();
-  await expect(page.getByTestId("grocery-product-field")).toHaveValue("Tarwebloem");
-  // The pack in the shop's own words, and corrected in the same words.
-  await expect(page.getByTestId("pack-size")).toHaveValue("500 g");
+  await expect(page.getByTestId("grocery-purchase-amount")).toHaveValue("2");
+  await expect(page.getByTestId("pack-size")).toHaveCount(0);
 
-  await page.getByTestId("pack-size").fill("1 kg");
+  await page.getByTestId("grocery-purchase-amount").fill("3");
   await page.getByRole("button", { name: "Save", exact: true }).click();
-
-  // The correction is the last word: stored by hand, and the row now counts
-  // one pack of a kilo where it counted two of 500 g.
-  await expect
-    .poll(async () => (await readPackSize("Tarwebloem"))?.unit, { timeout: 30_000 })
-    .toBe("kilogram");
-  expect(await readPackSize("Tarwebloem")).toMatchObject({ quantity: "1.000", byHand: true });
-  await expect(rowFor("tarwebloem").getByTestId("grocery-price")).toHaveAttribute(
-    "data-grocery-packs",
-    "1",
-    { timeout: 30_000 }
+  await expect(rowFor("tarwebloem").getByTestId("grocery-line-cost")).toContainText(
+    "€3.45 (3 × €1.15)"
   );
-  await expect(rowFor("tarwebloem").getByTestId("grocery-line-cost")).toContainText(/1[.,]15/);
+  // Wait for the persisted server event before reload: the optimistic number alone is insufficient.
+  await expect
+    .poll(async () => {
+      const grocery = await readGroceryAmount("tarwebloem");
+      return grocery?.purchaseAmount;
+    })
+    .toBe(3);
+  await page.reload();
+  await expect(rowFor("tarwebloem")).toContainText("700");
+  await expect(rowFor("tarwebloem").getByTestId("grocery-line-cost")).toContainText(
+    "€3.45 (3 × €1.15)"
+  );
+
+  await page.getByText("tarwebloem", { exact: true }).first().click();
+  await expect(page.getByTestId("grocery-purchase-amount")).toHaveValue("3");
+  await page.getByRole("button", { name: "Use calculated amount", exact: true }).click();
+  await expect(page.getByTestId("grocery-purchase-amount")).toHaveValue("2");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect.poll(async () => (await readGroceryAmount("tarwebloem"))?.purchaseAmount).toBeNull();
+  await page.reload();
+  await expect(rowFor("tarwebloem").getByTestId("grocery-line-cost")).toContainText(
+    "€2.30 (2 × €1.15)"
+  );
+});
+
+test("a purchase amount chosen during creation is saved with the grocery", async () => {
+  await page.goto("/groceries");
+  await page.getByRole("button", { name: "Add Item" }).click();
+  await page.getByPlaceholder("e.g., 2 lbs chicken breast").fill("200 g bakbloem");
+  await page.getByRole("button", { name: /Auto-detect from history/ }).click();
+  await page.getByRole("option", { name: STORE_NAME }).click();
+  await page.getByTestId("grocery-product-field").fill("Tarwebloem");
+  await expect(page.getByTestId("product-by-hand-price")).toHaveValue("1.15");
+  await page.getByTestId("grocery-purchase-amount").fill("4");
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("button", { name: "Close panel" }).click();
+  await expect.poll(async () => (await readGroceryAmount("bakbloem"))?.purchaseAmount).toBe(4);
+  await page.reload();
+  await expect(rowFor("bakbloem")).toContainText("200");
+  await expect(rowFor("bakbloem").getByTestId("grocery-line-cost")).toContainText(
+    "€4.60 (4 × €1.15)"
+  );
 });

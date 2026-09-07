@@ -138,8 +138,12 @@ _Avoid_: Loading, In flight, Lookup (that is the queue's work, not the link's st
 What one Shelf Price buys, as a quantity and a unit: 500 grams, 1.5 litres, 6 pieces, or a kilo of what is sold loose. Norish reads it out of the shop's size words, and its owner may set it by hand when the reading is wrong; a hand-set Pack Size is the last word and no later reading replaces it.
 _Avoid_: Size (that is the shop's words), Unit (that is the grocery's own measure), Package, Quantity
 
+**Purchase Amount**:
+How many of a Store Product the household intends to buy for a Grocery. Calculated from the grocery requirement unless the shopper chooses an amount; that choice leaves the original requirement intact and applies to this shopping trip.
+_Avoid_: Pack Size (what one product holds), Amount (the grocery's original measure)
+
 **Line Cost**:
-What a Grocery costs at its Store: as many whole packs as its amount needs, at the Shelf Price, or its weight at a by-weight price. A bare number is a number of packs, unless the shop counts the pack in pieces, in which case it is a number of pieces. A grocery whose amount cannot be matched against the Pack Size, or that states no amount, costs one pack. A Store's total is the sum of the Line Costs still to buy under it, and a deal that only pays off across packs is shown in the shop's words and never worked into the number.
+What a Grocery costs at its Store: as many whole packs as its amount needs, at the Shelf Price, or its weight at a by-weight price. A bare number is a number of packs, unless the shop counts the pack in pieces, in which case it is a number of pieces. A grocery whose measure cannot be matched against the Pack Size, or that states no amount, costs one pack; a count still multiplies the Shelf Price when no Pack Size is known. A chosen Purchase Amount takes precedence. A Store's total is the sum of the Line Costs still to buy under it, and a deal that only pays off across packs is shown in the shop's words and never worked into the number.
 _Avoid_: Price (that is the Shelf Price), Subtotal, Amount (that is the grocery's measure)
 
 **Sale**:

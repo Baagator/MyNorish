@@ -56,42 +56,42 @@ function GroceryItemComponent({
 
       {/* Clickable content area */}
       <button
-        className="flex min-w-0 flex-1 cursor-pointer flex-col items-start gap-0.5 text-left"
+        className="flex min-w-0 flex-1 cursor-pointer flex-col gap-1 text-left sm:flex-row sm:items-center sm:justify-between sm:gap-4"
         type="button"
         onClick={() => onEdit(grocery)}
       >
-        {/* Main row: amount/unit + name */}
-        <div className="flex w-full items-baseline gap-1.5">
-          {/* Highlighted amount/unit */}
-          {amountDisplay && (
+        <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
+          {/* Main row: amount/unit + name */}
+          <div className="flex w-full items-baseline gap-1.5">
+            {/* Highlighted amount/unit */}
+            {amountDisplay && (
+              <span
+                className={`shrink-0 font-medium ${grocery.isDone ? "text-muted" : "text-accent"}`}
+              >
+                {amountDisplay}
+              </span>
+            )}
             <span
-              className={`shrink-0 font-medium ${grocery.isDone ? "text-muted" : "text-accent"}`}
+              className={`truncate text-base ${
+                grocery.isDone ? "text-muted line-through" : "text-foreground"
+              }`}
             >
-              {amountDisplay}
+              {grocery.name || t("unnamedItem")}
             </span>
+          </div>
+
+          {/* Recipe name indicator */}
+          {recipeName && !recurringGrocery && (
+            <span className="text-muted mt-0.5 truncate text-xs">{recipeName}</span>
           )}
-          <span
-            className={`truncate text-base ${
-              grocery.isDone ? "text-muted line-through" : "text-foreground"
-            }`}
-          >
-            {grocery.name || t("unnamedItem")}
-          </span>
-        </div>
 
-        {/* Recipe name indicator */}
-        {recipeName && !recurringGrocery && (
-          <span className="text-muted mt-0.5 truncate text-xs">{recipeName}</span>
-        )}
-
-        {/* Recurring pill underneath */}
-        {recurringGrocery && (
-          <RecurrencePill className="mt-0.5" recurringGrocery={recurringGrocery} />
-        )}
+          {/* Recurring pill underneath */}
+          {recurringGrocery && (
+            <RecurrencePill className="mt-0.5" recurringGrocery={recurringGrocery} />
+          )}
+        </span>
+        <GroceryPrice line={lineOf(grocery)} />
       </button>
-
-      {/* What this costs at its Store: as many packs as the amount needs */}
-      <GroceryPrice line={lineOf(grocery)} />
     </div>
   );
 }

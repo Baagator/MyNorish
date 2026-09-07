@@ -14,6 +14,8 @@ import { resolveUnit } from "./units";
 /** A grocery's own amount and unit, as the list line states them. */
 export interface LineAmount {
   amount: number | null | undefined;
+  /** Units of sale to buy, explicitly chosen for this shopping list line. */
+  purchaseAmount?: number | null;
   unit: string | null | undefined;
 }
 
@@ -24,6 +26,8 @@ export interface LineProduct {
 }
 
 export interface LineCost {
+  /** Number of shelf-price units purchased, fractional for goods sold by weight. */
+  purchaseAmount: number;
   /** Money, rounded to the cent. */
   cost: number;
   /** Whole packs counted; one for a line priced by weight or priced as one pack. */
@@ -59,22 +63,36 @@ const BASE: Record<Exclude<UnitFamily, "pack">, "gram" | "milliliter" | "piece">
 };
 
 function onePack(price: number, matched: boolean): LineCost {
-  return { cost: round2(price), packs: 1, matched, byWeight: false };
+  return { cost: round2(price), purchaseAmount: 1, packs: 1, matched, byWeight: false };
 }
 
 function packs(price: number, count: number): LineCost {
   if (count > MAX_PACKS) return onePack(price, false);
 
-  return { cost: round2(price * count), packs: count, matched: true, byWeight: false };
+  return { cost: round2(price * count), purchaseAmount: count, packs: count, matched: true, byWeight: false };
 }
 
 export function lineCost(line: LineAmount, product: LineProduct): LineCost {
   const { price, pack } = product;
   const amount = line.amount ?? null;
+  if (line.purchaseAmount != null && Number.isFinite(line.purchaseAmount) && line.purchaseAmount > 0) {
+    const count = pack?.byWeight ? line.purchaseAmount : Math.ceil(line.purchaseAmount);
+    return { cost: round2(price * count), purchaseAmount: count, packs: count, matched: true, byWeight: false };
+  }
   const unit = line.unit ? resolveUnit(line.unit) : null;
   const unknownUnit = Boolean(line.unit) && unit === null;
 
-  if (!pack) return onePack(price, false);
+  if (!pack) {
+    // Counting products needs only a shelf price. Pack metadata is needed
+    // to convert a measure, not to buy five of a product with no stated size.
+    if (amount === null || amount <= 0) return onePack(price, true);
+    if (!unit && !unknownUnit) return packs(price, packsFor(amount));
+    if (unit?.family === "count" || unit?.family === "pack") {
+      return packs(price, packsFor(amount * unit.magnitude));
+    }
+
+    return onePack(price, false);
+  }
   const packUnit = resolveUnit(pack.unit);
 
   if (!packUnit || packUnit.family === "pack") return onePack(price, false);
@@ -86,6 +104,7 @@ export function lineCost(line: LineAmount, product: LineProduct): LineCost {
     if (amount === null || amount <= 0) {
       return {
         cost: round2(price),
+        purchaseAmount: 1,
         packs: 1,
         matched: true,
         byWeight: true,
@@ -97,6 +116,7 @@ export function lineCost(line: LineAmount, product: LineProduct): LineCost {
     if (!unit || unit.family !== packUnit.family || unknownUnit) {
       return {
         cost: round2(price),
+        purchaseAmount: 1,
         packs: 1,
         matched: false,
         byWeight: true,
@@ -107,6 +127,7 @@ export function lineCost(line: LineAmount, product: LineProduct): LineCost {
 
     return {
       cost: round2((price * quantity) / packBase),
+      purchaseAmount: quantity / packBase,
       packs: 1,
       matched: true,
       byWeight: true,
@@ -145,6 +166,22 @@ export function groupLineCost(lines: LineAmount[], product: LineProduct): LineCo
   if (!first) return onePack(product.price, false);
   if (lines.length === 1) return lineCost(first, product);
 
+  // Overrides describe purchases, so they must not be converted back into
+  // ingredient measures or rounded together with automatic requirements.
+  const manual = lines.filter((line) => line.purchaseAmount != null);
+  if (manual.length > 0) {
+    const automatic = lines.filter((line) => line.purchaseAmount == null);
+    const costs = manual.map((line) => lineCost(line, product));
+    if (automatic.length > 0) costs.push(groupLineCost(automatic, product));
+    return {
+      cost: round2(costs.reduce((sum, line) => sum + line.cost, 0)),
+      purchaseAmount: costs.reduce((sum, line) => sum + line.purchaseAmount, 0),
+      packs: costs.reduce((sum, line) => sum + line.packs, 0),
+      matched: costs.every((line) => line.matched),
+      byWeight: false,
+    };
+  }
+
   const combined = combineAmounts(lines);
 
   if (combined) return lineCost(combined, product);
@@ -157,6 +194,7 @@ export function groupLineCost(lines: LineAmount[], product: LineProduct): LineCo
 
   return {
     cost: round2(costs.reduce((sum, line) => sum + line.cost, 0)),
+      purchaseAmount: costs.reduce((sum, line) => sum + line.purchaseAmount, 0),
     packs,
     matched: costs.every((line) => line.matched),
     byWeight: costs.every((line) => line.byWeight),

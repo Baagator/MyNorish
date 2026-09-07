@@ -19,7 +19,7 @@ import {
 } from "@norish/db/repositories/stores";
 import { getUnits } from "@norish/shared-server/config/server-config-loader";
 import { trpcLogger as log } from "@norish/shared-server/logger";
-import { clientMintedId, DetachRecurringGroceryInputSchema } from "@norish/shared/contracts/zod";
+import { clientMintedId, DetachRecurringGroceryInputSchema, PurchaseAmountSchema } from "@norish/shared/contracts/zod";
 import { parseIngredientWithDefaults } from "@norish/shared/lib/helpers";
 import { calculateNextOccurrence, getTodayString } from "@norish/shared/lib/recurrence/calculator";
 
@@ -40,6 +40,7 @@ const createRecurring = authedProcedure
       recurrenceWeekday: z.number().nullable(),
       nextPlannedFor: z.string(),
       storeId: z.uuid().nullable().optional(),
+      purchaseAmount: PurchaseAmountSchema,
     })
   )
   .mutation(async ({ ctx, input }) => {
@@ -70,6 +71,7 @@ const createRecurring = authedProcedure
         name: created.name,
         unit: created.unit || null,
         amount: created.amount,
+        purchaseAmount: input.purchaseAmount,
         isDone: false,
         recurringGroceryId: created.id,
         recipeIngredientId: null,
@@ -112,6 +114,7 @@ const updateRecurring = authedProcedure
       groceryId: z.string(),
       groceryVersion: z.number().int().positive(),
       storeId: z.uuid().nullable().optional(),
+      purchaseAmount: PurchaseAmountSchema,
       data: z.object({
         name: z.string().optional(),
         amount: z.number().nullable().optional(),
@@ -142,7 +145,7 @@ const updateRecurring = authedProcedure
 
         const outcome = await updateRecurringGroceryWithGrocery(
           { id: recurringGroceryId, version: recurringVersion, ...data },
-          { id: groceryId, version: groceryVersion, storeId }
+          { id: groceryId, version: groceryVersion, storeId, purchaseAmount: input.purchaseAmount }
         );
 
         if (outcome.stale) {
@@ -225,6 +228,7 @@ const detachRecurring = authedProcedure
             name: parsedIngredient.description,
             unit: parsedIngredient.unitOfMeasure,
             amount: parsedIngredient.quantity ?? null,
+            purchaseAmount: input.purchaseAmount,
             ...(storeId !== undefined ? { storeId } : {}),
           },
         });

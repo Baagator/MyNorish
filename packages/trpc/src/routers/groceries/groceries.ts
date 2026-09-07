@@ -75,7 +75,7 @@ const create = authedProcedure
   });
 
 const update = authedProcedure.input(GroceryUpdateInputSchema).mutation(({ ctx, input }) => {
-  const { groceryId, raw, version, storeId } = input;
+  const { groceryId, raw, version, storeId, purchaseAmount } = input;
 
   log.debug({ userId: ctx.user.id, groceryId }, "Updating grocery");
 
@@ -110,6 +110,7 @@ const update = authedProcedure.input(GroceryUpdateInputSchema).mutation(({ ctx, 
         version,
         name: parsedIngredient.description,
         amount: parsedIngredient.quantity,
+        purchaseAmount,
         unit: parsedIngredient.unitOfMeasure,
       };
 
