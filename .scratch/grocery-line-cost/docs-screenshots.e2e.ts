@@ -96,6 +96,9 @@ test("captures the store form with a derived Search Address", async () => {
   await page.getByRole("button", { name: "View Mode" }).click();
   await page.getByRole("menuitem", { name: "Manage Stores" }).click();
   await page.getByRole("button", { name: "Edit" }).first().click();
+  // The Store opens in a panel of its own over the list.
+  await expect(page.getByRole("dialog", { name: "Edit Store" })).toBeVisible();
+  await snap("store-editor");
   // A recognisable address rather than the harness's loopback port. The
   // derivation is pure, and this screenshot cancels rather than saving, so
   // nothing is ever fetched from it.
@@ -103,6 +106,7 @@ test("captures the store form with a derived Search Address", async () => {
   await expect(page.getByTestId("search-address-preview")).toBeVisible();
   await snap("store-link", "groceries-store-link.png");
   await page.getByRole("button", { name: "Cancel" }).click();
+  await expect(page.getByRole("dialog", { name: "Edit Store" })).toBeHidden();
   await page.getByRole("button", { name: "Close panel" }).click();
 });
 

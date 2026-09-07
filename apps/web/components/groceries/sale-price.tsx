@@ -11,6 +11,8 @@ interface SalePriceProps {
   regularLabel?: string;
   /** The shop's own words for the deal, where it printed any. */
   words: string | null;
+  /** The chip's text is the size of the price beside it: `lg` reads at text-sm, `sm` at text-xs. */
+  size?: "sm" | "lg";
   testIds?: { sale?: string; words?: string; regular?: string };
 }
 
@@ -22,7 +24,14 @@ interface SalePriceProps {
  * Sale: the price stands as it is and the words are the chip, something to
  * act on at the shelf that is never worked into the number.
  */
-export function SalePrice({ price, regular, regularLabel, words, testIds = {} }: SalePriceProps) {
+export function SalePrice({
+  price,
+  regular,
+  regularLabel,
+  words,
+  size = "sm",
+  testIds = {},
+}: SalePriceProps) {
   if (regular !== null) {
     return (
       <>
@@ -37,7 +46,7 @@ export function SalePrice({ price, regular, regularLabel, words, testIds = {} }:
           className="align-baseline"
           color="accent"
           data-testid={testIds.sale}
-          size="sm"
+          size={size}
           title={words ?? undefined}
           variant="soft"
         >
@@ -54,7 +63,7 @@ export function SalePrice({ price, regular, regularLabel, words, testIds = {} }:
           className="max-w-48 align-baseline"
           color="accent"
           data-testid={testIds.words}
-          size="sm"
+          size={size}
           title={words}
           variant="soft"
         >

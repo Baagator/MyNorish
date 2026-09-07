@@ -108,6 +108,12 @@ the row were reshaped from Mike's review of them:
   rows use the same mark (`components/groceries/sale-price.tsx`).
 - The grocery panel links to the product's own page at the shop, beside the
   product field, for a product Norish read there (`product-page-link`).
+- The Sale chip on the row is HeroUI's `lg` size, the one that reads at the
+  row's own text size; the picker's rows keep `sm`, the size of the prices
+  around them. A Sale price smaller than a regular price was rejected.
+- Manage Stores adds or edits a Store in a nested panel of its own
+  (`stores/store-editor-panel.tsx`) over the list, as every editor does; the
+  inline form under the list is gone.
 - A product corrected by hand (name, currency or price typed over it) keeps
   the size, pack, regular price and deal words of the product it corrects,
   carried on the manual choice and written to the by-hand product; whether it

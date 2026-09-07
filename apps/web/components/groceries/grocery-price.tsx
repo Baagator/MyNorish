@@ -70,6 +70,7 @@ export function GroceryPrice({ line }: { line: PricedLine }) {
           regularLabel={
             regularWords === null ? undefined : t("regularPrice", { price: regularWords })
           }
+          size="lg"
           testIds={{
             sale: "grocery-sale",
             words: "grocery-deal-words",

@@ -1,5 +1,6 @@
 "use client";
 
+import { FIELD_CLASS, FIELD_STYLE } from "@/components/groceries/grocery-field";
 import { Input, Label, TextField } from "@heroui/react";
 import { useTranslations } from "next-intl";
 
@@ -97,8 +98,10 @@ export function StoreSearchAddressField({ value, onChange }: StoreSearchAddressF
       <TextField value={value} onChange={onChange}>
         <Label>{t("shopLink")}</Label>
         <Input
+          className={FIELD_CLASS}
           data-testid="store-shop-link"
           placeholder={t("shopLinkPlaceholder")}
+          style={FIELD_STYLE}
           variant="secondary"
         />
       </TextField>
