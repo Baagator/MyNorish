@@ -89,6 +89,42 @@ describe("chooseProduct", () => {
     );
   });
 
+  it("keeps the Sale and the pack of the product a by-hand price corrects", async () => {
+    // A shopper who types over a product on Sale is correcting that product,
+    // not describing a new one: its regular price, the shop's words for the
+    // deal, its size and its pack travel with the correction.
+    storeProductsRepository.getStoreProductById.mockResolvedValue(null);
+    storeProductsRepository.createManualProduct.mockResolvedValue({
+      id: MANUAL_ID,
+      storeId: STORE,
+      isManual: true,
+    });
+
+    await caller.chooseProduct({
+      storeId: STORE,
+      name: "geitenkaas",
+      choice: {
+        ...manualChoice,
+        name: "Geitenkaas plakken, 150 g",
+        price: 2.19,
+        size: "150 g",
+        pack: { quantity: 150, unit: "gram", byWeight: false },
+        regularPrice: 3.29,
+        dealWords: "Weekend actie",
+      },
+    });
+
+    expect(storeProductsRepository.createManualProduct).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: MANUAL_ID,
+        size: "150 g",
+        pack: { quantity: 150, unit: "gram", byWeight: false },
+        regularPrice: 3.29,
+        dealWords: "Weekend actie",
+      })
+    );
+  });
+
   it("corrects the by-hand product the shopper made earlier instead of adding another", async () => {
     // The field hands back the id of the by-hand product it is showing, so a
     // second price for the same name is the same product corrected. Without

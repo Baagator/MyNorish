@@ -155,7 +155,9 @@ async function assertCandidateIsTheShops(storeId: string, pageUrl: string): Prom
  * shopper typed over one they made earlier. A correction is not a second
  * product, or the Store's shelf would fill with every price they ever typed.
  * A product read from a page is never edited this way — the field mints a
- * fresh id for a price typed over one of those.
+ * fresh id for a price typed over one of those, and the correction keeps the
+ * Sale, the deal's words, the size and the pack of the product it corrects:
+ * the shopper is correcting that product, not describing a new one.
  */
 async function writeManualProduct(
   storeId: string,
@@ -171,6 +173,9 @@ async function writeManualProduct(
       price: choice.price,
       currency: choice.currency,
       size: choice.size ?? null,
+      pack: choice.pack ?? null,
+      regularPrice: choice.regularPrice ?? null,
+      dealWords: choice.dealWords ?? null,
     });
   }
   if (existing.storeId !== storeId) {
@@ -182,6 +187,9 @@ async function writeManualProduct(
     price: choice.price,
     currency: choice.currency,
     size: choice.size ?? null,
+    pack: choice.pack,
+    regularPrice: choice.regularPrice,
+    dealWords: choice.dealWords,
   });
 
   if (!updated) {

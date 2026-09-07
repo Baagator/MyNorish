@@ -56,7 +56,11 @@ export const StoreProductReadingSchema = z.object({
   ...SaleFields,
 });
 
-/** A Store Product someone typed, for a shop Norish cannot read. */
+/**
+ * A Store Product someone typed: for a shop Norish cannot read, or a shop's
+ * own product corrected by hand, which keeps the Sale and the pack of the
+ * product it corrects.
+ */
 export const StoreProductManualCreateSchema = z.object({
   id: clientMintedId,
   storeId: z.uuid(),
@@ -65,6 +69,7 @@ export const StoreProductManualCreateSchema = z.object({
   currency: CurrencyCodeSchema,
   size: z.string().max(80).nullish(),
   pack: PackSizeSchema.nullish(),
+  ...SaleFields,
 });
 
 export const StoreProductManualUpdateSchema = z.object({
@@ -74,6 +79,7 @@ export const StoreProductManualUpdateSchema = z.object({
   currency: CurrencyCodeSchema.optional(),
   size: z.string().max(80).nullish(),
   pack: PackSizeSchema.nullish(),
+  ...SaleFields,
 });
 
 /** One priced result of a shop's own search, as the reader read it. */
@@ -108,6 +114,9 @@ export const StoreProductChoiceSchema = z.object({
       price: z.number().nonnegative(),
       currency: CurrencyCodeSchema,
       size: z.string().max(80).nullish(),
+      // What a correction inherits from the product it corrects.
+      pack: PackSizeSchema.nullish(),
+      ...SaleFields,
     }),
   ]),
   pack: PackSizeSchema.nullable().optional(),

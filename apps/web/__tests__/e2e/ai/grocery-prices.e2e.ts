@@ -343,20 +343,43 @@ test("a product on Sale shows the shop's mark and the struck price on a line of 
   await expect(row.getByTestId("grocery-product")).toContainText("Geitenkaas plakken", {
     timeout: 60_000,
   });
-  // Two 150 g packs at the Sale price; the money line carries nothing else.
-  await expect(row.getByTestId("grocery-line-cost")).toContainText(/4[.,]38/);
-  await expect(
-    row.getByTestId("grocery-line-cost").getByTestId("grocery-regular-cost")
-  ).toHaveCount(0);
-  // The Sale on a line of its own: the shop's own words for the deal, and the
-  // regular Line Cost struck through beside them.
+  // Two 150 g packs: the regular Line Cost struck through right before the
+  // Sale one, the way a shelf tag reads.
+  const money = row.getByTestId("grocery-line-cost");
+
+  await expect(money).toContainText(/4[.,]38/);
+  await expect(money.getByTestId("grocery-regular-cost")).toContainText(/6[.,]58/);
+  // Under it, the shop's own words for the deal.
   const sale = row.getByTestId("grocery-sale-line");
 
   await expect(sale.getByTestId("grocery-sale")).toBeVisible();
   await expect(sale.getByTestId("grocery-deal-words")).toContainText("Weekend actie");
-  await expect(sale.getByTestId("grocery-regular-cost")).toContainText(/6[.,]58/);
   // And the product's name alone on its line.
   await expect(row.getByTestId("grocery-product")).toHaveText("Geitenkaas plakken");
+});
+
+test("a product on Sale corrected by hand keeps its Sale", async () => {
+  await page.goto("/groceries");
+  await page.getByText("geitenkaas plakken", { exact: true }).first().click();
+  await expect(page.getByTestId("grocery-product-field")).toHaveValue("Geitenkaas plakken");
+
+  // The name is corrected behind the details row; nothing else is touched.
+  await page.getByTestId("product-details").click();
+  await page.getByTestId("product-by-hand-name").fill("Geitenkaas plakken, 150 g");
+  await page.getByRole("button", { name: "Done", exact: true }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+
+  // The row is the same Sale under a better name: two 150 g packs, the
+  // regular Line Cost struck through, the shop's words still there.
+  const row = rowFor("geitenkaas plakken");
+
+  await expect(row.getByTestId("grocery-product")).toHaveText("Geitenkaas plakken, 150 g", {
+    timeout: 30_000,
+  });
+  await expect(row.getByTestId("grocery-price")).toHaveAttribute("data-grocery-packs", "2");
+  await expect(row.getByTestId("grocery-line-cost")).toContainText(/4[.,]38/);
+  await expect(row.getByTestId("grocery-regular-cost")).toContainText(/6[.,]58/);
+  await expect(row.getByTestId("grocery-deal-words")).toContainText("Weekend actie");
 });
 
 test("what is sold loose is priced by the weight the line states", async () => {

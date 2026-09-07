@@ -60,37 +60,39 @@ export function ProductDetailsPanel({
               variant="secondary"
             />
           </TextField>
-          <TextField
-            className="w-32"
-            isInvalid={currencyInvalid}
-            value={currency}
-            onChange={onCurrencyChange}
-          >
-            <Label>{t("byHandCurrency")}</Label>
-            <Input
-              autoCapitalize="characters"
-              className={FIELD_CLASS}
-              data-testid="product-by-hand-currency"
-              maxLength={3}
-              placeholder={suggestedCurrency}
-              style={FIELD_STYLE}
-              variant="secondary"
-            />
-            {currencyInvalid && (
-              <FieldError data-testid="product-currency-error">{t("invalidCurrency")}</FieldError>
-            )}
-          </TextField>
-          {pack && (
-            <TextField isReadOnly value={pack}>
-              <Label>{t("packSize")}</Label>
+          <div className="flex gap-3">
+            <TextField
+              className="w-32 shrink-0"
+              isInvalid={currencyInvalid}
+              value={currency}
+              onChange={onCurrencyChange}
+            >
+              <Label>{t("byHandCurrency")}</Label>
               <Input
+                autoCapitalize="characters"
                 className={FIELD_CLASS}
-                data-testid="product-pack-size"
+                data-testid="product-by-hand-currency"
+                maxLength={3}
+                placeholder={suggestedCurrency}
                 style={FIELD_STYLE}
                 variant="secondary"
               />
+              {currencyInvalid && (
+                <FieldError data-testid="product-currency-error">{t("invalidCurrency")}</FieldError>
+              )}
             </TextField>
-          )}
+            {pack && (
+              <TextField isReadOnly className="min-w-0 flex-1" value={pack}>
+                <Label>{t("packSize")}</Label>
+                <Input
+                  className={FIELD_CLASS}
+                  data-testid="product-pack-size"
+                  style={FIELD_STYLE}
+                  variant="secondary"
+                />
+              </TextField>
+            )}
+          </div>
         </div>
       </Panel.Body>
       <Panel.Footer>

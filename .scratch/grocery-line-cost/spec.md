@@ -100,10 +100,15 @@ grocery's own amount and unit stay untouched, and clearing it goes back to the
 calculation. The row reads `€4.38 (2 × €2.19)`. On the same day the panel and
 the row were reshaped from Mike's review of them:
 
-- A Sale sits on a line of its own under the money line, as a small tag with
-  the shop's own words for the deal (or **Sale**) and the regular Line Cost
-  struck through; the money line carries nothing else. The picker's rows use
-  the same mark (`components/groceries/sale-label.tsx`).
+- A Sale reads the way a shelf tag does: the regular Line Cost struck through
+  right before the new one on the money line, and under it a small tag with
+  the shop's own words for the deal (or **Sale**). The picker's rows use the
+  same mark (`components/groceries/sale-tag.tsx`).
+- A product corrected by hand (name, currency or price typed over it) keeps
+  the size, pack, regular price and deal words of the product it corrects,
+  carried on the manual choice and written to the by-hand product; whether it
+  is still a Sale is the typed price against the regular one. This replaces
+  "a price typed by hand is never on Sale".
 - The panel's order is name, recurrence, Store, product, amount and price. The
   recurrence control reads **Configure recurrence** (`panel.addRepeat`) and
   sits directly under the name, as the pills do.

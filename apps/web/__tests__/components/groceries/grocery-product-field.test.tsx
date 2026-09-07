@@ -1236,29 +1236,65 @@ describe("GroceryProductField", () => {
       );
     });
 
-    it("lets the pack go with the reading once the product is typed over by hand", () => {
+    it("keeps the Sale and the pack of the product it corrects, and says so", async () => {
+      const onChoice = vi.fn();
+      const onSale = {
+        ...product("read-1", "store-a", "Geitenkaas plakken", 2.19),
+        size: "150 g",
+        packQuantity: 150,
+        packUnit: "gram",
+        regularPrice: 3.29,
+        dealWords: "Weekend actie",
+      } as StoreProductDto;
+
       render(
         <GroceryProductField
           choice={null}
-          groceryName="cola"
-          linkedProduct={product("prod-a", "store-a", "Coca-Cola 1 L", 1.99)}
+          groceryName="geitenkaas"
+          linkedProduct={onSale}
           store={STORE_A}
-          onChoice={() => undefined}
+          onChoice={onChoice}
         />
       );
 
-      expect(screen.getByTestId("product-pack-size")).toHaveValue("1 L");
-      expect(screen.getByTestId("product-details")).toHaveTextContent("EUR · 1 L");
+      expect(screen.getByTestId("product-pack-size")).toHaveValue("150 g");
 
-      fireEvent.change(screen.getByTestId("product-by-hand-name"), {
-        target: { value: "Cola, huismerk" },
+      // A name typed over a product on Sale corrects that product: the
+      // correction carries its Sale, the deal's words, its size and its pack,
+      // so the row after Save is the same Sale under a better name.
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("product-by-hand-name"), {
+          target: { value: "Geitenkaas plakken, 150 g" },
+        });
       });
 
-      // A by-hand product has no pack, and the panel does not pretend it has
-      // the one the shop's reading had: the amount above counts one pack, as
-      // the row will after Save.
-      expect(screen.queryByTestId("product-pack-size")).not.toBeInTheDocument();
-      expect(screen.getByTestId("product-details")).not.toHaveTextContent("1 L");
+      expect(onChoice).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          kind: "manual",
+          name: "Geitenkaas plakken, 150 g",
+          price: 2.19,
+          size: "150 g",
+          pack: { quantity: 150, unit: "gram", byWeight: false },
+          regularPrice: 3.29,
+          dealWords: "Weekend actie",
+        })
+      );
+      // The pack stays on the panel too: the amount above still counts it.
+      expect(screen.getByTestId("product-pack-size")).toHaveValue("150 g");
+      expect(screen.getByTestId("product-details")).toHaveTextContent("EUR · 150 g");
+
+      // A price typed at or above the regular one is no Sale any more; the
+      // shop's words stay, since they are the shop's and not a number.
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("product-by-hand-price"), {
+          target: { value: "3.29" },
+        });
+      });
+
+      expect(onChoice).toHaveBeenLastCalledWith(
+        expect.objectContaining({ kind: "manual", price: 3.29, regularPrice: null })
+      );
+      expect(onChoice.mock.lastCall?.[0]).toMatchObject({ dealWords: "Weekend actie" });
     });
 
     it("sums the product up on the details row", () => {

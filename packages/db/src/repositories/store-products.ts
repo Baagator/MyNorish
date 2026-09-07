@@ -326,7 +326,10 @@ export async function upsertReadProduct(
   return parseProduct(existing);
 }
 
-/** A Store Product someone typed, for a shop Norish cannot read. */
+/**
+ * A Store Product someone typed: for a shop Norish cannot read, or one of the
+ * shop's own corrected by hand, which keeps the Sale and the pack it had.
+ */
 export async function createManualProduct(
   input: StoreProductManualCreateInput
 ): Promise<StoreProductDto> {
@@ -342,6 +345,8 @@ export async function createManualProduct(
       size: input.size ?? null,
       ...packColumns(input.pack),
       packByHand: Boolean(input.pack),
+      regularPrice: input.regularPrice == null ? null : money(input.regularPrice),
+      dealWords: input.dealWords ?? null,
       pricedAt: new Date(),
       isManual: true,
     })
@@ -365,6 +370,10 @@ export async function updateManualProduct(
       ...(input.pack === undefined
         ? {}
         : { ...packColumns(input.pack), packByHand: Boolean(input.pack) }),
+      ...(input.regularPrice === undefined
+        ? {}
+        : { regularPrice: input.regularPrice === null ? null : money(input.regularPrice) }),
+      ...(input.dealWords === undefined ? {} : { dealWords: input.dealWords ?? null }),
       updatedAt: new Date(),
       version: sql`${storeProducts.version} + 1`,
     })

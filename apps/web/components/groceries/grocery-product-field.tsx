@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FIELD_CLASS, FIELD_STYLE } from "@/components/groceries/grocery-field";
 import { GroceryPurchaseAmount } from "@/components/groceries/grocery-purchase-amount";
 import { ProductDetailsPanel } from "@/components/groceries/product-details-panel";
-import { SaleLabel } from "@/components/groceries/sale-label";
+import { SaleTag } from "@/components/groceries/sale-tag";
 import { usePanelPortalContainer } from "@/components/Panel/Panel";
 import { useShopSearch, useStoreProducts } from "@/hooks/stores";
 import { usePackSizeWords } from "@/hooks/stores/use-pack-size-words";
@@ -135,7 +135,10 @@ function productRow(product: StoreProductDto, locale: string, words: PackSizeWor
   };
 }
 
-/** One row of the dropdown: the name, and beside it the shop's mark for a deal and the price. */
+/**
+ * One row of the dropdown: the name with the shop's mark for a deal under it,
+ * and beside them the price, struck regular price first where there is one.
+ */
 function RowContent({
   row,
   locale,
@@ -152,16 +155,22 @@ function RowContent({
 
   return (
     <div className="flex w-full items-center justify-between gap-3">
-      <span className="min-w-0 flex-1 truncate">{row.name}</span>
-      <span className="text-muted flex max-w-[55%] min-w-0 shrink items-center gap-1.5 text-xs tabular-nums">
-        <SaleLabel
+      <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
+        <span className="max-w-full truncate">{row.name}</span>
+        <SaleTag
           fallback={sale}
-          regular={regular}
-          regularLabel={regular === null ? undefined : regularPriceLabel(regular)}
-          testIds={{ sale: "product-option-sale", regular: "product-option-regular" }}
+          testIds={{ sale: "product-option-sale" }}
           words={row.dealWords}
+          onSale={regular !== null}
         />
-        <span className="shrink-0">{row.detail}</span>
+      </span>
+      <span className="text-muted flex shrink-0 items-center gap-1.5 text-xs tabular-nums">
+        {regular !== null && (
+          <s aria-label={regularPriceLabel(regular)} data-testid="product-option-regular">
+            {regular}
+          </s>
+        )}
+        <span>{row.detail}</span>
       </span>
     </div>
   );
@@ -467,6 +476,25 @@ export function GroceryProductField({
     }
   }, [byHand, groceryName, linkedProduct]);
 
+  // The product the fields describe: the row that is picked, else what the
+  // grocery is linked to. Its pack, size words, regular price and deal words
+  // are what a correction typed over it inherits.
+  const selectedRow = rows.find((row) => row.key === picked);
+  const selectedPack = picked
+    ? (selectedRow?.pack ?? null)
+    : linkedProduct
+      ? packSizeOf(linkedProduct)
+      : null;
+  const selectedSize = picked ? selectedRow?.size : linkedProduct?.size;
+  const selectedRegularPrice = picked
+    ? (selectedRow?.regularPrice ?? null)
+    : linkedProduct
+      ? saleRegularPrice(linkedProduct.price, linkedProduct.regularPrice)
+      : null;
+  const selectedDealWords = picked
+    ? (selectedRow?.dealWords ?? null)
+    : (linkedProduct?.dealWords ?? null);
+
   // A price typed over a by-hand product corrects that product — the one the
   // shopper made earlier for this name, or one they picked from what the Store
   // knows — rather than adding a second beside it. Over anything else it is a
@@ -483,10 +511,15 @@ export function GroceryProductField({
   // the row still reads as picked.
   const pickedChoice = rows.find((row) => row.key === picked)?.choice ?? null;
 
+  // A correction is of the product it corrects, so it keeps that product's
+  // size words, pack, regular price and deal words: the row after Save is the
+  // same Sale under a corrected name or price. Whether it is still a Sale is
+  // decided by the price typed against the regular one, as everywhere else.
   useEffect(() => {
     if (!byHand) return;
+    const packWords = JSON.stringify(selectedPack);
     const held = hasTypedPrice
-      ? `${manualTarget}|${manualName}|${typedPrice}|${currency}`
+      ? `${manualTarget}|${manualName}|${typedPrice}|${currency}|${selectedSize ?? ""}|${packWords}|${selectedRegularPrice ?? ""}|${selectedDealWords ?? ""}`
       : `picked|${picked ?? ""}`;
 
     if (heldByHand.current === held) return;
@@ -499,6 +532,10 @@ export function GroceryProductField({
             name: manualName.trim() || groceryName,
             price: typedPrice,
             currency,
+            size: selectedSize ?? null,
+            pack: selectedPack,
+            regularPrice: saleRegularPrice(typedPrice, selectedRegularPrice),
+            dealWords: selectedDealWords,
           }
         : pickedChoice
     );
@@ -513,21 +550,14 @@ export function GroceryProductField({
     onChoice,
     picked,
     pickedChoice,
+    selectedSize,
+    selectedPack,
+    selectedRegularPrice,
+    selectedDealWords,
   ]);
 
-  const selectedRow = rows.find((row) => row.key === picked);
-  const selectedPack = picked
-    ? (selectedRow?.pack ?? null)
-    : linkedProduct
-      ? packSizeOf(linkedProduct)
-      : null;
-  const selectedSize = picked ? selectedRow?.size : linkedProduct?.size;
-  // A product typed over by hand is a new by-hand product, and a by-hand
-  // product has no pack: the Pack Size goes with the reading it belonged to,
-  // and the amount above counts one pack, as the row will after Save.
-  const packDetail = byHand
-    ? ""
-    : selectedPack && (!selectedSize || (!picked && linkedProduct?.packByHand))
+  const packDetail =
+    selectedPack && (!selectedSize || (!picked && linkedProduct?.packByHand))
       ? formatPackSize(selectedPack, packWords)
       : (selectedSize ?? "");
   // What the details row says is behind it: the currency and the pack, which
@@ -659,7 +689,7 @@ export function GroceryProductField({
               <GroceryPurchaseAmount
                 product={{
                   price: hasTypedPrice ? typedPrice : 0,
-                  pack: byHand ? null : selectedPack,
+                  pack: selectedPack,
                 }}
                 raw={itemName ?? groceryName}
                 value={purchaseAmount}

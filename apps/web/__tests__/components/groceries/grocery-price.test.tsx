@@ -124,21 +124,22 @@ describe("GroceryPrice", () => {
     expect(screen.getByTestId("grocery-one-pack")).toHaveTextContent("onePack");
   });
 
-  it("shows a Sale on a line of its own: the shop's mark, and the regular Line Cost struck through", () => {
+  it("shows a Sale as a shelf tag does: the regular Line Cost struck through, the new one beside it", () => {
     link("kaas", product({ price: 3.38, regularPrice: 5.3, size: "150 g", packQuantity: 150 }));
     render(<GroceryPrice line={lineOf(grocery("kaas", 300, "gram"))} />);
 
-    // The money line carries the Line Cost and the arithmetic, nothing else.
+    // The strike and the new price stand together on the money line, the
+    // arithmetic after them; the shop's mark for the deal sits underneath.
     const lineCost = screen.getByTestId("grocery-line-cost");
 
-    expect(lineCost).toHaveTextContent(/^€6\.76 \(2 × €3\.38\)$/);
-    expect(within(lineCost).queryByTestId("grocery-regular-cost")).not.toBeInTheDocument();
+    expect(lineCost).toHaveTextContent(/^€10\.60 €6\.76 \(2 × €3\.38\)$/);
+    expect(within(lineCost).getByTestId("grocery-regular-cost")).toHaveTextContent("€10.60");
     expect(within(lineCost).queryByTestId("grocery-sale")).not.toBeInTheDocument();
 
     const sale = screen.getByTestId("grocery-sale-line");
 
-    expect(within(sale).getByTestId("grocery-regular-cost")).toHaveTextContent("€10.60");
     expect(within(sale).getByTestId("grocery-sale")).toHaveTextContent("sale");
+    expect(within(sale).queryByTestId("grocery-regular-cost")).not.toBeInTheDocument();
     expect(screen.queryByTestId("grocery-deal-words")).not.toBeInTheDocument();
     expect(screen.getByTestId("grocery-product")).toHaveTextContent(/^Oude kaas 500 g$/);
   });
