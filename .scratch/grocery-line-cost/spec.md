@@ -100,17 +100,16 @@ grocery's own amount and unit stay untouched, and clearing it goes back to the
 calculation. The row reads `€4.38 (2 × €2.19)`. On the same day the panel and
 the row were reshaped from Mike's review of them:
 
-- A Sale reads the way a shelf tag does: the regular Line Cost struck through
-  and the new one in a chip beside it on the money line; the shop's own words
-  for the deal are the chip's title, not a badge of their own (a badge line
-  under the price was tried and rejected as adding nothing). Words without a
-  regular price ("2 voor €5.50") are a chip beside the price. The picker's
-  rows use the same mark (`components/groceries/sale-price.tsx`).
+- A Sale reads the way a shelf tag does and no louder: the regular Line Cost
+  struck through and the new one beside it on the money line, the same size
+  and weight as any other price; the shop's own words for the deal are the
+  price's title, not a badge or chip of their own (a badge line under the
+  price and a chip around the price were both tried and rejected). Words
+  without a regular price ("2 voor €5.50") leave the price as it is, with the
+  words as its title. The picker's rows read the same way
+  (`components/groceries/sale-price.tsx`).
 - The grocery panel links to the product's own page at the shop, beside the
   product field, for a product Norish read there (`product-page-link`).
-- The Sale chip on the row is HeroUI's `lg` size, the one that reads at the
-  row's own text size; the picker's rows keep `sm`, the size of the prices
-  around them. A Sale price smaller than a regular price was rejected.
 - Manage Stores adds or edits a Store in a nested panel of its own
   (`stores/store-editor-panel.tsx`) over the list, as every editor does; the
   inline form under the list is gone.

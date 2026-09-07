@@ -124,12 +124,12 @@ describe("GroceryPrice", () => {
     expect(screen.getByTestId("grocery-one-pack")).toHaveTextContent("onePack");
   });
 
-  it("shows a Sale as a chip: the regular Line Cost struck through, the new one in the chip", () => {
+  it("shows a Sale like any other price: the regular Line Cost struck through, the new one beside it", () => {
     link("kaas", product({ price: 3.38, regularPrice: 5.3, size: "150 g", packQuantity: 150 }));
     render(<GroceryPrice line={lineOf(grocery("kaas", 300, "gram"))} />);
 
-    // The strike, the chip and the arithmetic, all on the money line; nothing
-    // underneath but the product.
+    // The strike, the price and the arithmetic, all on the money line; the
+    // price itself is no chip and no badge, just the price.
     const lineCost = screen.getByTestId("grocery-line-cost");
 
     expect(lineCost).toHaveTextContent(/^€10\.60 €6\.76 \(2 × €3\.38\)$/);
@@ -140,15 +140,15 @@ describe("GroceryPrice", () => {
     expect(screen.getByTestId("grocery-product")).toHaveTextContent(/^Oude kaas 500 g$/);
   });
 
-  it("keeps the shop's words for a Sale on the chip, for whoever wants them", () => {
+  it("keeps the shop's words for a Sale on the price, for whoever wants them", () => {
     link("kaas", product({ price: 3.38, regularPrice: 5.3, dealWords: "Weekend actie" }));
     render(<GroceryPrice line={lineOf(grocery("kaas"))} />);
 
-    // The chip is the price; the words are its title and not a second badge.
-    const chip = screen.getByTestId("grocery-sale");
+    // The words are the price's title and not a badge of their own.
+    const price = screen.getByTestId("grocery-sale");
 
-    expect(chip).toHaveTextContent(/^€3\.38$/);
-    expect(chip).toHaveAttribute("title", "Weekend actie");
+    expect(price).toHaveTextContent(/^€3\.38$/);
+    expect(price).toHaveAttribute("title", "Weekend actie");
     expect(screen.getByTestId("grocery-line-cost")).toHaveTextContent(
       /^€5\.30 €3\.38 \(1 × €3\.38\)$/
     );
@@ -159,14 +159,13 @@ describe("GroceryPrice", () => {
     render(<GroceryPrice line={lineOf(grocery("kaas"))} />);
 
     // Words over a regular price are not a Sale, and are never worked into
-    // the number: the price stands, and the words are a chip beside it.
-    expect(screen.getByTestId("grocery-deal-words")).toHaveTextContent("2 voor €5.50");
+    // the number: the price stands as it is, and the words are its title.
+    expect(screen.getByTestId("grocery-deal-words")).toHaveTextContent(/^€2\.95$/);
+    expect(screen.getByTestId("grocery-deal-words")).toHaveAttribute("title", "2 voor €5.50");
     expect(screen.getByTestId("grocery-product")).toHaveTextContent(/^Oude kaas 500 g$/);
     expect(screen.queryByTestId("grocery-sale")).not.toBeInTheDocument();
     expect(screen.queryByTestId("grocery-regular-cost")).not.toBeInTheDocument();
-    expect(screen.getByTestId("grocery-line-cost")).toHaveTextContent(
-      /^€2\.95 2 voor €5\.50 \(1 × €2\.95\)$/
-    );
+    expect(screen.getByTestId("grocery-line-cost")).toHaveTextContent(/^€2\.95 \(1 × €2\.95\)$/);
   });
 
   it("shows a loader, and no words, while the Store is still being asked", () => {

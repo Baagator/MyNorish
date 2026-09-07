@@ -1165,11 +1165,11 @@ describe("GroceryProductField", () => {
         "aria-label",
         "regularPrice €1.99"
       );
-      // The chip is the Sale price, the shop's words its title; the pack follows.
-      const chip = fanta?.querySelector("[data-testid='product-option-sale']");
+      // The Sale price reads like any other, the shop's words its title; the pack follows.
+      const price = fanta?.querySelector("[data-testid='product-option-sale']");
 
-      expect(chip).toHaveTextContent(/^€1\.49$/);
-      expect(chip).toHaveAttribute("title", "ACTIE");
+      expect(price).toHaveTextContent(/^€1\.49$/);
+      expect(price).toHaveAttribute("title", "ACTIE");
       expect(fanta).toHaveTextContent("€1.99 €1.49 · 1 L");
     });
   });

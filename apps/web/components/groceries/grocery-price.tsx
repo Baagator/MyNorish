@@ -17,8 +17,8 @@ import { SalePrice } from "./sale-price";
  * What this row costs at its Store, in two quiet lines: the Line Cost with
  * the purchase arithmetic beside it, `€4.38 (2 × €2.19)`, and the product
  * that price is for. On a Sale the money line reads the way a shelf tag
- * does: the regular Line Cost struck through, the new one in a chip beside
- * it, the shop's own words for the deal on the chip for whoever wants them.
+ * does: the regular Line Cost struck through, the new one beside it like any
+ * other price, the shop's own words for the deal as its title.
  * Where the amount could not be reconciled with the pack, a note that one
  * pack was counted.
  *
@@ -70,7 +70,6 @@ export function GroceryPrice({ line }: { line: PricedLine }) {
           regularLabel={
             regularWords === null ? undefined : t("regularPrice", { price: regularWords })
           }
-          size="lg"
           testIds={{
             sale: "grocery-sale",
             words: "grocery-deal-words",
