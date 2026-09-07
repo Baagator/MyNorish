@@ -1,9 +1,11 @@
 import type z from "zod";
 import { TRPCError } from "@trpc/server";
 
+import { assertHouseholdAccess } from "@norish/auth/permissions";
 import {
   checkStoreNameExistsInHousehold,
   createStore,
+  getStoreOwnerId,
   listStoresByUserIds,
 } from "@norish/db/repositories/stores";
 import { trpcLogger as log } from "@norish/shared-server/logger";
@@ -16,6 +18,21 @@ export type StoreProcedureContext = {
   userIds: string[];
   householdKey: string;
 };
+
+/**
+ * A Store belongs to one household; its products, links and the groceries
+ * filed under it follow it exactly. Every procedure handed a store id — to
+ * price under, link to, or file a grocery in — holds it to this.
+ */
+export async function assertStoreAccess(
+  ctx: Pick<StoreProcedureContext, "user">,
+  storeId: string
+): Promise<void> {
+  const ownerId = await getStoreOwnerId(storeId);
+
+  if (!ownerId) throw new TRPCError({ code: "NOT_FOUND", message: "Store not found" });
+  await assertHouseholdAccess(ctx.user.id, ownerId);
+}
 
 export async function listStoresData(ctx: StoreProcedureContext) {
   log.debug({ userId: ctx.user.id }, "Listing stores");
@@ -50,6 +67,8 @@ export async function createStoreData(
     color: input.color ?? "primary",
     icon: input.icon ?? "ShoppingBagIcon",
     sortOrder: 0,
+    website: input.website ?? null,
+    searchAddress: input.searchAddress ?? null,
   };
 
   const createdStore = await createStore(storeId, storeData);

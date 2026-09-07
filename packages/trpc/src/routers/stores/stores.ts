@@ -1,19 +1,23 @@
 import { TRPCError } from "@trpc/server";
 
+import type { StoreSearchAddressResult } from "@norish/shared/contracts";
 import { assertHouseholdAccess } from "@norish/auth/permissions";
 import {
   checkStoreNameExistsInHousehold,
   countGroceriesInStore,
   deleteStore,
+  getStoreById,
   getStoreOwnerId,
   reorderStores,
   updateStore,
 } from "@norish/db/repositories/stores";
+import { requireQueueApiHandler } from "@norish/queue/api-handlers";
 import { trpcLogger as log } from "@norish/shared-server/logger";
 import {
   StoreCreateSchema,
   StoreDeleteSchema,
   StoreReorderSchema,
+  StoreSearchAddressCheckSchema,
   StoreUpdateInputSchema,
 } from "@norish/shared/contracts/zod";
 
@@ -230,6 +234,52 @@ const getGroceryCount = authedProcedure.input(storeIdInputSchema).query(async ({
   return countGroceriesInStore(input.storeId);
 });
 
+/**
+ * Ask a Store's shop whether Norish can search it, and find the way in when
+ * the Store has only a website. The probe is the user's own term: a fixed
+ * English word would report "no products" against a Polish shop that works
+ * perfectly, blaming the address for the probe's failure. Verification
+ * informs; the Store is already saved either way.
+ */
+const checkSearchAddress = authedProcedure
+  .input(StoreSearchAddressCheckSchema)
+  .mutation(async ({ ctx, input }): Promise<StoreSearchAddressResult> => {
+    const store = await getStoreById(input.storeId);
+
+    if (!store) throw new TRPCError({ code: "NOT_FOUND", message: "Store not found" });
+    await assertHouseholdAccess(ctx.user.id, store.userId);
+
+    // What the client just saved wins over what the row still says, and a
+    // field the client cleared is cleared: `null` is an answer, `undefined`
+    // is the field not having been sent. The update this rides beside is
+    // optimistic and may land after this read.
+    let searchAddress =
+      input.searchAddress === undefined ? store.searchAddress : input.searchAddress;
+    const website = input.website === undefined ? store.website : input.website;
+
+    if (!searchAddress && website) {
+      searchAddress = await requireQueueApiHandler("discoverSearchAddress")(website);
+
+      if (searchAddress) {
+        const saved = await updateStore({ id: store.id, searchAddress });
+
+        if (saved) {
+          storeEmitter.emitToHousehold(ctx.householdKey, "updated", { store: saved });
+        }
+      }
+    }
+    if (!searchAddress) return { searchAddress: null, outcome: "no-address" };
+
+    const check = await requireQueueApiHandler("verifySearchAddress")(
+      searchAddress,
+      input.term ?? null
+    );
+
+    log.info({ userId: ctx.user.id, storeId: store.id, ...check }, "Checked a Search Address");
+
+    return { searchAddress, ...check };
+  });
+
 export const storesProcedures = router({
   list,
   create,
@@ -237,4 +287,5 @@ export const storesProcedures = router({
   delete: remove,
   reorder,
   getGroceryCount,
+  checkSearchAddress,
 });

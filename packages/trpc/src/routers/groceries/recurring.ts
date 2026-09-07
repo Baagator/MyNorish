@@ -19,12 +19,17 @@ import {
 } from "@norish/db/repositories/stores";
 import { getUnits } from "@norish/shared-server/config/server-config-loader";
 import { trpcLogger as log } from "@norish/shared-server/logger";
-import { clientMintedId, DetachRecurringGroceryInputSchema } from "@norish/shared/contracts/zod";
+import {
+  clientMintedId,
+  DetachRecurringGroceryInputSchema,
+  PurchaseAmountSchema,
+} from "@norish/shared/contracts/zod";
 import { parseIngredientWithDefaults } from "@norish/shared/lib/helpers";
 import { calculateNextOccurrence, getTodayString } from "@norish/shared/lib/recurrence/calculator";
 
 import { authedProcedure } from "../../middleware";
 import { router } from "../../trpc";
+import { noticeGroceries } from "../stores/pricing";
 import { groceryEmitter } from "./emitter";
 
 const createRecurring = authedProcedure
@@ -39,6 +44,7 @@ const createRecurring = authedProcedure
       recurrenceWeekday: z.number().nullable(),
       nextPlannedFor: z.string(),
       storeId: z.uuid().nullable().optional(),
+      purchaseAmount: PurchaseAmountSchema,
     })
   )
   .mutation(async ({ ctx, input }) => {
@@ -69,6 +75,7 @@ const createRecurring = authedProcedure
         name: created.name,
         unit: created.unit || null,
         amount: created.amount,
+        purchaseAmount: input.purchaseAmount,
         isDone: false,
         recurringGroceryId: created.id,
         recipeIngredientId: null,
@@ -76,6 +83,10 @@ const createRecurring = authedProcedure
       };
 
       const grocery = await createGrocery(id, groceryData, ctx.userIds);
+
+      // A repeating grocery is a grocery on the list like any other: its Store
+      // is asked what it knows about the name, exactly as the add panel asks.
+      await noticeGroceries(ctx, [grocery]);
 
       log.info(
         { userId: ctx.user.id, recurringId: created.id, groceryId: id },
@@ -107,6 +118,7 @@ const updateRecurring = authedProcedure
       groceryId: z.string(),
       groceryVersion: z.number().int().positive(),
       storeId: z.uuid().nullable().optional(),
+      purchaseAmount: PurchaseAmountSchema,
       data: z.object({
         name: z.string().optional(),
         amount: z.number().nullable().optional(),
@@ -137,7 +149,7 @@ const updateRecurring = authedProcedure
 
         const outcome = await updateRecurringGroceryWithGrocery(
           { id: recurringGroceryId, version: recurringVersion, ...data },
-          { id: groceryId, version: groceryVersion, storeId }
+          { id: groceryId, version: groceryVersion, storeId, purchaseAmount: input.purchaseAmount }
         );
 
         if (outcome.stale) {
@@ -157,6 +169,9 @@ const updateRecurring = authedProcedure
 
           await upsertIngredientStorePreference(ctx.user.id, normalized, storeId);
         }
+
+        // Renamed or moved, the grocery asks its Store a new question.
+        await noticeGroceries(ctx, [outcome.value.grocery]);
 
         log.debug(
           { userId: ctx.user.id, recurringGroceryId, groceryId },
@@ -217,6 +232,7 @@ const detachRecurring = authedProcedure
             name: parsedIngredient.description,
             unit: parsedIngredient.unitOfMeasure,
             amount: parsedIngredient.quantity ?? null,
+            purchaseAmount: input.purchaseAmount,
             ...(storeId !== undefined ? { storeId } : {}),
           },
         });
@@ -238,6 +254,9 @@ const detachRecurring = authedProcedure
 
           await upsertIngredientStorePreference(ctx.user.id, normalized, storeId);
         }
+
+        // Detaching edits the grocery too — a new name or Store is a new question.
+        await noticeGroceries(ctx, [outcome.value]);
 
         log.info(
           { userId: ctx.user.id, recurringGroceryId, groceryId },

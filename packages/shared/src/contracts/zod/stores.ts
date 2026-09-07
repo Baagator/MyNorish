@@ -3,7 +3,20 @@ import z from "zod";
 
 import { ingredientStorePreferences, stores } from "@norish/db-schema/schema";
 
+import { httpUrlSchema } from "../../lib/schema";
+import { isSearchAddress, SEARCH_ADDRESS_PLACEHOLDER } from "../../lib/search-address";
 import { clientMintedId } from "./common";
+
+/** The shop's website: an http(s) address and nothing else. */
+export const StoreWebsiteSchema = httpUrlSchema;
+
+/** The shop's search page, carrying the `{query}` slot exactly once. */
+export const StoreSearchAddressSchema = z
+  .string()
+  .refine(
+    isSearchAddress,
+    `A Search Address is an http address carrying ${SEARCH_ADDRESS_PLACEHOLDER} once`
+  );
 
 // Store color options (HeroUI semantic colors + extras)
 export const StoreColorSchema = z.enum([
@@ -32,6 +45,8 @@ export const StoreInsertBaseSchema = z.object({
   color: StoreColorSchema.default("primary"),
   icon: z.string().default("ShoppingBagIcon"),
   sortOrder: z.number().int().default(0),
+  website: StoreWebsiteSchema.nullish(),
+  searchAddress: StoreSearchAddressSchema.nullish(),
 });
 
 // Store create schema (tRPC input - no userId)
@@ -40,6 +55,8 @@ export const StoreCreateSchema = z.object({
   name: z.string().min(1, "Store name is required").max(100),
   color: StoreColorSchema.default("primary"),
   icon: z.string().default("ShoppingBagIcon"),
+  website: StoreWebsiteSchema.nullish(),
+  searchAddress: StoreSearchAddressSchema.nullish(),
 });
 
 // Store update schema
@@ -50,6 +67,8 @@ export const StoreUpdateBaseSchema = z.object({
   color: StoreColorSchema.optional(),
   icon: z.string().optional(),
   sortOrder: z.number().int().optional(),
+  website: StoreWebsiteSchema.nullish(),
+  searchAddress: StoreSearchAddressSchema.nullish(),
 });
 
 // Store update input schema (tRPC)
@@ -59,6 +78,23 @@ export const StoreUpdateInputSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   color: StoreColorSchema.optional(),
   icon: z.string().optional(),
+  website: StoreWebsiteSchema.nullish(),
+  searchAddress: StoreSearchAddressSchema.nullish(),
+});
+
+// Asking a Store's shop whether its Search Address works, with the user's own term
+export const StoreSearchAddressCheckSchema = z.object({
+  storeId: z.uuid(),
+  term: z.string().max(200).nullish(),
+  /**
+   * The address and website the client just saved. A store update is
+   * optimistic and may still be in flight, so without these the check can
+   * probe the address the user has just replaced — or, for a homepage pasted
+   * into an existing Store, read no website at all and never go looking for
+   * its search page.
+   */
+  searchAddress: StoreSearchAddressSchema.nullish(),
+  website: StoreWebsiteSchema.nullish(),
 });
 
 // Store delete schema with snapshot-based grocery handling

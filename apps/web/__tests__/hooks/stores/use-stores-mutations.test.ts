@@ -21,6 +21,8 @@ vi.mock("@tanstack/react-query", async () => {
           name: "Pantry",
           color: "primary",
           icon: "ShoppingBagIcon",
+          website: null,
+          searchAddress: null,
           sortOrder: 0,
           userId: "user-1",
         },
@@ -49,6 +51,7 @@ vi.mock("@/app/providers/trpc-provider", () => ({
       update: { mutationOptions: vi.fn() },
       delete: { mutationOptions: vi.fn(() => ({ mutationFn: mockDeleteMutation })) },
       reorder: { mutationOptions: vi.fn() },
+      checkSearchAddress: { mutationOptions: vi.fn() },
     },
   }),
 }));

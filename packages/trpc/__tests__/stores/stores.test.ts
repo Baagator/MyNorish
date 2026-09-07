@@ -22,10 +22,16 @@ const storesRepository = vi.hoisted(() => ({
   countGroceriesInStore: vi.fn(),
   createStore: vi.fn(),
   deleteStore: vi.fn(),
+  getStoreById: vi.fn(),
   getStoreOwnerId: vi.fn(),
   listStoresByUserIds: vi.fn(),
   reorderStores: vi.fn(),
   updateStore: vi.fn(),
+}));
+
+const shop = vi.hoisted(() => ({
+  discoverSearchAddress: vi.fn(),
+  verifySearchAddress: vi.fn(),
 }));
 
 const storeEmitter = vi.hoisted(() => ({
@@ -37,6 +43,9 @@ const groceryEmitter = vi.hoisted(() => ({
 }));
 
 vi.mock("@norish/db/repositories/stores", () => storesRepository);
+vi.mock("@norish/queue/api-handlers", () => ({
+  requireQueueApiHandler: (name: keyof typeof shop) => shop[name],
+}));
 vi.mock("@norish/auth/permissions", () => import("../mocks/permissions"));
 vi.mock("@norish/trpc/routers/stores/emitter", () => ({ storeEmitter }));
 vi.mock("@norish/trpc/routers/groceries/emitter", () => ({ groceryEmitter }));
@@ -59,6 +68,41 @@ describe("stores procedures", () => {
     vi.clearAllMocks();
     storesRepository.getStoreOwnerId.mockResolvedValue(ctx.user.id);
     assertHouseholdAccess.mockResolvedValue(undefined);
+  });
+
+  it("checks the link the client just saved, not the one it replaced", async () => {
+    // The update and the check ride the same batch; the check may read the
+    // row before the update has written it. A Search Address the shopper
+    // replaced with a homepage is gone, and the homepage is where to look.
+    const storeId = crypto.randomUUID();
+
+    storesRepository.getStoreById.mockResolvedValue({
+      id: storeId,
+      userId: ctx.user.id,
+      website: "https://old.example.nl",
+      searchAddress: "https://old.example.nl/zoeken?q={query}",
+    });
+    storesRepository.updateStore.mockResolvedValue({ id: storeId });
+    shop.discoverSearchAddress.mockResolvedValue("https://new.example.nl/search?q={query}");
+    shop.verifySearchAddress.mockResolvedValue({ outcome: "products", count: 3 });
+
+    const caller = storesProcedures.createCaller(createMockCallerContext(ctx));
+    const result = await caller.checkSearchAddress({
+      storeId,
+      term: null,
+      searchAddress: null,
+      website: "https://new.example.nl",
+    });
+
+    expect(shop.discoverSearchAddress).toHaveBeenCalledWith("https://new.example.nl");
+    expect(shop.verifySearchAddress).toHaveBeenCalledWith(
+      "https://new.example.nl/search?q={query}",
+      null
+    );
+    expect(result).toMatchObject({
+      searchAddress: "https://new.example.nl/search?q={query}",
+      outcome: "products",
+    });
   });
 
   it("logs stale store updates as no-ops", async () => {
@@ -135,6 +179,8 @@ describe("stores procedures", () => {
         name: "Pantry",
         color: "primary",
         icon: "ShoppingBagIcon",
+        website: null,
+        searchAddress: null,
         sortOrder: 0,
         version: 1,
       },

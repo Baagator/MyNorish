@@ -27,6 +27,8 @@ import {
 import { DynamicHeroIcon } from "./dynamic-hero-icon";
 import { GroupedGroceryItem } from "./grouped-grocery-item";
 import { getStoreColorClasses } from "./store-colors";
+import { StoreHeadingTotal } from "./store-heading-total";
+import { lineOfGroup } from "./store-total";
 
 interface GroupedStoreSectionProps {
   store: StoreDto | null; // null = Unsorted
@@ -84,6 +86,10 @@ function GroupedStoreSectionComponent({
   // Calculate counts from original groceries
   const activeCount = groceries.filter((g) => !g.isDone).length;
   const doneCount = groceries.filter((g) => g.isDone).length;
+  // The grouped list shows one row per group and one price on it, so the
+  // heading adds up one Line Cost per group rather than per line — what is
+  // under the heading is exactly what it sums.
+  const priceLines = useMemo(() => groups.map(lineOfGroup), [groups]);
 
   // Build a map for quick group lookup - uses ALL groups so we can
   // render groups that are dragged from other stores during drag operations
@@ -154,6 +160,9 @@ function GroupedStoreSectionComponent({
             )}
           </span>
         </div>
+
+        {/* What is still to buy at this Store costs this */}
+        <StoreHeadingTotal lines={priceLines} storeId={store?.id ?? null} />
 
         {/* Expand/collapse chevron */}
         <motion.div
