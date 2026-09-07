@@ -77,7 +77,7 @@
     "recurrence": "Повтор",
     "savePreference": "Запомнить магазин для этой позиции",
     "addAnother": "Добавить ещё",
-    "addRepeat": "+ Добавить повтор",
+    "addRepeat": "Настроить повтор",
     "recurrenceEnabled": "Повторяется",
     "recurrenceSheet": {
       "title": "Повтор",
@@ -117,7 +117,12 @@
     "productLabel": "Товар в {store}",
     "cannotSearch": "В этом магазине нельзя искать",
     "cannotSearchHint": "Norish не смог получить страницу поиска из ссылки магазина {store}. Исправьте её в «Управление магазинами», и цены появятся.",
-    "packSize": "Размер упаковки"
+    "packSize": "Размер упаковки",
+    "amount": "Количество",
+    "useCalculatedAmount": "Использовать рассчитанное количество",
+    "productDetails": "Сведения о товаре",
+    "invalidPrice": "Введите цену, например 2,49",
+    "invalidCurrency": "Валюта состоит из трёх букв, например EUR"
   },
   "price": {
     "pending": "Ищем цену",

@@ -45,11 +45,12 @@ perfectly.
 
 ## What a grocery costs
 
-A priced grocery shows what it costs on the row — its **Line Cost** — with
-the packs that were counted beside it, in the shop's own words for the pack:
-`€5.98 · 2 × 500 gram`. Underneath is which of the shop's products that
-price is for. One pack reads as the **Shelf Price** and the size, `€2.99 ·
-150 gram`; the size is left out when the shop states none.
+A priced grocery shows its total first, with the amount to buy and the
+price of each product beside it: **€10.50 (2 × €5.25)**. Underneath is
+which of the shop's products that price is for. A product on Sale gets a
+line of its own between the two, with the shop's words for the deal and
+the regular total struck through. Tap the grocery or its price to adjust
+it.
 
 ![A shopping list with Line Costs on its rows](/img/screenshots/groceries-prices.png)
 
@@ -68,20 +69,22 @@ costs one pack. Where Norish cannot make the two meet — a pinch of
 something sold by the jar, say — the row still shows a price: it counts one
 pack, with a quiet note under the product name saying so.
 
-### Correcting the pack
+### Adjusting the amount to buy
 
-Where the shop's words were read wrong, or the shop stated no size, the
-grocery's own panel has the fix. Under the **Product** field, beside the
-price, **Pack size** holds the pack in the words the shop prints on it —
-`500 g`, `1,5 l`, `6 x 33 cl`, `10 stuks`, `per kg`. Type what is on the
-pack and press **Save**; the row counts its packs afresh.
+The grocery panel's **Amount** starts with the calculated amount to buy.
+Use the minus/plus buttons or type a number, then press **Save** or **Add**.
+For example, keep your original **800 g** requirement but choose **3** to
+buy. **Use calculated amount** removes your override and restores automatic
+calculation. A product sold by weight accepts a decimal amount in the unit
+shown beside the label.
 
-![The grocery panel, with the pack under the product](/img/screenshots/groceries-pack-size.png)
+![The grocery panel with a quick amount control](/img/screenshots/groceries-purchase-amount.png)
 
-A pack you typed is the last word: no later reading overwrites it, and your
-household sees the correction too. Empty the field and Norish goes back to
-the shop's words. A product you typed by hand takes a pack the same way, so
-a shop Norish cannot read still prices by amount.
+Your choice stays with this grocery after a reload and is shared with your
+household. It does not change other groceries linked to the same product or
+future occurrences of a recurring grocery. In a group, explicit purchases
+are added to the purchases calculated for its other sources. Open the group
+to adjust each source. Pack sizes are used automatically behind the scenes.
 
 ### The Store's heading
 
@@ -131,9 +134,10 @@ so, so you can see it working rather than guess.
 
 ![The product field in a grocery's panel, offering priced results from the shop](/img/screenshots/groceries-picker.png)
 
-Picking one fills in the **Product name**, **Price**, **Currency** and
-**Pack size** beneath it, so the panel says what this costs where it says
-everything else. Nothing is written until you press **Save** or **Add** —
+Picking one fills in **Amount** and **Price**. The **Product details** row
+under them sums up the product's name, currency and pack; tap it and those
+open in a panel of their own, the way the recurrence editor does, for the
+rare correction. Nothing is written until you press **Save** or **Add** —
 what you do in the dropdown changes nothing your household sees until then.
 Norish asks the shop only once you use the field, so opening a grocery to
 rename it sends nobody to a supermarket, and a Store with no shop link shows
@@ -142,7 +146,9 @@ the field greyed out rather than pretending it can search.
 Those fields are yours to correct. Type over the price and it becomes
 **your** price for that name at that Store: Norish never writes over a price it
 read from a shop's own page, so a correction sits beside what the shop said
-rather than through it.
+rather than through it. A price that is not a number, or a currency that is
+not three letters, is said so under the field, and **Save** waits until it
+is fixed rather than quietly dropping it.
 
 ### A shop Norish cannot read
 
@@ -160,10 +166,12 @@ it is the same product, corrected, not a second one beside it.
 ## Sales
 
 A **Sale** is what the shop presents as one: a price with the regular price
-it replaces beside it. On the row the regular Line Cost is struck through
-next to the Line Cost, with a **Sale** badge, and the shop's own words for
-the deal follow the product name — "Weekend actie", "Bonus". The picker shows
-the same on each result, so you can see a deal before you choose it.
+it replaces beside it. On the row it gets a line of its own under the total:
+a small tag with the shop's own words for the deal — "Weekend actie",
+"Bonus" — or **Sale** where the shop supplied none, and the regular Line
+Cost struck through beside it. The total itself stays a plain number. The
+picker shows the same mark on each result, so you can see a deal before you
+choose it.
 
 A deal the shop keeps as a label over its regular price — Albert Heijn's
 "2 voor €5.50" — is shown in those words and never worked into the number:
@@ -184,8 +192,7 @@ Deliberately, for now:
 - no comparable unit prices (€/kg beside a pack);
 - no price history — a Shelf Price is overwritten and the one it replaces is
   gone;
-- no tolerance on pack rounding, and no per-line "packs needed" override: the
-  amount and the Pack Size are the two knobs;
+- no tolerance on automatic pack rounding; you can override the amount to buy;
 - prices are a web surface: they do not appear in the mobile app.
 
 ## For self-hosting operators

@@ -77,7 +77,7 @@
     "recurrence": "Récurrence",
     "savePreference": "Se souvenir du magasin pour cet article",
     "addAnother": "Ajouter un autre",
-    "addRepeat": "+ Ajouter une répétition",
+    "addRepeat": "Configurer la récurrence",
     "recurrenceEnabled": "Récurrent",
     "recurrenceSheet": {
       "title": "Répétition",
@@ -117,7 +117,12 @@
     "productLabel": "Produit chez {store}",
     "cannotSearch": "Cette boutique ne peut pas être cherchée",
     "cannotSearchHint": "Norish n'a pas pu tirer de page de recherche du lien de {store}. Corrigez-le dans Gérer les magasins et les prix suivront.",
-    "packSize": "Conditionnement"
+    "packSize": "Conditionnement",
+    "amount": "Quantité",
+    "useCalculatedAmount": "Utiliser la quantité calculée",
+    "productDetails": "Détails du produit",
+    "invalidPrice": "Saisissez un prix, par exemple 2,49",
+    "invalidCurrency": "Une devise comporte trois lettres, comme EUR"
   },
   "price": {
     "pending": "Recherche du prix",

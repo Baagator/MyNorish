@@ -1,10 +1,8 @@
 "use client";
 
 import { useStoresContext } from "@/app/(app)/groceries/stores-context";
-import { usePackSizeWords } from "@/hooks/stores/use-pack-size-words";
-import { useUnitFormatter } from "@/hooks/use-unit-formatter";
-import { formatPackSize, formatShelfPrice } from "@/lib/format-price";
-import { Chip, Spinner } from "@heroui/react";
+import { formatShelfPrice } from "@/lib/format-price";
+import { Spinner } from "@heroui/react";
 import { useLocale, useTranslations } from "next-intl";
 
 import { groupLineCost } from "@norish/shared/lib/line-cost";
@@ -13,35 +11,22 @@ import { isPendingLink } from "@norish/shared/lib/product-link";
 import { saleRegularPrice } from "@norish/shared/lib/sale";
 
 import type { PricedLine } from "./store-total";
+import { SaleLabel } from "./sale-label";
 
 /**
- * What this row costs at its Store: the Line Cost, then the packs it counted
- * — `€5.98 · 2 × 500 gram`, in the shop's own size words for a read pack and
- * Norish's for a hand-set one; one pack reads as the Shelf Price and the
- * size, and a line priced by weight reads the cost and the weight priced.
- * Underneath, which of the shop's products that is, and, where the amount
- * could not be reconciled with the Pack Size, a quiet note that one pack
- * was counted; the fix is the Pack Size editor in the panel.
+ * What this row costs at its Store, in three quiet lines: the Line Cost with
+ * the purchase arithmetic beside it, `€4.38 (2 × €2.19)`; on a Sale, the
+ * shop's mark for the deal and the regular Line Cost struck through; and the
+ * product that price is for. Where the amount could not be reconciled with
+ * the pack, a note that one pack was counted.
  *
- * A Sale is what the shop presents: the regular Line Cost struck through
- * beside the Line Cost, a badge, and the shop's own words for the deal after
- * the product name — on Sale or not, because "2 voor €5.50" is something to
- * act on at the shelf even though it is never worked into the number.
- *
- * While the Store is still being asked — a Pending Link — the row shows a
- * loader where the price would be and no words: waiting must read as waiting
- * and not as failure, and it must read the same on every screen in the
- * household, which it does because the link itself is what says so.
- *
- * It reads and nothing more. Which product a Grocery is is a field of the
- * grocery panel, which the row already opens.
+ * While the Store is still being asked, a loader where the price would be
+ * and no words: waiting must read as waiting and not as failure.
  */
 export function GroceryPrice({ line }: { line: PricedLine }) {
   const { linkFor } = useStoresContext();
   const locale = useLocale();
   const t = useTranslations("groceries.price");
-  const { formatAmountUnit } = useUnitFormatter();
-  const packWords = usePackSizeWords();
   const link = linkFor(line.storeId, line.name);
 
   if (!link) return null;
@@ -62,53 +47,58 @@ export function GroceryPrice({ line }: { line: PricedLine }) {
   const regularPrice = saleRegularPrice(product.price, product.regularPrice);
   const regular =
     regularPrice === null ? null : groupLineCost(line.amounts, { price: regularPrice, pack }).cost;
-  // The shop's own words for a pack it read; Norish's for one set by hand.
-  const size =
-    product.packByHand && pack ? formatPackSize(pack, packWords) : (product.size ?? null);
-  const detail = cost.byWeight
-    ? cost.quantity
-      ? formatAmountUnit(cost.quantity.amount, cost.quantity.unit)
-      : size
-    : cost.packs > 1
-      ? t("packs", { count: cost.packs, size: size ?? "" }).trim()
-      : size;
+  const regularWords =
+    regular === null ? null : formatShelfPrice(locale, regular, product.currency);
+  const detail = `${new Intl.NumberFormat(locale, { maximumFractionDigits: 3 }).format(cost.purchaseAmount)} × ${formatShelfPrice(locale, product.price, product.currency)}`;
 
   return (
     <span
-      className="flex max-w-[45%] shrink-0 flex-col items-end gap-0.5 text-right"
+      className="flex w-full min-w-0 flex-col items-start gap-0.5 text-left sm:w-auto sm:max-w-[55%] sm:items-end sm:text-right"
       data-grocery-packs={cost.packs}
       data-grocery-price={product.id}
       data-testid="grocery-price"
     >
-      <span className="text-foreground flex items-center gap-1.5 text-sm tabular-nums">
-        <span data-testid="grocery-line-cost">
-          {formatShelfPrice(locale, cost.cost, product.currency)}
-          {regular !== null && (
-            <s
-              aria-label={t("regularPrice", {
-                price: formatShelfPrice(locale, regular, product.currency),
-              })}
-              className="text-muted ml-1.5"
-              data-testid="grocery-regular-cost"
-            >
-              {formatShelfPrice(locale, regular, product.currency)}
-            </s>
-          )}
-          {detail ? ` · ${detail}` : ""}
+      <span
+        className="text-foreground text-sm font-medium tabular-nums"
+        data-testid="grocery-line-cost"
+      >
+        {formatShelfPrice(locale, cost.cost, product.currency)}
+        <span className="text-muted text-xs font-normal" data-testid="grocery-price-calculation">
+          {` (${detail})`}
         </span>
-        {regular !== null && (
-          <Chip color="accent" data-testid="grocery-sale" size="sm" variant="soft">
-            {t("sale")}
-          </Chip>
-        )}
       </span>
-      <span className="text-muted w-full truncate text-xs" data-testid="grocery-product">
+      {(regularWords !== null || product.dealWords) && (
+        <span
+          className="flex max-w-full justify-start sm:justify-end"
+          data-testid="grocery-sale-line"
+        >
+          <SaleLabel
+            fallback={t("sale")}
+            regular={regularWords}
+            regularLabel={
+              regularWords === null ? undefined : t("regularPrice", { price: regularWords })
+            }
+            testIds={{
+              sale: "grocery-sale",
+              words: "grocery-deal-words",
+              regular: "grocery-regular-cost",
+            }}
+            words={product.dealWords ?? null}
+          />
+        </span>
+      )}
+      <span
+        className="text-muted w-full truncate text-xs"
+        data-testid="grocery-product"
+        title={product.name}
+      >
         {product.name}
-        {product.dealWords ? (
-          <span data-testid="grocery-deal-words">{` · ${product.dealWords}`}</span>
-        ) : null}
-        {cost.matched ? "" : <span data-testid="grocery-one-pack">{` · ${t("onePack")}`}</span>}
       </span>
+      {!cost.matched && (
+        <span className="text-muted text-xs" data-testid="grocery-one-pack">
+          {t("onePack")}
+        </span>
+      )}
     </span>
   );
 }

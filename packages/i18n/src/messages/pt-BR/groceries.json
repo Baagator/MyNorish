@@ -77,7 +77,7 @@
     "recurrence": "Recorrência",
     "savePreference": "Lembrar loja para este item",
     "addAnother": "Adicionar outro",
-    "addRepeat": "Toque para configurar",
+    "addRepeat": "Configurar recorrência",
     "recurrenceEnabled": "Recorrente",
     "recurrenceSheet": {
       "title": "Recorrência",
@@ -117,7 +117,12 @@
     "productLabel": "Produto em {store}",
     "cannotSearch": "Não dá para buscar nesta loja",
     "cannotSearchHint": "O Norish não conseguiu tirar uma página de busca do link de {store}. Corrija em Gerenciar lojas e os preços virão.",
-    "packSize": "Tamanho da embalagem"
+    "packSize": "Tamanho da embalagem",
+    "amount": "Quantidade",
+    "useCalculatedAmount": "Usar a quantidade calculada",
+    "productDetails": "Detalhes do produto",
+    "invalidPrice": "Informe um preço, como 2,49",
+    "invalidCurrency": "Uma moeda tem três letras, como EUR"
   },
   "price": {
     "pending": "Procurando o preço",

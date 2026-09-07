@@ -77,7 +77,7 @@
     "recurrence": "Gentagelse",
     "savePreference": "Husk butik for denne vare",
     "addAnother": "Tilføj endnu en",
-    "addRepeat": "+ Tilføj gentagelse",
+    "addRepeat": "Indstil gentagelse",
     "recurrenceEnabled": "Gentages",
     "recurrenceSheet": {
       "title": "Gentagelse",
@@ -117,7 +117,12 @@
     "productLabel": "Produkt hos {store}",
     "cannotSearch": "Denne butik kan ikke søges",
     "cannotSearchHint": "Norish kunne ikke læse en søgeside ud af butikslinket til {store}. Ret det under Administrer butikker, så følger priserne.",
-    "packSize": "Pakkestørrelse"
+    "packSize": "Pakkestørrelse",
+    "amount": "Antal",
+    "useCalculatedAmount": "Brug beregnet antal",
+    "productDetails": "Produktoplysninger",
+    "invalidPrice": "Indtast en pris, f.eks. 2,49",
+    "invalidCurrency": "En valuta er tre bogstaver, f.eks. EUR"
   },
   "price": {
     "pending": "Slår prisen op",

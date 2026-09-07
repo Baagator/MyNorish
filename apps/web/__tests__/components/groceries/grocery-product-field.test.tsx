@@ -18,6 +18,10 @@ interface SearchCall {
   enabled: boolean;
 }
 
+vi.mock("@/hooks/config/use-units-query", () => ({
+  useUnitsQuery: () => ({ units: {} }),
+}));
+
 const searchCalls: SearchCall[] = [];
 
 /** A shop that has been asked and has not answered yet. */
@@ -110,10 +114,16 @@ vi.mock("next-intl", () => ({
   useLocale: () => "en",
 }));
 
-vi.mock("@/components/Panel/Panel", () => ({
-  usePanelPortalContainer: () => undefined,
-  default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-}));
+vi.mock("@/components/Panel/Panel", () => {
+  // The details panel is a nested Panel; here it is always open, so the
+  // fields behind it are reachable without a tap.
+  const Panel = ({ children }: { children: ReactNode }) => <div>{children}</div>;
+
+  Panel.Body = ({ children }: { children: ReactNode }) => <div>{children}</div>;
+  Panel.Footer = ({ children }: { children: ReactNode }) => <div>{children}</div>;
+
+  return { usePanelPortalContainer: () => undefined, default: Panel };
+});
 
 function store(id: string, name: string, searchAddress: string | null): StoreDto {
   return {
@@ -1147,17 +1157,20 @@ describe("GroceryProductField", () => {
         .find((node) => node.textContent?.startsWith("Fanta 1 L"));
 
       expect(fanta).toBeDefined();
-      expect(fanta).toHaveTextContent("ACTIE");
+      // The shop's own words are the mark, said once, where the badge was.
+      expect(fanta?.textContent?.match(/ACTIE/g)).toHaveLength(1);
       expect(fanta?.querySelector("[data-testid='product-option-regular']")).toHaveTextContent(
         "€1.99"
       );
-      expect(fanta?.querySelector("[data-testid='product-option-sale']")).toHaveTextContent("sale");
+      expect(fanta?.querySelector("[data-testid='product-option-sale']")).toHaveTextContent(
+        "ACTIE"
+      );
     });
   });
 
-  describe("the Pack Size field", () => {
-    it("opens on the shop's own words for the pack and takes words typed over them", () => {
-      const onPack = vi.fn();
+  describe("what is typed by hand", () => {
+    it("says a price that is not a price is not one, and tells the panel so", () => {
+      const onValidityChange = vi.fn();
 
       render(
         <GroceryProductField
@@ -1166,75 +1179,90 @@ describe("GroceryProductField", () => {
           linkedProduct={product("prod-a", "store-a", "Coca-Cola 1 L", 1.99)}
           store={STORE_A}
           onChoice={() => undefined}
-          onPack={onPack}
+          onValidityChange={onValidityChange}
         />
       );
 
-      expect(screen.getByTestId("pack-size")).toHaveValue("1 L");
-      // Untouched, the field says nothing about the pack.
-      expect(onPack).not.toHaveBeenCalled();
+      expect(onValidityChange).toHaveBeenLastCalledWith(true);
+      expect(screen.queryByTestId("product-price-error")).not.toBeInTheDocument();
 
-      // Words the reader can make a pack of are the pack; the shopper never
-      // sees a quantity, a unit or a by-weight flag.
-      fireEvent.change(screen.getByTestId("pack-size"), { target: { value: "1,5 l" } });
-      expect(onPack).toHaveBeenLastCalledWith({ quantity: 1.5, unit: "liter", byWeight: false });
+      fireEvent.change(screen.getByTestId("product-by-hand-price"), { target: { value: "1.9.9" } });
+      expect(screen.getByTestId("product-price-error")).toHaveTextContent("invalidPrice");
+      expect(onValidityChange).toHaveBeenLastCalledWith(false);
 
-      fireEvent.change(screen.getByTestId("pack-size"), { target: { value: "per kg" } });
-      expect(onPack).toHaveBeenLastCalledWith({ quantity: 1, unit: "kilogram", byWeight: true });
+      fireEvent.change(screen.getByTestId("product-by-hand-price"), { target: { value: "-2" } });
+      expect(screen.getByTestId("product-price-error")).toBeInTheDocument();
 
-      // Words on the way to something readable change nothing.
-      fireEvent.change(screen.getByTestId("pack-size"), { target: { value: "6 x" } });
-      expect(onPack).toHaveBeenLastCalledWith(undefined);
-
-      // Emptied, the hand-set Pack Size is cleared rather than written as nothing.
-      fireEvent.change(screen.getByTestId("pack-size"), { target: { value: "" } });
-      expect(onPack).toHaveBeenLastCalledWith(null);
+      fireEvent.change(screen.getByTestId("product-by-hand-price"), { target: { value: "2,49" } });
+      expect(screen.queryByTestId("product-price-error")).not.toBeInTheDocument();
+      expect(onValidityChange).toHaveBeenLastCalledWith(true);
     });
 
-    it("brings a picked result's own pack words into the field", async () => {
-      const onPack = vi.fn();
+    it("wants three letters for a currency", () => {
+      const onValidityChange = vi.fn();
+      const onChoice = vi.fn();
 
-      render(
-        <GroceryProductField
-          choice={null}
-          groceryName="cola"
-          linkedProduct={null}
-          store={STORE_A}
-          onChoice={() => undefined}
-          onPack={onPack}
-        />
-      );
-
-      await act(async () => {
-        field().focus();
-      });
-
-      const picked = screen
-        .getAllByTestId("product-option")
-        .find((node) => node.textContent?.includes("Cola Zero"));
-
-      await act(async () => {
-        fireEvent.click(picked as HTMLElement);
-      });
-
-      expect(screen.getByTestId("pack-size")).toHaveValue("1,5 L");
-      expect(onPack).not.toHaveBeenCalled();
-    });
-
-    it("shows a hand-set Pack Size the panel is holding, in Norish's words", () => {
       render(
         <GroceryProductField
           choice={null}
           groceryName="cola"
           linkedProduct={product("prod-a", "store-a", "Coca-Cola 1 L", 1.99)}
-          pack={{ quantity: 1, unit: "kilogram", byWeight: true }}
           store={STORE_A}
-          onChoice={() => undefined}
-          onPack={() => undefined}
+          onChoice={onChoice}
+          onValidityChange={onValidityChange}
         />
       );
 
-      expect(screen.getByTestId("pack-size")).toHaveValue("perUnit kg");
+      fireEvent.change(screen.getByTestId("product-by-hand-price"), { target: { value: "2.49" } });
+      fireEvent.change(screen.getByTestId("product-by-hand-currency"), { target: { value: "EU" } });
+
+      expect(screen.getByTestId("product-currency-error")).toHaveTextContent("invalidCurrency");
+      expect(onValidityChange).toHaveBeenLastCalledWith(false);
+      // Half a currency is not a price the panel may save.
+      expect(onChoice).not.toHaveBeenLastCalledWith(expect.objectContaining({ currency: "EU" }));
+
+      fireEvent.change(screen.getByTestId("product-by-hand-currency"), {
+        target: { value: "usd" },
+      });
+      expect(screen.queryByTestId("product-currency-error")).not.toBeInTheDocument();
+      expect(onValidityChange).toHaveBeenLastCalledWith(true);
+      expect(onChoice).toHaveBeenLastCalledWith(
+        expect.objectContaining({ kind: "manual", price: 2.49, currency: "USD" })
+      );
     });
+
+    it("sums the product up on the details row", () => {
+      render(
+        <GroceryProductField
+          choice={null}
+          groceryName="cola"
+          linkedProduct={product("prod-a", "store-a", "Coca-Cola 1 L", 1.99)}
+          store={STORE_A}
+          onChoice={() => undefined}
+        />
+      );
+
+      const row = screen.getByTestId("product-details");
+
+      // The currency and the pack: what nothing else on the panel shows. The
+      // name is in the product field right above it.
+      expect(row).toHaveTextContent("productDetails");
+      expect(row).toHaveTextContent("EUR · 1 L");
+      expect(row).not.toHaveTextContent("Coca-Cola");
+    });
+  });
+
+  it("keeps pack metadata out of the grocery editor", () => {
+    render(
+      <GroceryProductField
+        choice={null}
+        groceryName="cola"
+        linkedProduct={product("prod-a", "store-a", "Coca-Cola 1 L", 1.99)}
+        store={STORE_A}
+        onChoice={() => undefined}
+      />
+    );
+
+    expect(screen.queryByTestId("pack-size")).not.toBeInTheDocument();
   });
 });

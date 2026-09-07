@@ -1,27 +1,35 @@
 "use client";
 
 import type { PackSizeWords } from "@/lib/format-price";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { usePanelPortalContainer } from "@/components/Panel/Panel";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { GroceryPurchaseAmount } from "@/components/groceries/grocery-purchase-amount";
+import { SaleLabel } from "@/components/groceries/sale-label";
+import Panel, { usePanelPortalContainer } from "@/components/Panel/Panel";
+import { ActionButton, ActionButtonGroup } from "@/components/shared/action-button";
 import { useShopSearch, useStoreProducts } from "@/hooks/stores";
 import { usePackSizeWords } from "@/hooks/stores/use-pack-size-words";
 import { formatPackSize, formatShelfPrice } from "@/lib/format-price";
-import { Chip, ComboBox, Header, Input, Label, ListBox, TextField } from "@heroui/react";
+import { ChevronRightIcon } from "@heroicons/react/16/solid";
+import {
+  Button,
+  ComboBox,
+  FieldError,
+  Header,
+  Input,
+  Label,
+  ListBox,
+  TextField,
+} from "@heroui/react";
 import { useLocale, useTranslations } from "next-intl";
 
-import type {
-  PackSizeDto,
-  StoreDto,
-  StoreProductChoice,
-  StoreProductDto,
-} from "@norish/shared/contracts";
+import type { StoreDto, StoreProductChoice, StoreProductDto } from "@norish/shared/contracts";
 import type { PricedCandidate } from "@norish/shared/lib/currency";
 import type { PackSize } from "@norish/shared/lib/pack-size";
 import { chooseUnmistakable, distinctProducts } from "@norish/shared/lib/auto-link";
 import { currencyForUrl, isPriced } from "@norish/shared/lib/currency";
 import { nameWords } from "@norish/shared/lib/normalized-name";
 import { createClientId } from "@norish/shared/lib/operation-helpers";
-import { packSizeOf, readPackSize } from "@norish/shared/lib/pack-size";
+import { packSizeOf } from "@norish/shared/lib/pack-size";
 import { saleRegularPrice } from "@norish/shared/lib/sale";
 
 /** How long a shopper stops typing before the shop is asked. */
@@ -33,6 +41,9 @@ const FIELD_STYLE = { fontSize: "16px" } as const;
 
 interface GroceryProductFieldProps {
   store: StoreDto;
+  itemName?: string;
+  purchaseAmount?: number | null;
+  onPurchaseAmount?: (amount: number | null) => void;
   /** The grocery's name as it will be stored; the Product Link is keyed by it. */
   groceryName: string;
   /** What this grocery is linked to now, which is what the field opens reading. */
@@ -45,9 +56,12 @@ interface GroceryProductFieldProps {
   linkPending?: boolean;
   choice: StoreProductChoice | null;
   onChoice: (choice: StoreProductChoice | null) => void;
-  /** A Pack Size the shopper set by hand for the product shown: absent while untouched, null once cleared. */
-  pack?: PackSizeDto | null;
-  onPack?: (pack: PackSizeDto | null | undefined) => void;
+  /**
+   * Whether what is typed by hand could be saved: a price that is a price, a
+   * currency of three letters. The panel's own Save waits on it, so a slip is
+   * corrected here rather than quietly dropped on the way to the database.
+   */
+  onValidityChange?: (valid: boolean) => void;
 }
 
 /** One row of the dropdown, whichever list it came from. */
@@ -124,26 +138,23 @@ function productRow(product: StoreProductDto, locale: string, words: PackSizeWor
   };
 }
 
-/** One row of the dropdown: the name, and beside it the price, a Sale where there is one, the deal's words. */
+/** One row of the dropdown: the name, and beside it the shop's mark for a deal and the price. */
 function RowContent({ row, locale, sale }: { row: ProductRow; locale: string; sale: string }) {
   return (
     <div className="flex w-full items-center justify-between gap-3">
-      <span className="min-w-0 flex-1 truncate">
-        {row.name}
-        {row.dealWords ? <span className="text-muted"> · {row.dealWords}</span> : null}
-      </span>
-      <span className="text-muted flex shrink-0 items-center gap-1.5 text-xs tabular-nums">
-        {row.regularPrice !== null && (
-          <>
-            <s data-testid="product-option-regular">
-              {formatShelfPrice(locale, row.regularPrice, row.currency)}
-            </s>
-            <Chip color="accent" data-testid="product-option-sale" size="sm" variant="soft">
-              {sale}
-            </Chip>
-          </>
-        )}
-        <span>{row.detail}</span>
+      <span className="min-w-0 flex-1 truncate">{row.name}</span>
+      <span className="text-muted flex max-w-[55%] min-w-0 shrink items-center gap-1.5 text-xs tabular-nums">
+        <SaleLabel
+          fallback={sale}
+          regular={
+            row.regularPrice === null
+              ? null
+              : formatShelfPrice(locale, row.regularPrice, row.currency)
+          }
+          testIds={{ sale: "product-option-sale", regular: "product-option-regular" }}
+          words={row.dealWords}
+        />
+        <span className="shrink-0">{row.detail}</span>
       </span>
     </div>
   );
@@ -208,16 +219,19 @@ function answers(name: string, term: string): boolean {
  */
 export function GroceryProductField({
   store,
+  itemName,
+  purchaseAmount,
+  onPurchaseAmount,
   groceryName,
   linkedProduct,
   linkPending = false,
   choice,
   onChoice,
-  pack: handSetPack,
-  onPack = () => undefined,
+  onValidityChange,
 }: GroceryProductFieldProps) {
   const t = useTranslations("groceries.picker");
   const tPrice = useTranslations("groceries.price");
+  const tActions = useTranslations("common.actions");
   const locale = useLocale();
   const packWords = usePackSizeWords();
   const portalContainer = usePanelPortalContainer();
@@ -236,6 +250,10 @@ export function GroceryProductField({
   const [manualName, setManualName] = useState(groceryName);
   const [manualCurrency, setManualCurrency] = useState("");
   const [manualId] = useState(createClientId);
+  // The product's name, currency and pack live behind a row of their own,
+  // opened the way the recurrence editor is: what a shopper touches every
+  // time stays on the panel, what they correct once a year does not.
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const heldByHand = useRef("");
   // The name the field itself put in the box. That is an answer, not a
   // question: writing a choice into the input must never send the household
@@ -320,11 +338,23 @@ export function GroceryProductField({
     stored[0]?.currency ?? candidates[0]?.currency ?? currencyForUrl(store.website) ?? "EUR";
   const currency = (manualCurrency.trim() || suggestedCurrency).toUpperCase();
   const typedPrice = Number(manualPrice.replace(",", "."));
-  const hasTypedPrice =
-    manualPrice.trim() !== "" &&
-    Number.isFinite(typedPrice) &&
-    typedPrice >= 0 &&
-    currency.length === 3;
+  // What is typed is held to what it claims to be, and said so under the
+  // field: a price is a number that is not below nothing, a currency is
+  // three letters. An empty field claims nothing and is never wrong.
+  const priceInvalid =
+    manualPrice.trim() !== "" && !(Number.isFinite(typedPrice) && typedPrice >= 0);
+  const currencyInvalid =
+    manualCurrency.trim() !== "" && !/^[A-Za-z]{3}$/.test(manualCurrency.trim());
+  const valid = !priceInvalid && !currencyInvalid;
+  const hasTypedPrice = manualPrice.trim() !== "" && !priceInvalid && !currencyInvalid;
+
+  useEffect(() => {
+    onValidityChange?.(valid);
+  }, [valid, onValidityChange]);
+
+  // A field that is taken away — the Store swapped, the next grocery begun —
+  // takes its complaint with it.
+  useEffect(() => () => onValidityChange?.(true), [onValidityChange]);
 
   /** The fields below say what this costs, until somebody types over them. */
   const showAs = useCallback((name: string, price: number, priceCurrency: string) => {
@@ -479,55 +509,26 @@ export function GroceryProductField({
     pickedChoice,
   ]);
 
+  const selectedRow = rows.find((row) => row.key === picked);
+  const selectedPack = picked
+    ? (selectedRow?.pack ?? null)
+    : linkedProduct
+      ? packSizeOf(linkedProduct)
+      : null;
+  const selectedSize = picked ? selectedRow?.size : linkedProduct?.size;
+  const packDetail =
+    selectedPack && (!selectedSize || (!picked && linkedProduct?.packByHand))
+      ? formatPackSize(selectedPack, packWords)
+      : (selectedSize ?? "");
+  // What the details row says is behind it: the currency and the pack, which
+  // nothing else on the panel shows. The name is in the product field above.
+  const detailsSummary = [currency, packDetail].filter(Boolean).join(" · ");
+
   // The fields are the answer to "what does this cost", so they are there
   // whenever there is an answer to show or one to be typed — and always for a
   // shop that cannot be searched, where typing one is the only way to a price.
   const showsPrice =
     Boolean(picked) || Boolean(linkedProduct) || foundNothing || noAnswer || byHand || !canSearch;
-
-  // The pack of the product shown — picked, or linked — in the words the
-  // shop prints on it, which is what the field under the price opens on. A
-  // shopper who types over it sets the Pack Size by hand, in the same words,
-  // and that is the last word until the field is emptied; a different product
-  // picked afterwards is a different pack, read afresh. What the words mean
-  // is the reader's business, never the shopper's.
-  const shownPackWords = useMemo<string>(() => {
-    if (handSetPack !== undefined) return handSetPack ? formatPackSize(handSetPack, packWords) : "";
-    const row = picked ? rows.find((candidate) => candidate.key === picked) : null;
-    const pack = row ? row.pack : linkedProduct ? packSizeOf(linkedProduct) : null;
-    const size = row ? row.size : (linkedProduct?.size ?? null);
-    const byHand = !row && Boolean(linkedProduct?.packByHand);
-
-    if (pack && (byHand || !size)) return formatPackSize(pack, packWords);
-
-    return size ?? "";
-    // The rows are rebuilt every render; what matters is which one is picked.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [handSetPack, picked, linkedProduct, packWords]);
-  const [packText, setPackText] = useState(shownPackWords);
-  const packEditedFor = useRef<string | null>(null);
-
-  // A product picked or read anew brings its own pack words into the field,
-  // unless the shopper has already typed some for exactly this product.
-  useEffect(() => {
-    const shownFor = picked ?? linkedProduct?.id ?? null;
-
-    if (packEditedFor.current !== null && packEditedFor.current === shownFor) return;
-    packEditedFor.current = null;
-    setPackText(shownPackWords);
-  }, [shownPackWords, picked, linkedProduct?.id]);
-
-  const editPack = useCallback(
-    (text: string) => {
-      packEditedFor.current = picked ?? linkedProduct?.id ?? "";
-      setPackText(text);
-      // Emptied, the pack goes back to what the shop's words say; words the
-      // reader can make a pack of are the pack; anything else, typed on the
-      // way to something readable, changes nothing.
-      onPack(text.trim() === "" ? null : (readPackSize(text) ?? undefined));
-    },
-    [linkedProduct?.id, onPack, picked]
-  );
 
   // Hooks first, and only then: a Store that points at no shop has nothing to
   // ask and nothing to show.
@@ -633,24 +634,21 @@ export function GroceryProductField({
               {t("noAnswer", { store: store.name })}
             </p>
           )}
-          <TextField
-            value={manualName}
-            onChange={(value) => {
-              setByHand(true);
-              setManualName(value);
-            }}
-          >
-            <Label>{t("byHandName")}</Label>
-            <Input
-              className={FIELD_CLASS}
-              data-testid="product-by-hand-name"
-              style={FIELD_STYLE}
-              variant="secondary"
-            />
-          </TextField>
           <div className="flex gap-3">
+            {onPurchaseAmount && (
+              <GroceryPurchaseAmount
+                product={{
+                  price: hasTypedPrice ? typedPrice : 0,
+                  pack: byHand ? null : selectedPack,
+                }}
+                raw={itemName ?? groceryName}
+                value={purchaseAmount}
+                onChange={onPurchaseAmount}
+              />
+            )}
             <TextField
               className="flex-1"
+              isInvalid={priceInvalid}
               value={manualPrice}
               onChange={(value) => {
                 setByHand(true);
@@ -666,37 +664,111 @@ export function GroceryProductField({
                 style={FIELD_STYLE}
                 variant="secondary"
               />
-            </TextField>
-            <TextField
-              className="w-28"
-              value={manualCurrency}
-              onChange={(value) => {
-                setByHand(true);
-                setManualCurrency(value);
-              }}
-            >
-              <Label>{t("byHandCurrency")}</Label>
-              <Input
-                className={FIELD_CLASS}
-                data-testid="product-by-hand-currency"
-                maxLength={3}
-                placeholder={suggestedCurrency}
-                style={FIELD_STYLE}
-                variant="secondary"
-              />
+              {priceInvalid && (
+                <FieldError data-testid="product-price-error">{t("invalidPrice")}</FieldError>
+              )}
             </TextField>
           </div>
-          {/* What one Shelf Price buys, in the words the shop prints on the pack */}
-          <TextField value={packText} onChange={editPack}>
-            <Label>{t("packSize")}</Label>
-            <Input
-              className={FIELD_CLASS}
-              data-testid="pack-size"
-              placeholder="500 g"
-              style={FIELD_STYLE}
-              variant="secondary"
-            />
-          </TextField>
+          {purchaseAmount != null && onPurchaseAmount && (
+            <Button
+              className="self-start"
+              size="sm"
+              variant="outline"
+              onPress={() => onPurchaseAmount(null)}
+            >
+              {t("useCalculatedAmount")}
+            </Button>
+          )}
+
+          {/* The product's own details, behind a row that says what is there */}
+          <Button
+            fullWidth
+            className="h-12 justify-between rounded-full px-4 text-base font-normal"
+            data-testid="product-details"
+            variant="tertiary"
+            onPress={() => setDetailsOpen(true)}
+          >
+            <span className="shrink-0">{t("productDetails")}</span>
+            <span
+              className={`flex min-w-0 items-center gap-1 text-sm ${currencyInvalid ? "text-danger" : "text-muted"}`}
+            >
+              <span className="truncate">
+                {currencyInvalid ? t("invalidCurrency") : detailsSummary}
+              </span>
+              <ChevronRightIcon aria-hidden className="h-4 w-4 shrink-0" />
+            </span>
+          </Button>
+
+          <Panel
+            nested
+            className="contents"
+            open={detailsOpen}
+            title={t("productDetails")}
+            onOpenChange={setDetailsOpen}
+          >
+            <Panel.Body>
+              <div className="flex flex-col gap-3">
+                <TextField
+                  value={manualName}
+                  onChange={(value) => {
+                    setByHand(true);
+                    setManualName(value);
+                  }}
+                >
+                  <Label>{t("byHandName")}</Label>
+                  <Input
+                    className={FIELD_CLASS}
+                    data-testid="product-by-hand-name"
+                    style={FIELD_STYLE}
+                    variant="secondary"
+                  />
+                </TextField>
+                <TextField
+                  className="w-32"
+                  isInvalid={currencyInvalid}
+                  value={manualCurrency}
+                  onChange={(value) => {
+                    setByHand(true);
+                    setManualCurrency(value);
+                  }}
+                >
+                  <Label>{t("byHandCurrency")}</Label>
+                  <Input
+                    autoCapitalize="characters"
+                    className={FIELD_CLASS}
+                    data-testid="product-by-hand-currency"
+                    maxLength={3}
+                    placeholder={suggestedCurrency}
+                    style={FIELD_STYLE}
+                    variant="secondary"
+                  />
+                  {currencyInvalid && (
+                    <FieldError data-testid="product-currency-error">
+                      {t("invalidCurrency")}
+                    </FieldError>
+                  )}
+                </TextField>
+                {packDetail && (
+                  <TextField isReadOnly value={packDetail}>
+                    <Label>{t("packSize")}</Label>
+                    <Input
+                      className={FIELD_CLASS}
+                      data-testid="product-pack-size"
+                      style={FIELD_STYLE}
+                      variant="secondary"
+                    />
+                  </TextField>
+                )}
+              </div>
+            </Panel.Body>
+            <Panel.Footer>
+              <ActionButtonGroup>
+                <ActionButton action="done" onPress={() => setDetailsOpen(false)}>
+                  {tActions("done")}
+                </ActionButton>
+              </ActionButtonGroup>
+            </Panel.Footer>
+          </Panel>
         </div>
       )}
     </div>

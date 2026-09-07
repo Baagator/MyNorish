@@ -77,7 +77,7 @@
     "recurrence": "Wiederholung",
     "savePreference": "Geschäft für diesen Eintrag merken",
     "addAnother": "Weiteren hinzufügen",
-    "addRepeat": "+ Wiederholung hinzufügen",
+    "addRepeat": "Wiederholung einrichten",
     "recurrenceEnabled": "Wiederkehrend",
     "recurrenceSheet": {
       "title": "Wiederholung",
@@ -117,7 +117,12 @@
     "productLabel": "Produkt bei {store}",
     "cannotSearch": "Dieser Shop kann nicht durchsucht werden",
     "cannotSearchHint": "Norish konnte aus dem Shop-Link von {store} keine Suchseite lesen. Korrigieren Sie ihn unter Shops verwalten, dann folgen die Preise.",
-    "packSize": "Packungsgröße"
+    "packSize": "Packungsgröße",
+    "amount": "Anzahl",
+    "useCalculatedAmount": "Berechnete Anzahl verwenden",
+    "productDetails": "Produktdetails",
+    "invalidPrice": "Geben Sie einen Preis ein, z. B. 2,49",
+    "invalidCurrency": "Eine Währung besteht aus drei Buchstaben, z. B. EUR"
   },
   "price": {
     "pending": "Preis wird nachgeschlagen",

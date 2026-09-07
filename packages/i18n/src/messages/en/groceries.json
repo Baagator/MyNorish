@@ -77,7 +77,7 @@
     "recurrence": "Recurrence",
     "savePreference": "Remember store for this item",
     "addAnother": "Add another",
-    "addRepeat": "Tap to configure",
+    "addRepeat": "Configure recurrence",
     "recurrenceEnabled": "Recurring",
     "recurrenceSheet": {
       "title": "Recurrence",
@@ -117,7 +117,12 @@
     "productLabel": "Product at {store}",
     "cannotSearch": "This shop cannot be searched",
     "cannotSearchHint": "Norish could not read a search page out of {store}'s shop link. Correct it in Manage Stores and prices follow.",
-    "packSize": "Pack size"
+    "packSize": "Pack size",
+    "amount": "Amount",
+    "useCalculatedAmount": "Use calculated amount",
+    "productDetails": "Product details",
+    "invalidPrice": "Enter a price, like 2.49",
+    "invalidCurrency": "A currency is three letters, like EUR"
   },
   "price": {
     "pending": "Looking up the price",

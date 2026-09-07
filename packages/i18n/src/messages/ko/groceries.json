@@ -77,7 +77,7 @@
     "recurrence": "반복",
     "savePreference": "이 항목의 매장 기억",
     "addAnother": "하나 더 추가",
-    "addRepeat": "+ 반복 추가",
+    "addRepeat": "반복 설정",
     "recurrenceEnabled": "반복",
     "recurrenceSheet": {
       "title": "반복",
@@ -117,7 +117,12 @@
     "productLabel": "{store}의 상품",
     "cannotSearch": "이 상점은 검색할 수 없습니다",
     "cannotSearchHint": "Norish가 {store}의 상점 링크에서 검색 페이지를 읽지 못했습니다. 상점 관리에서 고치면 가격이 따라옵니다.",
-    "packSize": "포장 단위"
+    "packSize": "포장 단위",
+    "amount": "수량",
+    "useCalculatedAmount": "계산된 수량 사용",
+    "productDetails": "제품 상세 정보",
+    "invalidPrice": "가격을 입력하세요 (예: 2.49)",
+    "invalidCurrency": "통화는 세 글자입니다 (예: EUR)"
   },
   "price": {
     "pending": "가격을 찾는 중",

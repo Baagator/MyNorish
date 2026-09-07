@@ -23,7 +23,12 @@ type EditGroceryPanelProps = {
   grocery: GroceryDto;
   recurringGrocery: RecurringGroceryDto | null;
   stores: StoreDto[];
-  onSave: (itemName: string, pattern: RecurrencePattern | null, storeId?: string | null) => void;
+  onSave: (
+    itemName: string,
+    pattern: RecurrencePattern | null,
+    storeId?: string | null,
+    purchaseAmount?: number | null
+  ) => void;
   onDelete: () => void;
 };
 export default function EditGroceryPanel({
@@ -37,9 +42,12 @@ export default function EditGroceryPanel({
 }: EditGroceryPanelProps) {
   const t = useTranslations("groceries.panel");
   const tActions = useTranslations("common.actions");
+  const [purchaseAmount, setPurchaseAmount] = useState<number | null>(null);
   const [recurrencePanelOpen, setRecurrencePanelOpen] = useState(false);
   const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null);
   const [hasStoreChanged, setHasStoreChanged] = useState(false);
+  // Whether what is typed in the product field could be saved as it stands.
+  const [productValid, setProductValid] = useState(true);
   const {
     itemName,
     setItemName,
@@ -58,9 +66,12 @@ export default function EditGroceryPanel({
   useEffect(() => {
     if (open) {
       const text = [grocery.amount, grocery.unit, grocery.name].filter(Boolean).join(" ");
+
       setItemName(text);
+      setPurchaseAmount(grocery.purchaseAmount ?? null);
       setSelectedStoreId(grocery.storeId ?? null);
       setHasStoreChanged(false);
+      setProductValid(true);
       if (recurringGrocery) {
         setConfirmedPattern({
           rule: recurringGrocery.recurrenceRule as "day" | "week" | "month",
@@ -86,12 +97,18 @@ export default function EditGroceryPanel({
   };
   const handleSubmit = () => {
     const trimmed = itemName.trim();
-    if (!trimmed) return;
+
+    if (!trimmed || !productValid) return;
 
     // Fold the store change into the single save call so both the name/unit
     // update and the store assignment happen in one atomic mutation (avoiding
     // a version-conflict race between two separate mutations).
-    onSave(trimmed, confirmedPattern, hasStoreChanged ? selectedStoreId : undefined);
+    onSave(
+      trimmed,
+      confirmedPattern,
+      hasStoreChanged ? selectedStoreId : undefined,
+      purchaseAmount
+    );
 
     // The picker's choice is written here and nowhere else.
     price.commit();
@@ -106,6 +123,7 @@ export default function EditGroceryPanel({
     if (!isOpen) setRecurrencePanelOpen(false);
     onOpenChange(isOpen);
   };
+
   return (
     <>
       <Panel open={open} title={t("editTitle")} onOpenChange={handlePanelOpenChange}>
@@ -113,12 +131,12 @@ export default function EditGroceryPanel({
           <div className="space-y-3">
             <Input
               className="h-12 text-base font-medium"
-              variant="secondary"
               placeholder={t("editPlaceholder")}
               style={{
                 fontSize: "16px",
               }}
               value={itemName}
+              variant="secondary"
               onChange={(e) => setItemName(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
@@ -127,6 +145,47 @@ export default function EditGroceryPanel({
                 }
               }}
             />
+
+            {/* How often it comes back, right under what it is: the pills,
+                or the way to set one */}
+            {detectedPattern || confirmedPattern ? (
+              <AnimatePresence mode="popLayout">
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Suggested pill  */}
+                  {detectedPattern && (
+                    <RecurrenceSuggestion
+                      key="detected"
+                      itemName={itemName}
+                      pattern={detectedPattern.pattern}
+                      type="detected"
+                      onReplace={() => handleConfirmPattern(detectedPattern)}
+                    />
+                  )}
+
+                  {/* Active pill */}
+                  {confirmedPattern && (
+                    <RecurrenceSuggestion
+                      key="confirmed"
+                      itemName={itemName}
+                      pattern={confirmedPattern}
+                      type="confirmed"
+                      onEdit={() => setRecurrencePanelOpen(true)}
+                      onRemove={handleRemovePattern}
+                    />
+                  )}
+                </div>
+              </AnimatePresence>
+            ) : (
+              <ActionButton
+                action="add"
+                className="min-w-16 font-medium"
+                size="sm"
+                variant="tertiary"
+                onPress={() => setRecurrencePanelOpen(true)}
+              >
+                {t("addRepeat")}
+              </ActionButton>
+            )}
 
             {/* Store selection */}
             <StoreSelector
@@ -145,54 +204,15 @@ export default function EditGroceryPanel({
                 key={price.store.id}
                 choice={price.choice}
                 groceryName={price.groceryName}
+                itemName={itemName}
                 linkPending={price.linkPending}
                 linkedProduct={price.linkedProduct}
-                pack={price.pack}
+                purchaseAmount={purchaseAmount}
                 store={price.store}
                 onChoice={price.setChoice}
-                onPack={price.setPack}
+                onPurchaseAmount={setPurchaseAmount}
+                onValidityChange={setProductValid}
               />
-            )}
-
-            {/* Recurrence Pills Container */}
-            <AnimatePresence mode="popLayout">
-              <div className="flex flex-wrap items-center gap-2">
-                {/* Suggested pill  */}
-                {detectedPattern && (
-                  <RecurrenceSuggestion
-                    key="detected"
-                    itemName={itemName}
-                    pattern={detectedPattern.pattern}
-                    type="detected"
-                    onReplace={() => handleConfirmPattern(detectedPattern)}
-                  />
-                )}
-
-                {/* Active pill */}
-                {confirmedPattern && (
-                  <RecurrenceSuggestion
-                    key="confirmed"
-                    itemName={itemName}
-                    pattern={confirmedPattern}
-                    type="confirmed"
-                    onEdit={() => setRecurrencePanelOpen(true)}
-                    onRemove={handleRemovePattern}
-                  />
-                )}
-              </div>
-            </AnimatePresence>
-
-            {/* Link to manual recurrence editor */}
-            {!confirmedPattern && !detectedPattern && (
-              <ActionButton
-                action="add"
-                className="-mt-1 min-w-16 font-medium"
-                size="sm"
-                onPress={() => setRecurrencePanelOpen(true)}
-                variant="tertiary"
-              >
-                {t("addRepeat")}
-              </ActionButton>
             )}
           </div>
         </Panel.Body>
@@ -201,7 +221,11 @@ export default function EditGroceryPanel({
             <ActionButton action="delete" onPress={onDelete}>
               {tActions("delete")}
             </ActionButton>
-            <ActionButton action="save" isDisabled={!itemName.trim()} onPress={handleSubmit}>
+            <ActionButton
+              action="save"
+              isDisabled={!itemName.trim() || !productValid}
+              onPress={handleSubmit}
+            >
               {tActions("save")}
             </ActionButton>
           </ActionButtonGroup>

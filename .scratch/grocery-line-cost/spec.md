@@ -89,3 +89,31 @@ Browser E2E stays against the harness's fake shop page, which gains a pack size 
 - Vocabulary is in `CONTEXT.md` under **Groceries & Stores**: Pending Link, Pack Size, Line Cost, Sale, and the amended Shelf Price. Use those words in code, tickets and UI copy.
 - ADR-0029 records why Line Cost is strict pack arithmetic over what the shop presents, and amends ADR-0028's rejection of per-unit prices.
 - This ships on the same unmerged branch as simplified grocery linking, so the `0.23.0-beta` release-notes page and `apps/docs/docs/groceries/prices.md` are extended rather than given new pages; the "What this does not do yet" list there is rewritten.
+
+## Amendments
+
+**2026-09-07, Purchase Amount and the panel's shape.** ADR-0030 amends the
+out-of-scope line above that ruled out a per-line override: a grocery now
+carries an optional **Purchase Amount** (migration `0049`), chosen in the
+panel's **Amount** stepper and multiplied against the Shelf Price; the
+grocery's own amount and unit stay untouched, and clearing it goes back to the
+calculation. The row reads `€4.38 (2 × €2.19)`. On the same day the panel and
+the row were reshaped from Mike's review of them:
+
+- A Sale sits on a line of its own under the money line, as a small tag with
+  the shop's own words for the deal (or **Sale**) and the regular Line Cost
+  struck through; the money line carries nothing else. The picker's rows use
+  the same mark (`components/groceries/sale-label.tsx`).
+- The panel's order is name, recurrence, Store, product, amount and price. The
+  recurrence control reads **Configure recurrence** (`panel.addRepeat`) and
+  sits directly under the name, as the pills do.
+- The product's name, currency and pack live behind a **Product details** row
+  that sums up the currency and pack and opens a nested Panel, the way the
+  recurrence editor does; the Pack Size is read-only there.
+- A price that is not a number and a currency that is not three letters are
+  said so under their fields, and Save/Add wait for the fix
+  (`onValidityChange` on `GroceryProductField`).
+
+The documentation screenshots are re-captured by
+`.scratch/grocery-line-cost/docs-screenshots.e2e.ts` (moved here from the
+simplified-grocery-linking folder and extended); it is not part of the gate.

@@ -77,7 +77,7 @@
     "recurrence": "Herhaling",
     "savePreference": "Onthoud winkel voor dit item",
     "addAnother": "Voeg nog een toe",
-    "addRepeat": "+ Herhaling toevoegen",
+    "addRepeat": "Herhaling instellen",
     "recurrenceEnabled": "Terugkerend",
     "recurrenceSheet": {
       "title": "Herhaling",
@@ -117,7 +117,12 @@
     "productLabel": "Product bij {store}",
     "cannotSearch": "Deze winkel kan niet doorzocht worden",
     "cannotSearchHint": "Norish kon geen zoekpagina uit de winkellink van {store} lezen. Pas hem aan bij Winkels beheren en de prijzen volgen.",
-    "packSize": "Verpakking"
+    "packSize": "Verpakking",
+    "amount": "Aantal",
+    "useCalculatedAmount": "Berekend aantal gebruiken",
+    "productDetails": "Productgegevens",
+    "invalidPrice": "Vul een prijs in, zoals 2,49",
+    "invalidCurrency": "Een valuta bestaat uit drie letters, zoals EUR"
   },
   "price": {
     "pending": "Prijs wordt opgezocht",

@@ -13,6 +13,10 @@ import "@testing-library/jest-dom";
 
 import type { GroceryDto, StoreDto, StoreProductDto } from "@norish/shared/contracts";
 
+vi.mock("@/hooks/config/use-units-query", () => ({
+  useUnitsQuery: () => ({ units: {} }),
+}));
+
 const chooseProduct = vi.fn();
 
 function product(id: string, storeId: string, name: string, price: number): StoreProductDto {
@@ -271,6 +275,93 @@ describe("EditGroceryPanel, swapping the Store", () => {
     // Store A's product is not in Store B; writing it there is an error the
     // shopper never asked for.
     expect(chooseProduct).not.toHaveBeenCalled();
+  });
+});
+
+describe("EditGroceryPanel, the order of its fields", () => {
+  it("puts the recurrence control under the name and before the Store", () => {
+    render(
+      <EditGroceryPanel
+        grocery={GROCERY}
+        open={true}
+        recurringGrocery={null}
+        stores={STORES}
+        onDelete={() => undefined}
+        onOpenChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+
+    const name = screen.getByPlaceholderText("editPlaceholder");
+    const recurrence = screen.getByText("addRepeat");
+    const store = screen.getByTestId("store-selector");
+
+    // Name, then recurrence, then the Store: what the row is, how often it
+    // comes back, and only then where it is bought.
+    expect(
+      name.compareDocumentPosition(recurrence) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(
+      recurrence.compareDocumentPosition(store) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+  });
+});
+
+describe("EditGroceryPanel, the product's details", () => {
+  it("keeps them behind a row of their own, opened like the recurrence editor", () => {
+    render(
+      <EditGroceryPanel
+        grocery={GROCERY}
+        open={true}
+        recurringGrocery={null}
+        stores={STORES}
+        onDelete={() => undefined}
+        onOpenChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+
+    // The row says what is behind it, and the fields themselves are not on
+    // the panel until it is opened.
+    const row = screen.getByTestId("product-details");
+
+    expect(row).toHaveTextContent("EUR · 1 L");
+    expect(screen.queryByTestId("product-by-hand-name")).not.toBeInTheDocument();
+
+    fireEvent.click(row);
+
+    expect(screen.getByTestId("product-by-hand-name")).toHaveValue("Coca-Cola 1 L");
+    expect(screen.getByTestId("product-by-hand-currency")).toHaveValue("EUR");
+
+    fireEvent.click(screen.getByTestId("action-done"));
+
+    expect(screen.queryByTestId("product-by-hand-name")).not.toBeInTheDocument();
+  });
+
+  it("refuses to save while the price typed is not a price", () => {
+    render(
+      <EditGroceryPanel
+        grocery={GROCERY}
+        open={true}
+        recurringGrocery={null}
+        stores={STORES}
+        onDelete={() => undefined}
+        onOpenChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+
+    expect(screen.getByTestId("action-save")).toBeEnabled();
+
+    fireEvent.change(screen.getByTestId("product-by-hand-price"), { target: { value: "abc" } });
+
+    expect(screen.getByTestId("product-price-error")).toHaveTextContent("invalidPrice");
+    expect(screen.getByTestId("action-save")).toBeDisabled();
+
+    fireEvent.change(screen.getByTestId("product-by-hand-price"), { target: { value: "2,49" } });
+
+    expect(screen.queryByTestId("product-price-error")).not.toBeInTheDocument();
+    expect(screen.getByTestId("action-save")).toBeEnabled();
   });
 });
 

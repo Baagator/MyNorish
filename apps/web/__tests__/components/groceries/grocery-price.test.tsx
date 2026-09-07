@@ -6,7 +6,7 @@
  */
 import { GroceryPrice } from "@/components/groceries/grocery-price";
 import { lineOf } from "@/components/groceries/store-total";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import "@testing-library/jest-dom";
@@ -78,24 +78,24 @@ describe("GroceryPrice", () => {
     link("kaas", product({}));
     render(<GroceryPrice line={lineOf(grocery("kaas"))} />);
 
-    expect(screen.getByTestId("grocery-line-cost")).toHaveTextContent("€4.99 · 500 g");
+    expect(screen.getByTestId("grocery-line-cost")).toHaveTextContent("€4.99 (1 × €4.99)");
     expect(screen.getByTestId("grocery-product")).toHaveTextContent("Oude kaas 500 g");
     expect(screen.queryByTestId("grocery-one-pack")).not.toBeInTheDocument();
   });
 
-  it("shows the Line Cost first and the packs after, in the shop's own words", () => {
+  it("shows the total and the amount times shelf price", () => {
     link("bloem", product({ id: "p-bloem", name: "Tarwebloem", price: 2.99 }));
     render(<GroceryPrice line={lineOf(grocery("bloem", 700, "gram"))} />);
 
-    expect(screen.getByTestId("grocery-line-cost")).toHaveTextContent("€5.98 · 2 × 500 g");
+    expect(screen.getByTestId("grocery-line-cost")).toHaveTextContent("€5.98 (2 × €2.99)");
     expect(screen.getByTestId("grocery-price")).toHaveAttribute("data-grocery-packs", "2");
   });
 
-  it("uses Norish's words for a Pack Size set by hand", () => {
+  it("uses pack metadata for calculation without showing it as purchase arithmetic", () => {
     link("bloem", product({ id: "p-bloem", price: 2.99, size: "groot pak", packByHand: true }));
     render(<GroceryPrice line={lineOf(grocery("bloem", 700, "gram"))} />);
 
-    expect(screen.getByTestId("grocery-line-cost")).toHaveTextContent("€5.98 · 2 × 500 g");
+    expect(screen.getByTestId("grocery-line-cost")).toHaveTextContent("€5.98 (2 × €2.99)");
   });
 
   it("shows the cost and the weight priced for what is sold loose", () => {
@@ -113,36 +113,50 @@ describe("GroceryPrice", () => {
     );
     render(<GroceryPrice line={lineOf(grocery("bananen", 700, "gram"))} />);
 
-    expect(screen.getByTestId("grocery-line-cost")).toHaveTextContent("€1.39 · 700 g");
+    expect(screen.getByTestId("grocery-line-cost")).toHaveTextContent("€1.39 (0.7 × €1.99)");
   });
 
   it("notes, quietly, a line it priced as one pack", () => {
     link("kaas", product({}));
     render(<GroceryPrice line={lineOf(grocery("kaas", 2, "liter"))} />);
 
-    expect(screen.getByTestId("grocery-line-cost")).toHaveTextContent("€4.99 · 500 g");
+    expect(screen.getByTestId("grocery-line-cost")).toHaveTextContent("€4.99 (1 × €4.99)");
     expect(screen.getByTestId("grocery-one-pack")).toHaveTextContent("onePack");
   });
 
-  it("shows a Sale as the shop presents it: the regular Line Cost struck through, and a badge", () => {
+  it("shows a Sale on a line of its own: the shop's mark, and the regular Line Cost struck through", () => {
     link("kaas", product({ price: 3.38, regularPrice: 5.3, size: "150 g", packQuantity: 150 }));
     render(<GroceryPrice line={lineOf(grocery("kaas", 300, "gram"))} />);
 
-    expect(screen.getByTestId("grocery-line-cost")).toHaveTextContent("€6.76");
-    expect(screen.getByTestId("grocery-regular-cost")).toHaveTextContent("€10.60");
-    expect(screen.getByTestId("grocery-sale")).toHaveTextContent("sale");
+    // The money line carries the Line Cost and the arithmetic, nothing else.
+    const lineCost = screen.getByTestId("grocery-line-cost");
+
+    expect(lineCost).toHaveTextContent(/^€6\.76 \(2 × €3\.38\)$/);
+    expect(within(lineCost).queryByTestId("grocery-regular-cost")).not.toBeInTheDocument();
+    expect(within(lineCost).queryByTestId("grocery-sale")).not.toBeInTheDocument();
+
+    const sale = screen.getByTestId("grocery-sale-line");
+
+    expect(within(sale).getByTestId("grocery-regular-cost")).toHaveTextContent("€10.60");
+    expect(within(sale).getByTestId("grocery-sale")).toHaveTextContent("sale");
     expect(screen.queryByTestId("grocery-deal-words")).not.toBeInTheDocument();
+    expect(screen.getByTestId("grocery-product")).toHaveTextContent(/^Oude kaas 500 g$/);
   });
 
-  it("shows the shop's own words for a deal after the product name, on Sale or not", () => {
+  it("keeps the product name separate from promotion details", () => {
     link("kaas", product({ price: 2.95, dealWords: "2 voor €5.50" }));
     render(<GroceryPrice line={lineOf(grocery("kaas"))} />);
 
     expect(screen.getByTestId("grocery-deal-words")).toHaveTextContent("2 voor €5.50");
+    expect(screen.getByTestId("grocery-product")).toHaveTextContent(/^Oude kaas 500 g$/);
     // Words over a regular price are not a Sale, and are never worked into the number.
     expect(screen.queryByTestId("grocery-sale")).not.toBeInTheDocument();
     expect(screen.queryByTestId("grocery-regular-cost")).not.toBeInTheDocument();
-    expect(screen.getByTestId("grocery-line-cost")).toHaveTextContent("€2.95");
+    expect(screen.getByTestId("grocery-line-cost")).toHaveTextContent(/^€2\.95 \(1 × €2\.95\)$/);
+    // The words sit on the Sale line, apart from both the money and the product.
+    expect(
+      within(screen.getByTestId("grocery-sale-line")).getByTestId("grocery-deal-words")
+    ).toBeInTheDocument();
   });
 
   it("shows a loader, and no words, while the Store is still being asked", () => {
