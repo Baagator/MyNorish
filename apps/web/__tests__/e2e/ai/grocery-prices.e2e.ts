@@ -334,7 +334,7 @@ test("700 g of a 500 g pack is two packs, on the row and at the heading", async 
   expect(heading).toBe(sum);
 });
 
-test("a product on Sale shows the shop's mark and the struck price on a line of their own", async () => {
+test("a product on Sale shows the struck price and the new one in a chip beside it", async () => {
   await page.goto("/groceries");
   await addGroceryToShop("300 g geitenkaas plakken", "geitenkaas plakken");
 
@@ -347,13 +347,10 @@ test("a product on Sale shows the shop's mark and the struck price on a line of 
   // Sale one, the way a shelf tag reads.
   const money = row.getByTestId("grocery-line-cost");
 
-  await expect(money).toContainText(/4[.,]38/);
   await expect(money.getByTestId("grocery-regular-cost")).toContainText(/6[.,]58/);
-  // Under it, the shop's own words for the deal.
-  const sale = row.getByTestId("grocery-sale-line");
-
-  await expect(sale.getByTestId("grocery-sale")).toBeVisible();
-  await expect(sale.getByTestId("grocery-deal-words")).toContainText("Weekend actie");
+  await expect(money.getByTestId("grocery-sale")).toContainText(/4[.,]38/);
+  // The shop's own words for the deal ride on the chip.
+  await expect(money.getByTestId("grocery-sale")).toHaveAttribute("title", "Weekend actie");
   // And the product's name alone on its line.
   await expect(row.getByTestId("grocery-product")).toHaveText("Geitenkaas plakken");
 });
@@ -377,9 +374,27 @@ test("a product on Sale corrected by hand keeps its Sale", async () => {
     timeout: 30_000,
   });
   await expect(row.getByTestId("grocery-price")).toHaveAttribute("data-grocery-packs", "2");
-  await expect(row.getByTestId("grocery-line-cost")).toContainText(/4[.,]38/);
+  await expect(row.getByTestId("grocery-sale")).toContainText(/4[.,]38/);
   await expect(row.getByTestId("grocery-regular-cost")).toContainText(/6[.,]58/);
-  await expect(row.getByTestId("grocery-deal-words")).toContainText("Weekend actie");
+  await expect(row.getByTestId("grocery-sale")).toHaveAttribute("title", "Weekend actie");
+});
+
+test("the shop's own page for the product opens from the panel", async () => {
+  await page.goto("/groceries");
+  await page.getByText("tarwebloem", { exact: true }).first().click();
+  await expect(page.getByTestId("grocery-product-field")).toHaveValue("Tarwebloem");
+
+  // The link is the product page the Store read the price from, opened in a
+  // new tab: the shop's site is the shop's, not Norish.
+  const link = page.getByTestId("product-page-link");
+
+  await expect(link).toHaveAttribute("href", /\/p\/tarwebloem$/);
+  await expect(link).toHaveAttribute("target", "_blank");
+  const [opened] = await Promise.all([page.context().waitForEvent("page"), link.click()]);
+
+  await expect(opened).toHaveURL(/\/p\/tarwebloem$/);
+  await opened.close();
+  await page.getByRole("button", { name: "Close panel" }).click();
 });
 
 test("what is sold loose is priced by the weight the line states", async () => {

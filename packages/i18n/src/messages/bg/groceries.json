@@ -122,7 +122,8 @@
     "useCalculatedAmount": "Използване на изчисленото количество",
     "productDetails": "Данни за продукта",
     "invalidPrice": "Въведете цена, например 2,49",
-    "invalidCurrency": "Валутата е три букви, например EUR"
+    "invalidCurrency": "Валутата е три букви, например EUR",
+    "openPage": "Отвори в {store}"
   },
   "price": {
     "pending": "Търсене на цената",

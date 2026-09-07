@@ -122,7 +122,8 @@
     "useCalculatedAmount": "Berechnete Anzahl verwenden",
     "productDetails": "Produktdetails",
     "invalidPrice": "Geben Sie einen Preis ein, z. B. 2,49",
-    "invalidCurrency": "Eine Währung besteht aus drei Buchstaben, z. B. EUR"
+    "invalidCurrency": "Eine Währung besteht aus drei Buchstaben, z. B. EUR",
+    "openPage": "Bei {store} öffnen"
   },
   "price": {
     "pending": "Preis wird nachgeschlagen",

@@ -122,7 +122,8 @@
     "useCalculatedAmount": "Użyj obliczonej ilości",
     "productDetails": "Szczegóły produktu",
     "invalidPrice": "Wpisz cenę, np. 2,49",
-    "invalidCurrency": "Waluta to trzy litery, np. EUR"
+    "invalidCurrency": "Waluta to trzy litery, np. EUR",
+    "openPage": "Otwórz w {store}"
   },
   "price": {
     "pending": "Sprawdzanie ceny",

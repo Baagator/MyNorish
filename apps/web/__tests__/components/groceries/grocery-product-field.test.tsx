@@ -1157,8 +1157,6 @@ describe("GroceryProductField", () => {
         .find((node) => node.textContent?.startsWith("Fanta 1 L"));
 
       expect(fanta).toBeDefined();
-      // The shop's own words are the mark, said once, where the badge was.
-      expect(fanta?.textContent?.match(/ACTIE/g)).toHaveLength(1);
       expect(fanta?.querySelector("[data-testid='product-option-regular']")).toHaveTextContent(
         "€1.99"
       );
@@ -1167,9 +1165,80 @@ describe("GroceryProductField", () => {
         "aria-label",
         "regularPrice €1.99"
       );
-      expect(fanta?.querySelector("[data-testid='product-option-sale']")).toHaveTextContent(
-        "ACTIE"
+      // The chip is the Sale price, the shop's words its title; the pack follows.
+      const chip = fanta?.querySelector("[data-testid='product-option-sale']");
+
+      expect(chip).toHaveTextContent(/^€1\.49$/);
+      expect(chip).toHaveAttribute("title", "ACTIE");
+      expect(fanta).toHaveTextContent("€1.99 €1.49 · 1 L");
+    });
+  });
+
+  describe("the shop's own page for the product", () => {
+    it("opens it for the product shown, and not for one typed by hand", async () => {
+      const read = {
+        ...product("read-1", "store-a", "Coca-Cola 1 L", 1.99),
+        pageUrl: "https://a.example/p/cola-1l",
+      } as StoreProductDto;
+      const linked = render(
+        <GroceryProductField
+          choice={null}
+          groceryName="cola"
+          linkedProduct={read}
+          store={STORE_A}
+          onChoice={() => undefined}
+        />
       );
+
+      // The linked product's page, in a new tab: the shop's site is not Norish.
+      const link = screen.getByTestId("product-page-link");
+
+      expect(link).toHaveAttribute("href", "https://a.example/p/cola-1l");
+      expect(link).toHaveAttribute("target", "_blank");
+      expect(link).toHaveTextContent("openPage Store A");
+      linked.unmount();
+
+      // A result of the shop's own search has a page too, before it is stored.
+      const unlinked = render(
+        <GroceryProductField
+          choice={null}
+          groceryName="cola"
+          linkedProduct={null}
+          store={STORE_A}
+          onChoice={() => undefined}
+        />
+      );
+
+      expect(screen.queryByTestId("product-page-link")).not.toBeInTheDocument();
+      await act(async () => {
+        field().focus();
+      });
+      const zero = screen
+        .getAllByTestId("product-option")
+        .find((node) => node.textContent?.includes("Cola Zero"));
+
+      await act(async () => {
+        fireEvent.click(zero as HTMLElement);
+      });
+      expect(screen.getByTestId("product-page-link")).toHaveAttribute(
+        "href",
+        "https://a.example/p/cola-zero"
+      );
+      unlinked.unmount();
+
+      // A product typed by hand has no page anywhere.
+      const byHand = { ...read, id: "manual-1", pageUrl: null, isManual: true } as StoreProductDto;
+
+      render(
+        <GroceryProductField
+          choice={null}
+          groceryName="cola"
+          linkedProduct={byHand}
+          store={STORE_A}
+          onChoice={() => undefined}
+        />
+      );
+      expect(screen.queryByTestId("product-page-link")).not.toBeInTheDocument();
     });
   });
 

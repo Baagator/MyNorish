@@ -122,7 +122,8 @@
     "useCalculatedAmount": "Использовать рассчитанное количество",
     "productDetails": "Сведения о товаре",
     "invalidPrice": "Введите цену, например 2,49",
-    "invalidCurrency": "Валюта состоит из трёх букв, например EUR"
+    "invalidCurrency": "Валюта состоит из трёх букв, например EUR",
+    "openPage": "Открыть в {store}"
   },
   "price": {
     "pending": "Ищем цену",

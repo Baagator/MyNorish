@@ -5,12 +5,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FIELD_CLASS, FIELD_STYLE } from "@/components/groceries/grocery-field";
 import { GroceryPurchaseAmount } from "@/components/groceries/grocery-purchase-amount";
 import { ProductDetailsPanel } from "@/components/groceries/product-details-panel";
-import { SaleTag } from "@/components/groceries/sale-tag";
+import { SalePrice } from "@/components/groceries/sale-price";
 import { usePanelPortalContainer } from "@/components/Panel/Panel";
 import { useShopSearch, useStoreProducts } from "@/hooks/stores";
 import { usePackSizeWords } from "@/hooks/stores/use-pack-size-words";
 import { formatPackSize, formatShelfPrice } from "@/lib/format-price";
-import { ChevronRightIcon } from "@heroicons/react/16/solid";
+import { ArrowTopRightOnSquareIcon, ChevronRightIcon } from "@heroicons/react/16/solid";
 import {
   Button,
   ComboBox,
@@ -65,7 +65,10 @@ interface GroceryProductFieldProps {
 interface ProductRow {
   key: string;
   name: string;
-  detail: string;
+  /** The shop's size words, or else Norish's own for the pack. */
+  packWords: string | null;
+  /** The product's own page at the shop, where it was read from one. */
+  pageUrl: string | null;
   price: number;
   currency: string;
   size: string | null;
@@ -78,36 +81,21 @@ interface ProductRow {
   choice: StoreProductChoice;
 }
 
-/** The price, and the shop's size words or else Norish's own for the pack. */
-function priceDetail(
-  locale: string,
-  price: number,
-  currency: string,
+/** The shop's size words, or else Norish's own for the pack. */
+function packWordsOf(
   size: string | null | undefined,
   pack: PackSize | null | undefined,
   words: PackSizeWords
-): string {
-  const packWords = size ?? (pack ? formatPackSize(pack, words) : null);
-
-  return [formatShelfPrice(locale, price, currency), packWords].filter(Boolean).join(" · ");
+): string | null {
+  return size ?? (pack ? formatPackSize(pack, words) : null);
 }
 
-function candidateRow(
-  candidate: PricedCandidate,
-  locale: string,
-  words: PackSizeWords
-): ProductRow {
+function candidateRow(candidate: PricedCandidate, words: PackSizeWords): ProductRow {
   return {
     key: candidate.url,
     name: candidate.name,
-    detail: priceDetail(
-      locale,
-      candidate.price,
-      candidate.currency,
-      candidate.size,
-      candidate.pack,
-      words
-    ),
+    packWords: packWordsOf(candidate.size, candidate.pack, words),
+    pageUrl: candidate.url,
     price: candidate.price,
     currency: candidate.currency,
     size: candidate.size ?? null,
@@ -118,13 +106,14 @@ function candidateRow(
   };
 }
 
-function productRow(product: StoreProductDto, locale: string, words: PackSizeWords): ProductRow {
+function productRow(product: StoreProductDto, words: PackSizeWords): ProductRow {
   const pack = packSizeOf(product);
 
   return {
     key: product.id,
     name: product.name,
-    detail: priceDetail(locale, product.price, product.currency, product.size, pack, words),
+    packWords: packWordsOf(product.size, pack, words),
+    pageUrl: product.pageUrl,
     price: product.price,
     currency: product.currency,
     size: product.size,
@@ -136,18 +125,16 @@ function productRow(product: StoreProductDto, locale: string, words: PackSizeWor
 }
 
 /**
- * One row of the dropdown: the name with the shop's mark for a deal under it,
- * and beside them the price, struck regular price first where there is one.
+ * One row of the dropdown: the name, and beside it the price the way the row
+ * shows it — struck regular price and a chip on a Sale — and the pack.
  */
 function RowContent({
   row,
   locale,
-  sale,
   regularPriceLabel,
 }: {
   row: ProductRow;
   locale: string;
-  sale: string;
   regularPriceLabel: (price: string) => string;
 }) {
   const regular =
@@ -155,22 +142,20 @@ function RowContent({
 
   return (
     <div className="flex w-full items-center justify-between gap-3">
-      <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
-        <span className="max-w-full truncate">{row.name}</span>
-        <SaleTag
-          fallback={sale}
-          testIds={{ sale: "product-option-sale" }}
+      <span className="min-w-0 flex-1 truncate">{row.name}</span>
+      <span className="text-muted shrink-0 text-xs tabular-nums">
+        <SalePrice
+          price={formatShelfPrice(locale, row.price, row.currency)}
+          regular={regular}
+          regularLabel={regular === null ? undefined : regularPriceLabel(regular)}
+          testIds={{
+            sale: "product-option-sale",
+            words: "product-option-words",
+            regular: "product-option-regular",
+          }}
           words={row.dealWords}
-          onSale={regular !== null}
         />
-      </span>
-      <span className="text-muted flex shrink-0 items-center gap-1.5 text-xs tabular-nums">
-        {regular !== null && (
-          <s aria-label={regularPriceLabel(regular)} data-testid="product-option-regular">
-            {regular}
-          </s>
-        )}
-        <span>{row.detail}</span>
+        {row.packWords ? ` · ${row.packWords}` : ""}
       </span>
     </div>
   );
@@ -322,10 +307,10 @@ export function GroceryProductField({
         product.id === picked ||
         answers(product.name, searchedTerm || groceryName)
     )
-    .map((product) => productRow(product, locale, packWords));
+    .map((product) => productRow(product, packWords));
   const fromShop = candidates
     .filter((candidate) => !storedByPage.has(candidate.url))
-    .map((candidate) => candidateRow(candidate, locale, packWords));
+    .map((candidate) => candidateRow(candidate, packWords));
   // One product, one row, however many addresses the shop lists it under: AH
   // lists a loaf under two product numbers with nothing to tell them apart.
   // The Store's own copy stands for the shop's, and a row that is picked
@@ -494,6 +479,9 @@ export function GroceryProductField({
   const selectedDealWords = picked
     ? (selectedRow?.dealWords ?? null)
     : (linkedProduct?.dealWords ?? null);
+  // The product's own page at the shop, for the product the fields describe;
+  // a product typed by hand has none anywhere.
+  const pageUrl = picked ? (selectedRow?.pageUrl ?? null) : (linkedProduct?.pageUrl ?? null);
 
   // A price typed over a by-hand product corrects that product — the one the
   // shopper made earlier for this name, or one they picked from what the Store
@@ -601,7 +589,21 @@ export function GroceryProductField({
           take(row);
         }}
       >
-        <Label>{t("productLabel", { store: store.name })}</Label>
+        <div className="flex items-baseline justify-between gap-3">
+          <Label>{t("productLabel", { store: store.name })}</Label>
+          {pageUrl && (
+            <a
+              className="text-accent inline-flex shrink-0 items-center gap-1 text-xs font-medium hover:underline"
+              data-testid="product-page-link"
+              href={pageUrl}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              {t("openPage", { store: store.name })}
+              <ArrowTopRightOnSquareIcon aria-hidden className="h-3.5 w-3.5" />
+            </a>
+          )}
+        </div>
         <ComboBox.InputGroup>
           <Input
             className={FIELD_CLASS}
@@ -630,7 +632,6 @@ export function GroceryProductField({
                       locale={locale}
                       regularPriceLabel={(price) => tPrice("regularPrice", { price })}
                       row={row}
-                      sale={tPrice("sale")}
                     />
                   </ListBox.Item>
                 ))}
@@ -652,7 +653,6 @@ export function GroceryProductField({
                       locale={locale}
                       regularPriceLabel={(price) => tPrice("regularPrice", { price })}
                       row={row}
-                      sale={tPrice("sale")}
                     />
                   </ListBox.Item>
                 ))}

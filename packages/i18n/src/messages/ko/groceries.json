@@ -122,7 +122,8 @@
     "useCalculatedAmount": "계산된 수량 사용",
     "productDetails": "제품 상세 정보",
     "invalidPrice": "가격을 입력하세요 (예: 2.49)",
-    "invalidCurrency": "통화는 세 글자입니다 (예: EUR)"
+    "invalidCurrency": "통화는 세 글자입니다 (예: EUR)",
+    "openPage": "{store}에서 열기"
   },
   "price": {
     "pending": "가격을 찾는 중",

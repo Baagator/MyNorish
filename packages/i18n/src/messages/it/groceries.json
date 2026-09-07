@@ -122,7 +122,8 @@
     "useCalculatedAmount": "Usa la quantità calcolata",
     "productDetails": "Dettagli del prodotto",
     "invalidPrice": "Inserisci un prezzo, ad esempio 2,49",
-    "invalidCurrency": "Una valuta ha tre lettere, come EUR"
+    "invalidCurrency": "Una valuta ha tre lettere, come EUR",
+    "openPage": "Apri su {store}"
   },
   "price": {
     "pending": "Ricerca del prezzo in corso",

@@ -48,9 +48,8 @@ perfectly.
 A priced grocery shows its total first, with the amount to buy and the
 price of each product beside it: **€10.50 (2 × €5.25)**. Underneath is
 which of the shop's products that price is for. A product on Sale shows the
-regular total struck through right before the new one, with the shop's
-words for the deal on a line between the two. Tap the grocery or its price
-to adjust it.
+regular total struck through and the new one in a chip beside it. Tap the
+grocery or its price to adjust it.
 
 ![A shopping list with Line Costs on its rows](/img/screenshots/groceries-prices.png)
 
@@ -134,7 +133,9 @@ so, so you can see it working rather than guess.
 
 ![The product field in a grocery's panel, offering priced results from the shop](/img/screenshots/groceries-picker.png)
 
-Picking one fills in **Amount to buy** and **Price**. The **Product details** row
+Picking one fills in **Amount to buy** and **Price**, and **Open at
+Dirk** beside the field takes you to the product's own page at the shop, in
+a new tab, for a product Norish read there. The **Product details** row
 under them sums up the currency and the pack; tap it and those
 open in a panel of their own, the way the recurrence editor does, for the
 rare correction. Nothing is written until you press **Save** or **Add** —
@@ -167,14 +168,14 @@ it is the same product, corrected, not a second one beside it.
 
 A **Sale** is what the shop presents as one: a price with the regular price
 it replaces beside it. On the row it reads the way a shelf tag does: the
-regular Line Cost struck through right before the new one, ~~€6.58~~
-**€4.38**, and under it a small tag with the shop's own words for the deal —
-"Weekend actie", "Bonus" — or **Sale** where the shop supplied none. The
-picker shows the same on each result, so you can see a deal before you
-choose it.
+regular Line Cost struck through, and the new one in a chip right beside it,
+~~€6.58~~ **€4.38**. Hover the chip for the shop's own words for the deal —
+"Weekend actie", "Bonus". The picker shows the same on each result, so you
+can see a deal before you choose it.
 
 A deal the shop keeps as a label over its regular price — Albert Heijn's
-"2 voor €5.50" — is shown in those words and never worked into the number:
+"2 voor €5.50" — is shown in those words, as a chip beside the price, and
+never worked into the number:
 Norish prices what the shop presents as the price, and tells you the rest in
 the shop's words so you can act on it at the shelf. A Sale lasts until the
 shop presents another price; a refresh that reads the same price keeps it,

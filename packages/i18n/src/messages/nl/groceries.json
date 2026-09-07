@@ -122,7 +122,8 @@
     "useCalculatedAmount": "Berekend aantal gebruiken",
     "productDetails": "Productgegevens",
     "invalidPrice": "Vul een prijs in, zoals 2,49",
-    "invalidCurrency": "Een valuta bestaat uit drie letters, zoals EUR"
+    "invalidCurrency": "Een valuta bestaat uit drie letters, zoals EUR",
+    "openPage": "Openen bij {store}"
   },
   "price": {
     "pending": "Prijs wordt opgezocht",

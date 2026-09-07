@@ -122,7 +122,8 @@
     "useCalculatedAmount": "Use calculated amount",
     "productDetails": "Product details",
     "invalidPrice": "Enter a price, like 2.49",
-    "invalidCurrency": "A currency is three letters, like EUR"
+    "invalidCurrency": "A currency is three letters, like EUR",
+    "openPage": "Open at {store}"
   },
   "price": {
     "pending": "Looking up the price",

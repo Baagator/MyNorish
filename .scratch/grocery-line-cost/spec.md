@@ -101,9 +101,13 @@ calculation. The row reads `€4.38 (2 × €2.19)`. On the same day the panel a
 the row were reshaped from Mike's review of them:
 
 - A Sale reads the way a shelf tag does: the regular Line Cost struck through
-  right before the new one on the money line, and under it a small tag with
-  the shop's own words for the deal (or **Sale**). The picker's rows use the
-  same mark (`components/groceries/sale-tag.tsx`).
+  and the new one in a chip beside it on the money line; the shop's own words
+  for the deal are the chip's title, not a badge of their own (a badge line
+  under the price was tried and rejected as adding nothing). Words without a
+  regular price ("2 voor €5.50") are a chip beside the price. The picker's
+  rows use the same mark (`components/groceries/sale-price.tsx`).
+- The grocery panel links to the product's own page at the shop, beside the
+  product field, for a product Norish read there (`product-page-link`).
 - A product corrected by hand (name, currency or price typed over it) keeps
   the size, pack, regular price and deal words of the product it corrects,
   carried on the manual choice and written to the by-hand product; whether it

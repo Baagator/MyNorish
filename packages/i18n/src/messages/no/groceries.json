@@ -122,7 +122,8 @@
     "useCalculatedAmount": "Bruk beregnet antall",
     "productDetails": "Produktdetaljer",
     "invalidPrice": "Skriv inn en pris, f.eks. 2,49",
-    "invalidCurrency": "En valuta er tre bokstaver, f.eks. EUR"
+    "invalidCurrency": "En valuta er tre bokstaver, f.eks. EUR",
+    "openPage": "Åpne hos {store}"
   },
   "price": {
     "pending": "Slår opp prisen",
