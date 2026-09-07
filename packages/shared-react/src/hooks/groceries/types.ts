@@ -61,7 +61,12 @@ export type GroceriesMutationsResult = {
   ) => void;
   toggleGroceries: (ids: string[], isDone: boolean) => void;
   toggleRecurringGrocery: (recurringGroceryId: string, groceryId: string, isDone: boolean) => void;
-  updateGrocery: (id: string, raw: string, storeId?: string | null, purchaseAmount?: number | null) => void;
+  updateGrocery: (
+    id: string,
+    raw: string,
+    storeId?: string | null,
+    purchaseAmount?: number | null
+  ) => void;
   updateRecurringGrocery: (
     recurringGroceryId: string,
     groceryId: string,

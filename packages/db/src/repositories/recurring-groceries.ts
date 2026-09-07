@@ -175,7 +175,12 @@ export async function updateRecurringGroceries(
 
 export async function updateRecurringGroceryWithGrocery(
   recurringData: RecurringGroceryUpdateDto,
-  groceryRef: { id: string; version: number; storeId?: string | null; purchaseAmount?: number | null }
+  groceryRef: {
+    id: string;
+    version: number;
+    storeId?: string | null;
+    purchaseAmount?: number | null;
+  }
 ): Promise<MutationOutcome<{ recurringGrocery: RecurringGroceryDto; grocery: GroceryDto }>> {
   const updateData = {
     ...recurringData,

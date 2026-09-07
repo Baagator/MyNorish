@@ -69,15 +69,31 @@ function onePack(price: number, matched: boolean): LineCost {
 function packs(price: number, count: number): LineCost {
   if (count > MAX_PACKS) return onePack(price, false);
 
-  return { cost: round2(price * count), purchaseAmount: count, packs: count, matched: true, byWeight: false };
+  return {
+    cost: round2(price * count),
+    purchaseAmount: count,
+    packs: count,
+    matched: true,
+    byWeight: false,
+  };
 }
 
 export function lineCost(line: LineAmount, product: LineProduct): LineCost {
   const { price, pack } = product;
   const amount = line.amount ?? null;
-  if (line.purchaseAmount != null && Number.isFinite(line.purchaseAmount) && line.purchaseAmount > 0) {
+  if (
+    line.purchaseAmount != null &&
+    Number.isFinite(line.purchaseAmount) &&
+    line.purchaseAmount > 0
+  ) {
     const count = pack?.byWeight ? line.purchaseAmount : Math.ceil(line.purchaseAmount);
-    return { cost: round2(price * count), purchaseAmount: count, packs: count, matched: true, byWeight: false };
+    return {
+      cost: round2(price * count),
+      purchaseAmount: count,
+      packs: count,
+      matched: true,
+      byWeight: false,
+    };
   }
   const unit = line.unit ? resolveUnit(line.unit) : null;
   const unknownUnit = Boolean(line.unit) && unit === null;
@@ -194,7 +210,7 @@ export function groupLineCost(lines: LineAmount[], product: LineProduct): LineCo
 
   return {
     cost: round2(costs.reduce((sum, line) => sum + line.cost, 0)),
-      purchaseAmount: costs.reduce((sum, line) => sum + line.purchaseAmount, 0),
+    purchaseAmount: costs.reduce((sum, line) => sum + line.purchaseAmount, 0),
     packs,
     matched: costs.every((line) => line.matched),
     byWeight: costs.every((line) => line.byWeight),

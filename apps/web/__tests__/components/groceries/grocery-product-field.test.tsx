@@ -1162,6 +1162,11 @@ describe("GroceryProductField", () => {
       expect(fanta?.querySelector("[data-testid='product-option-regular']")).toHaveTextContent(
         "€1.99"
       );
+      // Said for a reader who cannot see the strike, as on the row.
+      expect(fanta?.querySelector("[data-testid='product-option-regular']")).toHaveAttribute(
+        "aria-label",
+        "regularPrice €1.99"
+      );
       expect(fanta?.querySelector("[data-testid='product-option-sale']")).toHaveTextContent(
         "ACTIE"
       );
@@ -1229,6 +1234,31 @@ describe("GroceryProductField", () => {
       expect(onChoice).toHaveBeenLastCalledWith(
         expect.objectContaining({ kind: "manual", price: 2.49, currency: "USD" })
       );
+    });
+
+    it("lets the pack go with the reading once the product is typed over by hand", () => {
+      render(
+        <GroceryProductField
+          choice={null}
+          groceryName="cola"
+          linkedProduct={product("prod-a", "store-a", "Coca-Cola 1 L", 1.99)}
+          store={STORE_A}
+          onChoice={() => undefined}
+        />
+      );
+
+      expect(screen.getByTestId("product-pack-size")).toHaveValue("1 L");
+      expect(screen.getByTestId("product-details")).toHaveTextContent("EUR · 1 L");
+
+      fireEvent.change(screen.getByTestId("product-by-hand-name"), {
+        target: { value: "Cola, huismerk" },
+      });
+
+      // A by-hand product has no pack, and the panel does not pretend it has
+      // the one the shop's reading had: the amount above counts one pack, as
+      // the row will after Save.
+      expect(screen.queryByTestId("product-pack-size")).not.toBeInTheDocument();
+      expect(screen.getByTestId("product-details")).not.toHaveTextContent("1 L");
     });
 
     it("sums the product up on the details row", () => {

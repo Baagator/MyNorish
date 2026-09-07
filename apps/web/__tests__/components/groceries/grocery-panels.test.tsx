@@ -365,6 +365,48 @@ describe("EditGroceryPanel, the product's details", () => {
   });
 });
 
+describe("AddGroceryPanel, the order of its fields and what it refuses", () => {
+  it("puts the recurrence control under the name and before the Store, and waits on a price", () => {
+    const onCreate = vi.fn();
+
+    render(
+      <AddGroceryPanel
+        open={true}
+        stores={STORES}
+        onCreate={onCreate}
+        onCreateRecurring={() => undefined}
+        onOpenChange={() => undefined}
+      />
+    );
+
+    const name = screen.getByPlaceholderText("placeholder");
+    const recurrence = screen.getByText("addRepeat");
+    const store = screen.getByTestId("store-selector");
+
+    expect(
+      name.compareDocumentPosition(recurrence) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(
+      recurrence.compareDocumentPosition(store) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+
+    fireEvent.change(name, { target: { value: "cola" } });
+    fireEvent.change(store, { target: { value: "store-a" } });
+    const add = screen.getByRole("button", { name: "add" });
+
+    expect(add).toBeEnabled();
+
+    fireEvent.change(screen.getByTestId("product-by-hand-price"), { target: { value: "abc" } });
+    expect(screen.getByTestId("product-price-error")).toBeInTheDocument();
+    expect(add).toBeDisabled();
+    fireEvent.click(add);
+    expect(onCreate).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByTestId("product-by-hand-price"), { target: { value: "1.99" } });
+    expect(add).toBeEnabled();
+  });
+});
+
 describe("AddGroceryPanel, adding one grocery after another", () => {
   it("does not offer the last grocery's product for the next one", () => {
     render(

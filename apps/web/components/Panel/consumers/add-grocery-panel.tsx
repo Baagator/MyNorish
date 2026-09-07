@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { RecurrenceSuggestion } from "@/app/(app)/groceries/components/recurrence-suggestion";
 import { GroceryProductField } from "@/components/groceries/grocery-product-field";
+import { GroceryRecurrenceControl } from "@/components/groceries/grocery-recurrence-control";
 import { StoreSelector } from "@/components/groceries/store-selector";
 import { RecurrencePanel } from "@/components/Panel/consumers/recurrence-panel";
 import Panel from "@/components/Panel/Panel";
@@ -10,7 +10,6 @@ import { ActionButton, ActionButtonGroup } from "@/components/shared/action-butt
 import { useProductChoice } from "@/hooks/stores";
 import { useRecurrenceDetection } from "@/hooks/use-recurrence-detection";
 import { Input } from "@heroui/react";
-import { AnimatePresence } from "motion/react";
 import { useTranslations } from "next-intl";
 
 import type { StoreDto } from "@norish/shared/contracts";
@@ -126,46 +125,15 @@ export default function AddGroceryPanel({
               }}
             />
 
-            {/* How often it comes back, right under what it is: the pills,
-                or the way to set one */}
-            {detectedPattern || confirmedPattern ? (
-              <AnimatePresence mode="popLayout">
-                <div className="flex flex-wrap items-center gap-2">
-                  {/* Suggested pill  */}
-                  {detectedPattern && (
-                    <RecurrenceSuggestion
-                      key="detected"
-                      itemName={itemName}
-                      pattern={detectedPattern.pattern}
-                      type="detected"
-                      onReplace={() => handleConfirmPattern(detectedPattern)}
-                    />
-                  )}
-
-                  {/* Active pill */}
-                  {confirmedPattern && (
-                    <RecurrenceSuggestion
-                      key="confirmed"
-                      itemName={itemName}
-                      pattern={confirmedPattern}
-                      type="confirmed"
-                      onEdit={() => setRecurrencePanelOpen(true)}
-                      onRemove={handleRemovePattern}
-                    />
-                  )}
-                </div>
-              </AnimatePresence>
-            ) : (
-              <ActionButton
-                action="add"
-                className="min-w-16 font-medium"
-                size="sm"
-                variant="tertiary"
-                onPress={() => setRecurrencePanelOpen(true)}
-              >
-                {t("addRepeat")}
-              </ActionButton>
-            )}
+            {/* How often it comes back, right under what it is */}
+            <GroceryRecurrenceControl
+              confirmedPattern={confirmedPattern}
+              detectedPattern={detectedPattern}
+              itemName={itemName}
+              onConfirmDetected={handleConfirmPattern}
+              onEdit={() => setRecurrencePanelOpen(true)}
+              onRemove={handleRemovePattern}
+            />
 
             {/* Store selection */}
             <StoreSelector

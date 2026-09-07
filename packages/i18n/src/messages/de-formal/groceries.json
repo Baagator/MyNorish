@@ -118,7 +118,7 @@
     "cannotSearch": "Dieser Shop kann nicht durchsucht werden",
     "cannotSearchHint": "Norish konnte aus dem Shop-Link von {store} keine Suchseite lesen. Korrigieren Sie ihn unter Shops verwalten, dann folgen die Preise.",
     "packSize": "Packungsgröße",
-    "amount": "Anzahl",
+    "amount": "Kaufmenge",
     "useCalculatedAmount": "Berechnete Anzahl verwenden",
     "productDetails": "Produktdetails",
     "invalidPrice": "Geben Sie einen Preis ein, z. B. 2,49",

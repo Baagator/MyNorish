@@ -2,10 +2,11 @@
 
 import type { PackSizeWords } from "@/lib/format-price";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { FIELD_CLASS, FIELD_STYLE } from "@/components/groceries/grocery-field";
 import { GroceryPurchaseAmount } from "@/components/groceries/grocery-purchase-amount";
+import { ProductDetailsPanel } from "@/components/groceries/product-details-panel";
 import { SaleLabel } from "@/components/groceries/sale-label";
-import Panel, { usePanelPortalContainer } from "@/components/Panel/Panel";
-import { ActionButton, ActionButtonGroup } from "@/components/shared/action-button";
+import { usePanelPortalContainer } from "@/components/Panel/Panel";
 import { useShopSearch, useStoreProducts } from "@/hooks/stores";
 import { usePackSizeWords } from "@/hooks/stores/use-pack-size-words";
 import { formatPackSize, formatShelfPrice } from "@/lib/format-price";
@@ -34,10 +35,6 @@ import { saleRegularPrice } from "@norish/shared/lib/sale";
 
 /** How long a shopper stops typing before the shop is asked. */
 const SEARCH_DEBOUNCE_MS = 400;
-
-/** Every field of the grocery panel is this tall, and 16px so iOS does not zoom. */
-const FIELD_CLASS = "h-12 text-base";
-const FIELD_STYLE = { fontSize: "16px" } as const;
 
 interface GroceryProductFieldProps {
   store: StoreDto;
@@ -139,18 +136,28 @@ function productRow(product: StoreProductDto, locale: string, words: PackSizeWor
 }
 
 /** One row of the dropdown: the name, and beside it the shop's mark for a deal and the price. */
-function RowContent({ row, locale, sale }: { row: ProductRow; locale: string; sale: string }) {
+function RowContent({
+  row,
+  locale,
+  sale,
+  regularPriceLabel,
+}: {
+  row: ProductRow;
+  locale: string;
+  sale: string;
+  regularPriceLabel: (price: string) => string;
+}) {
+  const regular =
+    row.regularPrice === null ? null : formatShelfPrice(locale, row.regularPrice, row.currency);
+
   return (
     <div className="flex w-full items-center justify-between gap-3">
       <span className="min-w-0 flex-1 truncate">{row.name}</span>
       <span className="text-muted flex max-w-[55%] min-w-0 shrink items-center gap-1.5 text-xs tabular-nums">
         <SaleLabel
           fallback={sale}
-          regular={
-            row.regularPrice === null
-              ? null
-              : formatShelfPrice(locale, row.regularPrice, row.currency)
-          }
+          regular={regular}
+          regularLabel={regular === null ? undefined : regularPriceLabel(regular)}
           testIds={{ sale: "product-option-sale", regular: "product-option-regular" }}
           words={row.dealWords}
         />
@@ -231,7 +238,6 @@ export function GroceryProductField({
 }: GroceryProductFieldProps) {
   const t = useTranslations("groceries.picker");
   const tPrice = useTranslations("groceries.price");
-  const tActions = useTranslations("common.actions");
   const locale = useLocale();
   const packWords = usePackSizeWords();
   const portalContainer = usePanelPortalContainer();
@@ -516,8 +522,12 @@ export function GroceryProductField({
       ? packSizeOf(linkedProduct)
       : null;
   const selectedSize = picked ? selectedRow?.size : linkedProduct?.size;
-  const packDetail =
-    selectedPack && (!selectedSize || (!picked && linkedProduct?.packByHand))
+  // A product typed over by hand is a new by-hand product, and a by-hand
+  // product has no pack: the Pack Size goes with the reading it belonged to,
+  // and the amount above counts one pack, as the row will after Save.
+  const packDetail = byHand
+    ? ""
+    : selectedPack && (!selectedSize || (!picked && linkedProduct?.packByHand))
       ? formatPackSize(selectedPack, packWords)
       : (selectedSize ?? "");
   // What the details row says is behind it: the currency and the pack, which
@@ -586,7 +596,12 @@ export function GroceryProductField({
                     id={row.key}
                     textValue={row.name}
                   >
-                    <RowContent locale={locale} row={row} sale={tPrice("sale")} />
+                    <RowContent
+                      locale={locale}
+                      regularPriceLabel={(price) => tPrice("regularPrice", { price })}
+                      row={row}
+                      sale={tPrice("sale")}
+                    />
                   </ListBox.Item>
                 ))}
               </ListBox.Section>
@@ -603,7 +618,12 @@ export function GroceryProductField({
                     id={row.key}
                     textValue={row.name}
                   >
-                    <RowContent locale={locale} row={row} sale={tPrice("sale")} />
+                    <RowContent
+                      locale={locale}
+                      regularPriceLabel={(price) => tPrice("regularPrice", { price })}
+                      row={row}
+                      sale={tPrice("sale")}
+                    />
                   </ListBox.Item>
                 ))}
               </ListBox.Section>
@@ -699,76 +719,23 @@ export function GroceryProductField({
             </span>
           </Button>
 
-          <Panel
-            nested
-            className="contents"
+          <ProductDetailsPanel
+            currency={manualCurrency}
+            currencyInvalid={currencyInvalid}
+            name={manualName}
             open={detailsOpen}
-            title={t("productDetails")}
+            pack={packDetail}
+            suggestedCurrency={suggestedCurrency}
+            onCurrencyChange={(value) => {
+              setByHand(true);
+              setManualCurrency(value);
+            }}
+            onNameChange={(value) => {
+              setByHand(true);
+              setManualName(value);
+            }}
             onOpenChange={setDetailsOpen}
-          >
-            <Panel.Body>
-              <div className="flex flex-col gap-3">
-                <TextField
-                  value={manualName}
-                  onChange={(value) => {
-                    setByHand(true);
-                    setManualName(value);
-                  }}
-                >
-                  <Label>{t("byHandName")}</Label>
-                  <Input
-                    className={FIELD_CLASS}
-                    data-testid="product-by-hand-name"
-                    style={FIELD_STYLE}
-                    variant="secondary"
-                  />
-                </TextField>
-                <TextField
-                  className="w-32"
-                  isInvalid={currencyInvalid}
-                  value={manualCurrency}
-                  onChange={(value) => {
-                    setByHand(true);
-                    setManualCurrency(value);
-                  }}
-                >
-                  <Label>{t("byHandCurrency")}</Label>
-                  <Input
-                    autoCapitalize="characters"
-                    className={FIELD_CLASS}
-                    data-testid="product-by-hand-currency"
-                    maxLength={3}
-                    placeholder={suggestedCurrency}
-                    style={FIELD_STYLE}
-                    variant="secondary"
-                  />
-                  {currencyInvalid && (
-                    <FieldError data-testid="product-currency-error">
-                      {t("invalidCurrency")}
-                    </FieldError>
-                  )}
-                </TextField>
-                {packDetail && (
-                  <TextField isReadOnly value={packDetail}>
-                    <Label>{t("packSize")}</Label>
-                    <Input
-                      className={FIELD_CLASS}
-                      data-testid="product-pack-size"
-                      style={FIELD_STYLE}
-                      variant="secondary"
-                    />
-                  </TextField>
-                )}
-              </div>
-            </Panel.Body>
-            <Panel.Footer>
-              <ActionButtonGroup>
-                <ActionButton action="done" onPress={() => setDetailsOpen(false)}>
-                  {tActions("done")}
-                </ActionButton>
-              </ActionButtonGroup>
-            </Panel.Footer>
-          </Panel>
+          />
         </div>
       )}
     </div>

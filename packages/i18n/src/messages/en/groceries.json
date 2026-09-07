@@ -118,7 +118,7 @@
     "cannotSearch": "This shop cannot be searched",
     "cannotSearchHint": "Norish could not read a search page out of {store}'s shop link. Correct it in Manage Stores and prices follow.",
     "packSize": "Pack size",
-    "amount": "Amount",
+    "amount": "Amount to buy",
     "useCalculatedAmount": "Use calculated amount",
     "productDetails": "Product details",
     "invalidPrice": "Enter a price, like 2.49",

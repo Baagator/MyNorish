@@ -253,7 +253,11 @@ export function createUseGroceriesMutations({
     const markAllDoneMutation = useMutation(trpc.groceries.markAllDone.mutationOptions());
     const deleteDoneMutation = useMutation(trpc.groceries.deleteDone.mutationOptions());
 
-    const createGrocery = (raw: string, storeId?: string | null, purchaseAmount?: number | null) => {
+    const createGrocery = (
+      raw: string,
+      storeId?: string | null,
+      purchaseAmount?: number | null
+    ) => {
       const parsed = parseIngredientWithDefaults(raw, units)[0]!;
       const clientId = createClientId();
       const requestedStoreId = storeId ?? null;
@@ -474,7 +478,12 @@ export function createUseGroceriesMutations({
       );
     };
 
-    const updateGrocery = (id: string, raw: string, storeId?: string | null, purchaseAmount?: number | null) => {
+    const updateGrocery = (
+      id: string,
+      raw: string,
+      storeId?: string | null,
+      purchaseAmount?: number | null
+    ) => {
       const parsed = parseIngredientWithDefaults(raw, units)[0]!;
 
       setGroceriesData((prev) => {
@@ -484,7 +493,7 @@ export function createUseGroceriesMutations({
             ? {
                 ...g,
                 amount: parsed.quantity,
-        ...(purchaseAmount !== undefined ? { purchaseAmount } : {}),
+                ...(purchaseAmount !== undefined ? { purchaseAmount } : {}),
                 unit: parsed.unitOfMeasure,
                 name: parsed.description,
                 version: g.version + 1,
@@ -541,7 +550,7 @@ export function createUseGroceriesMutations({
                 ? {
                     ...g,
                     amount: parsed.quantity,
-        ...(purchaseAmount !== undefined ? { purchaseAmount } : {}),
+                    ...(purchaseAmount !== undefined ? { purchaseAmount } : {}),
                     unit: parsed.unitOfMeasure,
                     name: parsed.description,
                     version: g.version + 1,
@@ -599,7 +608,7 @@ export function createUseGroceriesMutations({
                 ? {
                     ...g,
                     amount: parsed.quantity,
-        ...(purchaseAmount !== undefined ? { purchaseAmount } : {}),
+                    ...(purchaseAmount !== undefined ? { purchaseAmount } : {}),
                     unit: parsed.unitOfMeasure,
                     name: parsed.description,
                     recurringGroceryId: null,

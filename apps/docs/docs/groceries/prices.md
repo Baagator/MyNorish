@@ -71,7 +71,7 @@ pack, with a quiet note under the product name saying so.
 
 ### Adjusting the amount to buy
 
-The grocery panel's **Amount** starts with the calculated amount to buy.
+The grocery panel's **Amount to buy** starts with the calculated amount.
 Use the minus/plus buttons or type a number, then press **Save** or **Add**.
 For example, keep your original **800 g** requirement but choose **3** to
 buy. **Use calculated amount** removes your override and restores automatic
@@ -134,7 +134,7 @@ so, so you can see it working rather than guess.
 
 ![The product field in a grocery's panel, offering priced results from the shop](/img/screenshots/groceries-picker.png)
 
-Picking one fills in **Amount** and **Price**. The **Product details** row
+Picking one fills in **Amount to buy** and **Price**. The **Product details** row
 under them sums up the product's name, currency and pack; tap it and those
 open in a panel of their own, the way the recurrence editor does, for the
 rare correction. Nothing is written until you press **Save** or **Add** —

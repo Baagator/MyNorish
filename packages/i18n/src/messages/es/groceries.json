@@ -118,7 +118,7 @@
     "cannotSearch": "No se puede buscar en esta tienda",
     "cannotSearchHint": "Norish no pudo sacar una página de búsqueda del enlace de {store}. Corrígelo en Gestionar tiendas y los precios llegarán.",
     "packSize": "Tamaño del envase",
-    "amount": "Cantidad",
+    "amount": "Cantidad a comprar",
     "useCalculatedAmount": "Usar la cantidad calculada",
     "productDetails": "Detalles del producto",
     "invalidPrice": "Introduce un precio, por ejemplo 2,49",

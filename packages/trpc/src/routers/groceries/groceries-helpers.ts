@@ -141,7 +141,10 @@ export async function createGroceriesData(
     const existing = lookupKey ? existingByKey.get(lookupKey) : null;
 
     const shouldMerge =
-      existing && existing.purchaseAmount == null && grocery.purchaseAmount == null && (existing.unit === grocery.unit || (!existing.unit && !grocery.unit));
+      existing &&
+      existing.purchaseAmount == null &&
+      grocery.purchaseAmount == null &&
+      (existing.unit === grocery.unit || (!existing.unit && !grocery.unit));
 
     if (shouldMerge && existing) {
       const existingAmount = existing.amount ?? 1;

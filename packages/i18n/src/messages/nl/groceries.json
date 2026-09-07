@@ -118,7 +118,7 @@
     "cannotSearch": "Deze winkel kan niet doorzocht worden",
     "cannotSearchHint": "Norish kon geen zoekpagina uit de winkellink van {store} lezen. Pas hem aan bij Winkels beheren en de prijzen volgen.",
     "packSize": "Verpakking",
-    "amount": "Aantal",
+    "amount": "Aantal te kopen",
     "useCalculatedAmount": "Berekend aantal gebruiken",
     "productDetails": "Productgegevens",
     "invalidPrice": "Vul een prijs in, zoals 2,49",

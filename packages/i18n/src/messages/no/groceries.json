@@ -118,7 +118,7 @@
     "cannotSearch": "Denne butikken kan ikke søkes i",
     "cannotSearchHint": "Norish klarte ikke å lese en søkeside ut av butikklenken til {store}. Rett den under Administrer butikker, så følger prisene.",
     "packSize": "Pakkestørrelse",
-    "amount": "Antall",
+    "amount": "Antall å kjøpe",
     "useCalculatedAmount": "Bruk beregnet antall",
     "productDetails": "Produktdetaljer",
     "invalidPrice": "Skriv inn en pris, f.eks. 2,49",

@@ -334,7 +334,7 @@ test("700 g of a 500 g pack is two packs, on the row and at the heading", async 
   expect(heading).toBe(sum);
 });
 
-test("a product on Sale shows the badge and the price the shop struck through", async () => {
+test("a product on Sale shows the shop's mark and the struck price on a line of their own", async () => {
   await page.goto("/groceries");
   await addGroceryToShop("300 g geitenkaas plakken", "geitenkaas plakken");
 
@@ -343,12 +343,20 @@ test("a product on Sale shows the badge and the price the shop struck through", 
   await expect(row.getByTestId("grocery-product")).toContainText("Geitenkaas plakken", {
     timeout: 60_000,
   });
-  // Two 150 g packs at the Sale price, and at the regular price struck through.
+  // Two 150 g packs at the Sale price; the money line carries nothing else.
   await expect(row.getByTestId("grocery-line-cost")).toContainText(/4[.,]38/);
-  await expect(row.getByTestId("grocery-regular-cost")).toContainText(/6[.,]58/);
-  await expect(row.getByTestId("grocery-sale")).toBeVisible();
-  // The shop's own words for the deal, after the product name.
-  await expect(row.getByTestId("grocery-deal-words")).toContainText("Weekend actie");
+  await expect(
+    row.getByTestId("grocery-line-cost").getByTestId("grocery-regular-cost")
+  ).toHaveCount(0);
+  // The Sale on a line of its own: the shop's own words for the deal, and the
+  // regular Line Cost struck through beside them.
+  const sale = row.getByTestId("grocery-sale-line");
+
+  await expect(sale.getByTestId("grocery-sale")).toBeVisible();
+  await expect(sale.getByTestId("grocery-deal-words")).toContainText("Weekend actie");
+  await expect(sale.getByTestId("grocery-regular-cost")).toContainText(/6[.,]58/);
+  // And the product's name alone on its line.
+  await expect(row.getByTestId("grocery-product")).toHaveText("Geitenkaas plakken");
 });
 
 test("what is sold loose is priced by the weight the line states", async () => {
