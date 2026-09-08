@@ -19,7 +19,7 @@ import { useLocale } from "next-intl";
 import { useWindowSize } from "usehooks-ts";
 
 import type { Slot } from "@norish/shared/contracts";
-import { dateKey, eachDayOfInterval } from "@norish/shared/lib/helpers";
+import { dateKey, eachDayOfInterval, getWeekStart } from "@norish/shared/lib/helpers";
 
 import type { PlannedItemDisplay } from "./types";
 import { usePrependAnchorRestore } from "../use-prepend-anchor-restore";
@@ -45,9 +45,15 @@ type MobileTimelineProps = {
   onAddItem: (dateKey: string, slot: Slot) => void;
   onNoteClick?: (item: PlannedItemDisplay) => void;
   onRecipeClick?: (item: PlannedItemDisplay) => void;
+  weekView?: boolean;
 };
 
-export function MobileTimeline({ onAddItem, onNoteClick, onRecipeClick }: MobileTimelineProps) {
+export function MobileTimeline({
+  onAddItem,
+  onNoteClick,
+  onRecipeClick,
+  weekView = false,
+}: MobileTimelineProps) {
   const locale = useLocale();
 
   // Use calendar context (like recipe grid uses recipes context)
@@ -79,6 +85,18 @@ export function MobileTimeline({ onAddItem, onNoteClick, onRecipeClick }: Mobile
     () => new Intl.DateTimeFormat(locale, { month: "long" }),
     [locale]
   );
+  const weekRangeFormatter = useMemo(
+    () => new Intl.DateTimeFormat(locale, { day: "numeric", month: "long" }),
+    [locale]
+  );
+
+  // Which days start a new (Monday-based) week — used to render the week
+  // separator. Only computed/shown when the week view is on.
+  const weekStartKeys = useMemo(() => {
+    if (!weekView) return new Set<string>();
+
+    return new Set(allDays.filter((d) => dateKey(d) === dateKey(getWeekStart(d))).map(dateKey));
+  }, [allDays, weekView]);
 
   // Today tracking
   const today = useMemo(() => startOfDay(new Date()), []);
@@ -393,6 +411,8 @@ export function MobileTimeline({ onAddItem, onNoteClick, onRecipeClick }: Mobile
                 .sort((a, b) => (SLOT_ORDER[a.slot] ?? 0) - (SLOT_ORDER[b.slot] ?? 0))
                 .map((it) => it as PlannedItemDisplay);
               const isToday = key === todayKey;
+              const isWeekStart = weekStartKeys.has(key);
+              const weekEnd = isWeekStart ? new Date(d.getFullYear(), d.getMonth(), d.getDate() + 6) : null;
 
               return (
                 <div
@@ -410,6 +430,13 @@ export function MobileTimeline({ onAddItem, onNoteClick, onRecipeClick }: Mobile
                     transform: `translateY(${virtualItem.start - scrollMargin}px)`,
                   }}
                 >
+                  {isWeekStart && weekEnd && (
+                    <div className="sticky top-0 z-10 -mx-2 mb-2 bg-background/95 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground backdrop-blur">
+                      {weekRangeFormatter.formatRange
+                        ? weekRangeFormatter.formatRange(d, weekEnd)
+                        : `${weekRangeFormatter.format(d)} – ${weekRangeFormatter.format(weekEnd)}`}
+                    </div>
+                  )}
                   <TimelineDaySection
                     date={d}
                     dateKey={key}

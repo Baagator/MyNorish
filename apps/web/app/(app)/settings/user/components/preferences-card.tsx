@@ -3,6 +3,7 @@
 import type { TodaySectionVisibility } from "@/lib/todays-meals-visibility";
 import { useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { useCalendarView } from "@/context/calendar-view-context";
 import { useHiddenItemsState } from "@/context/hidden-items-context";
 import { useRecipePageColor } from "@/context/recipe-page-color-context";
 import { useTodaySectionVisibility } from "@/context/todays-meals-visibility-context";
@@ -26,6 +27,9 @@ export default function PreferencesCard() {
   const [todaySectionVisibility, setTodaySectionVisibility] = useTodaySectionVisibility();
   const [hiddenItems, setHiddenItems] = useHiddenItemsState();
   const [recipePageColor, setRecipePageColor] = useRecipePageColor();
+  const [calendarView, setCalendarView] = useCalendarView();
+
+  const calendarViewOptions = ["day", "week"] as const;
 
   const todaySectionOptions: TodaySectionVisibility[] = ["always", "planned", "hidden"];
 
@@ -214,6 +218,44 @@ export default function PreferencesCard() {
                     textValue={t(`recipePageColor.options.${option}`)}
                   >
                     {t(`recipePageColor.options.${option}`)}
+                  </ListBox.Item>
+                ))}
+              </ListBox>
+            </Select.Popover>
+          </Select>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-foreground font-medium">{t("calendarView.title")}</div>
+            <div className="text-muted text-sm">{t("calendarView.description")}</div>
+          </div>
+
+          <Select
+            aria-label={t("calendarView.title")}
+            className="max-w-[200px]"
+            value={calendarView}
+            variant="secondary"
+            onChange={(selected) => {
+              if (selected === "day" || selected === "week") {
+                setCalendarView(selected);
+              }
+            }}
+          >
+            <Label className="sr-only">{t("calendarView.title")}</Label>
+            <Select.Trigger>
+              <Select.Value />
+              <Select.Indicator />
+            </Select.Trigger>
+            <Select.Popover>
+              <ListBox>
+                {calendarViewOptions.map((option) => (
+                  <ListBox.Item
+                    key={option}
+                    id={option}
+                    textValue={t(`calendarView.options.${option}`)}
+                  >
+                    {t(`calendarView.options.${option}`)}
                   </ListBox.Item>
                 ))}
               </ListBox>

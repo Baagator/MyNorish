@@ -1,3 +1,4 @@
+import type { CalendarViewMode } from "@/lib/calendar-view";
 import type { RecipePageColorMode } from "@/lib/recipe-page-color";
 import type { TodaySectionVisibility } from "@/lib/todays-meals-visibility";
 import { AuthProviders } from "@/app/providers/auth-providers";
@@ -6,6 +7,7 @@ import { Navbar } from "@/components/navbar/navbar";
 import { TimerDock } from "@/components/timer-dock";
 import { AmountDisplayProvider } from "@/context/amount-display-context";
 import { ArchiveImportProvider } from "@/context/archive-import-context";
+import { CalendarViewProvider } from "@/context/calendar-view-context";
 import { CookbooksRealtimeProvider } from "@/context/cookbooks-realtime-context";
 import { HiddenItemsProvider } from "@/context/hidden-items-context";
 import { HouseholdProvider } from "@/context/household-context";
@@ -35,6 +37,7 @@ export function AppShell({
   initialAmountDisplayMode,
   initialHiddenItems,
   initialRecipePageColor,
+  initialCalendarView,
 }: {
   children: React.ReactNode;
   /** The cookies as the layout's server pass read them; absent offline. */
@@ -42,6 +45,7 @@ export function AppShell({
   initialAmountDisplayMode?: AmountDisplayMode;
   initialHiddenItems?: readonly string[];
   initialRecipePageColor?: RecipePageColorMode;
+  initialCalendarView?: CalendarViewMode;
 }) {
   return (
     <AuthProviders>
@@ -57,6 +61,7 @@ export function AppShell({
                         <TodaysMealsVisibilityProvider initialValue={initialTodaysMealsVisibility}>
                           <AmountDisplayProvider initialValue={initialAmountDisplayMode}>
                             <RecipePageColorProvider initialValue={initialRecipePageColor}>
+                              <CalendarViewProvider initialValue={initialCalendarView}>
                               <div
                                 data-app-container
                                 className="relative flex min-h-dvh flex-col overflow-x-hidden"
@@ -83,6 +88,7 @@ export function AppShell({
                                 </main>
                               </div>
                               <TimerDock />
+                              </CalendarViewProvider>
                             </RecipePageColorProvider>
                           </AmountDisplayProvider>
                         </TodaysMealsVisibilityProvider>

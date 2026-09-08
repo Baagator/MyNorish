@@ -152,6 +152,14 @@
           "theme": "기본 테마 색상"
         }
       },
+      "calendarView": {
+        "title": "Calendar view",
+        "description": "Show the calendar as a scrolling list of days, or grouped into full weeks",
+        "options": {
+          "day": "Day by day",
+          "week": "By week"
+        }
+      },
       "applyError": "환경설정을 적용하지 못했습니다"
     },
     "shareLinks": {

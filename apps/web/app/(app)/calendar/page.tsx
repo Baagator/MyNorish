@@ -11,6 +11,8 @@ import { useWindowSize } from "usehooks-ts";
 
 import type { Slot } from "@norish/shared/contracts";
 
+import { useCalendarView } from "@/context/calendar-view-context";
+
 import { CalendarContextProvider } from "./context";
 
 function CalendarPageContent() {
@@ -29,6 +31,9 @@ function CalendarPageContent() {
   // Responsive: use desktop view for md+ (768px)
   const { width = 768 } = useWindowSize();
   const isDesktop = width >= 768;
+
+  const [calendarView] = useCalendarView();
+  const weekView = calendarView === "week";
 
   useEffect(() => {
     return () => {
@@ -114,6 +119,7 @@ function CalendarPageContent() {
         onAddItem={handleAddItem}
         onNoteClick={handleNoteClick}
         onRecipeClick={handleRecipeClick}
+        weekView={weekView}
       />
 
       {/* Mini recipes panel for adding items */}

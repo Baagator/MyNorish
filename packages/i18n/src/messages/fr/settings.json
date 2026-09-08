@@ -152,6 +152,14 @@
           "theme": "Couleurs du thème"
         }
       },
+      "calendarView": {
+        "title": "Vue du calendrier",
+        "description": "Afficher le calendrier jour par jour, ou regroupé par semaines complètes",
+        "options": {
+          "day": "Jour par jour",
+          "week": "Par semaine"
+        }
+      },
       "applyError": "Échec de l'application du paramètre"
     },
     "shareLinks": {

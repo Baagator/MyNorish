@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { AppShell } from "@/app/(app)/app-shell";
 import { amountDisplayPreference } from "@/lib/amount-display";
+import { calendarViewPreference } from "@/lib/calendar-view";
 import { hiddenItemsPreference } from "@/lib/hidden-items";
 import { recipePageColorPreference } from "@/lib/recipe-page-color";
 import { todaysMealsVisibilityPreference } from "@/lib/todays-meals-visibility";
@@ -15,6 +16,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <AppShell
       initialAmountDisplayMode={amountDisplayPreference.readFrom(cookieStore)}
+      initialCalendarView={calendarViewPreference.readFrom(cookieStore)}
       initialHiddenItems={hiddenItemsPreference.readFrom(cookieStore)}
       initialRecipePageColor={recipePageColorPreference.readFrom(cookieStore)}
       initialTodaysMealsVisibility={todaysMealsVisibilityPreference.readFrom(cookieStore)}

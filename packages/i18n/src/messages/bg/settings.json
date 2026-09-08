@@ -152,6 +152,14 @@
           "theme": "Цветове на темата"
         }
       },
+      "calendarView": {
+        "title": "Calendar view",
+        "description": "Show the calendar as a scrolling list of days, or grouped into full weeks",
+        "options": {
+          "day": "Day by day",
+          "week": "By week"
+        }
+      },
       "applyError": "Прилагането на предпочитанието не бе успешно"
     },
     "shareLinks": {

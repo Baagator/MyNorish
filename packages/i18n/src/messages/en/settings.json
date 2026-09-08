@@ -152,6 +152,14 @@
           "theme": "Plain theme colors"
         }
       },
+      "calendarView": {
+        "title": "Calendar view",
+        "description": "Show the calendar as a scrolling list of days, or grouped into full weeks",
+        "options": {
+          "day": "Day by day",
+          "week": "By week"
+        }
+      },
       "applyError": "Failed to apply preference"
     },
     "shareLinks": {

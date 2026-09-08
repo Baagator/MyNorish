@@ -20,7 +20,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useWindowSize } from "usehooks-ts";
 
 import type { Slot } from "@norish/shared/contracts";
-import { dateKey, eachDayOfInterval } from "@norish/shared/lib/helpers";
+import { dateKey, eachDayOfInterval, getWeekEnd, getWeekStart } from "@norish/shared/lib/helpers";
 
 import { usePrependAnchorRestore } from "../use-prepend-anchor-restore";
 import { DesktopDayCard } from "./desktop-day-card";
@@ -41,9 +41,15 @@ type DesktopTimelineProps = {
   onAddItem: (dateKey: string, slot: Slot) => void;
   onNoteClick?: (item: PlannedItemDisplay) => void;
   onRecipeClick?: (item: PlannedItemDisplay) => void;
+  weekView?: boolean;
 };
 
-export function DesktopTimeline({ onAddItem, onNoteClick, onRecipeClick }: DesktopTimelineProps) {
+export function DesktopTimeline({
+  onAddItem,
+  onNoteClick,
+  onRecipeClick,
+  weekView = false,
+}: DesktopTimelineProps) {
   const locale = useLocale();
   const tSlots = useTranslations("common.slots");
 
@@ -57,12 +63,22 @@ export function DesktopTimeline({ onAddItem, onNoteClick, onRecipeClick }: Deskt
     moveItem,
   } = useCalendarContext();
 
-  // Responsive column count: 3 for lg+, 2 for md
+  // Week view: one calendar week (Mon-Sun) per row, 7 fixed columns.
+  // Day view (default): the original responsive 2/3-column layout.
   const { width = 1024, height: _windowHeight } = useWindowSize();
-  const columnCount = width >= 1024 ? 3 : 2;
+  const columnCount = weekView ? 7 : width >= 1024 ? 3 : 2;
 
-  // Generate all days in range from context, padded to fill complete rows
+  // Generate all days in range from context, padded to fill complete rows.
+  // In week view, rows are real Monday-Sunday weeks; in day view, rows are
+  // just consecutive chunks of `columnCount` days (original behaviour).
   const allDays = useMemo(() => {
+    if (weekView) {
+      const paddedStart = getWeekStart(dateRange.start);
+      const paddedEnd = getWeekEnd(dateRange.end);
+
+      return eachDayOfInterval(paddedStart, paddedEnd);
+    }
+
     const days = eachDayOfInterval(dateRange.start, dateRange.end);
     // Pad to complete rows to prevent grid shifting
     const remainder = days.length % columnCount;
@@ -84,7 +100,7 @@ export function DesktopTimeline({ onAddItem, onNoteClick, onRecipeClick }: Deskt
     }
 
     return days;
-  }, [dateRange.start, dateRange.end, columnCount]);
+  }, [dateRange.start, dateRange.end, columnCount, weekView]);
 
   // Group days into rows based on column count
   const rows = useMemo(() => {
@@ -111,6 +127,10 @@ export function DesktopTimeline({ onAddItem, onNoteClick, onRecipeClick }: Deskt
   );
   const monthFormatter = useMemo(
     () => new Intl.DateTimeFormat(locale, { month: "long" }),
+    [locale]
+  );
+  const weekRangeFormatter = useMemo(
+    () => new Intl.DateTimeFormat(locale, { day: "numeric", month: "long" }),
     [locale]
   );
 
@@ -413,6 +433,16 @@ export function DesktopTimeline({ onAddItem, onNoteClick, onRecipeClick }: Deskt
                     transform: `translateY(${virtualRow.start - scrollMargin}px)`,
                   }}
                 >
+                  {weekView && (
+                    <div className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                      {weekRangeFormatter.formatRange
+                        ? weekRangeFormatter.formatRange(
+                            rowDays[0] ?? new Date(),
+                            rowDays[rowDays.length - 1] ?? new Date()
+                          )
+                        : `${weekRangeFormatter.format(rowDays[0])} – ${weekRangeFormatter.format(rowDays[rowDays.length - 1])}`}
+                    </div>
+                  )}
                   <div
                     className="grid gap-4"
                     style={{
