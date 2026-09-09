@@ -30,6 +30,7 @@
   },
   "timeline": {
     "noItems": "Geen items gepland",
+    "chooseDay": "Dag kiezen",
     "goToRecipe": "Ga naar recept",
     "addItem": "Item toevoegen",
     "untitled": "Zonder titel",

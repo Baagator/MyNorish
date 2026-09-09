@@ -30,6 +30,7 @@
   },
   "timeline": {
     "noItems": "Ingen elementer planlagt",
+    "chooseDay": "Vælg dag",
     "goToRecipe": "Gå til opskrift",
     "addItem": "Tilføj element",
     "untitled": "Uden titel",

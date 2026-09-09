@@ -30,6 +30,7 @@
   },
   "timeline": {
     "noItems": "예정된 항목 없음",
+    "chooseDay": "요일 선택",
     "goToRecipe": "레시피로 이동",
     "addItem": "항목 추가",
     "untitled": "제목 없음",

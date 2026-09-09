@@ -25,6 +25,7 @@
   },
   "timeline": {
     "noItems": "Brak zaplanowanych posiłków",
+    "chooseDay": "Wybierz dzień",
     "goToRecipe": "Przejdź do przepisu",
     "addItem": "Dodaj pozycję",
     "untitled": "Bez tytułu",

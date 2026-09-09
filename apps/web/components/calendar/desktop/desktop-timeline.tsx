@@ -26,6 +26,7 @@ import { usePrependAnchorRestore } from "../use-prepend-anchor-restore";
 import { DesktopDayCard } from "./desktop-day-card";
 import { DesktopDragOverlay } from "./desktop-drag-overlay";
 import { DesktopScrollToToday } from "./desktop-scroll-to-today";
+import { DesktopWeekCard } from "./desktop-week-card";
 
 function startOfDay(date: Date): Date {
   const d = new Date(date);
@@ -433,46 +434,69 @@ export function DesktopTimeline({
                     transform: `translateY(${virtualRow.start - scrollMargin}px)`,
                   }}
                 >
-                  {weekView && (
-                    <div className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                      {weekRangeFormatter.formatRange
+                  {weekView ? (
+                    (() => {
+                      const weekLabel = weekRangeFormatter.formatRange
                         ? weekRangeFormatter.formatRange(
                             rowDays[0] ?? new Date(),
                             rowDays[rowDays.length - 1] ?? new Date()
                           )
-                        : `${weekRangeFormatter.format(rowDays[0])} – ${weekRangeFormatter.format(rowDays[rowDays.length - 1])}`}
-                    </div>
-                  )}
-                  <div
-                    className="grid gap-4"
-                    style={{
-                      gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
-                    }}
-                  >
-                    {rowDays.map((d) => {
-                      const key = dateKey(d);
-                      const items = (calendarData[key] ?? [])
-                        .sort((a, b) => (SLOT_ORDER[a.slot] ?? 0) - (SLOT_ORDER[b.slot] ?? 0))
-                        .map((it) => it as PlannedItemDisplay);
-                      const isToday = key === todayKey;
+                        : `${weekRangeFormatter.format(rowDays[0])} – ${weekRangeFormatter.format(rowDays[rowDays.length - 1])}`;
+                      const isCurrentWeek = rowDays.some((d) => dateKey(d) === todayKey);
+                      const itemsByDate: Record<string, PlannedItemDisplay[]> = {};
+
+                      for (const d of rowDays) {
+                        const key = dateKey(d);
+
+                        itemsByDate[key] = (calendarData[key] ?? []).map(
+                          (it) => it as PlannedItemDisplay
+                        );
+                      }
 
                       return (
-                        <DesktopDayCard
-                          key={key}
-                          date={d}
-                          dateKey={key}
-                          isDragOver={dragOverDateKey === key}
-                          isToday={isToday}
-                          items={items}
-                          monthFormatter={monthFormatter}
-                          weekdayFormatter={weekdayFormatter}
+                        <DesktopWeekCard
+                          days={rowDays}
+                          isCurrentWeek={isCurrentWeek}
+                          itemsByDate={itemsByDate}
+                          weekLabel={weekLabel}
                           onAddItem={onAddItem}
                           onNoteClick={onNoteClick}
                           onRecipeClick={onRecipeClick}
                         />
                       );
-                    })}
-                  </div>
+                    })()
+                  ) : (
+                    <div
+                      className="grid gap-4"
+                      style={{
+                        gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
+                      }}
+                    >
+                      {rowDays.map((d) => {
+                        const key = dateKey(d);
+                        const items = (calendarData[key] ?? [])
+                          .sort((a, b) => (SLOT_ORDER[a.slot] ?? 0) - (SLOT_ORDER[b.slot] ?? 0))
+                          .map((it) => it as PlannedItemDisplay);
+                        const isToday = key === todayKey;
+
+                        return (
+                          <DesktopDayCard
+                            key={key}
+                            date={d}
+                            dateKey={key}
+                            isDragOver={dragOverDateKey === key}
+                            isToday={isToday}
+                            items={items}
+                            monthFormatter={monthFormatter}
+                            weekdayFormatter={weekdayFormatter}
+                            onAddItem={onAddItem}
+                            onNoteClick={onNoteClick}
+                            onRecipeClick={onRecipeClick}
+                          />
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               );
             })}

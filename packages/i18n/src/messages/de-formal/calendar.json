@@ -30,6 +30,7 @@
   },
   "timeline": {
     "noItems": "Keine Einträge geplant",
+    "chooseDay": "Tag auswählen",
     "goToRecipe": "Zum Rezept",
     "addItem": "Eintrag hinzufügen",
     "untitled": "Ohne Titel",
