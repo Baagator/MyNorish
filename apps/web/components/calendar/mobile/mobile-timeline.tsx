@@ -19,10 +19,11 @@ import { useLocale } from "next-intl";
 import { useWindowSize } from "usehooks-ts";
 
 import type { Slot } from "@norish/shared/contracts";
-import { dateKey, eachDayOfInterval, getWeekStart } from "@norish/shared/lib/helpers";
+import { dateKey, eachDayOfInterval, getWeekEnd, getWeekStart } from "@norish/shared/lib/helpers";
 
 import type { PlannedItemDisplay } from "./types";
 import { usePrependAnchorRestore } from "../use-prepend-anchor-restore";
+import { MobileWeekCard } from "./mobile-week-card";
 import { TimelineDaySection } from "./timeline-day-section";
 import { TimelineDragOverlay } from "./timeline-drag-overlay";
 import { TimelineScrollToToday } from "./timeline-scroll-to-today";
@@ -40,6 +41,7 @@ function startOfDay(date: Date): Date {
 }
 
 const ESTIMATED_DAY_HEIGHT = 120;
+const ESTIMATED_WEEK_HEIGHT = 320;
 
 type MobileTimelineProps = {
   onAddItem: (dateKey: string, slot: Slot) => void;
@@ -72,8 +74,33 @@ export function MobileTimeline({
     [dateRange.start, dateRange.end]
   );
   const dayKeys = useMemo(() => allDays.map((d) => dateKey(d)), [allDays]);
+
+  // Week view: group days into real Monday-Sunday weeks, padded to full weeks.
+  const weeks = useMemo(() => {
+    if (!weekView) return [];
+
+    const paddedStart = getWeekStart(dateRange.start);
+    const paddedEnd = getWeekEnd(dateRange.end);
+    const days = eachDayOfInterval(paddedStart, paddedEnd);
+    const result: Date[][] = [];
+
+    for (let i = 0; i < days.length; i += 7) {
+      result.push(days.slice(i, i + 7));
+    }
+
+    return result;
+  }, [weekView, dateRange.start, dateRange.end]);
+  const weekKeys = useMemo(
+    () => weeks.map((w, index) => (w[0] ? dateKey(w[0]) : `week-${index}`)),
+    [weeks]
+  );
+
+  // Whichever mode is active drives the virtualization.
+  const itemCount = weekView ? weeks.length : allDays.length;
+  const itemKeys = weekView ? weekKeys : dayKeys;
+
   const { captureAnchor, restoreAnchor, shouldAdjustScrollForSizeChange } = usePrependAnchorRestore(
-    { keys: dayKeys }
+    { keys: itemKeys }
   );
 
   // Date formatters
@@ -90,21 +117,16 @@ export function MobileTimeline({
     [locale]
   );
 
-  // Which days start a new (Monday-based) week — used to render the week
-  // separator. Only computed/shown when the week view is on.
-  const weekStartKeys = useMemo(() => {
-    if (!weekView) return new Set<string>();
-
-    return new Set(allDays.filter((d) => dateKey(d) === dateKey(getWeekStart(d))).map(dateKey));
-  }, [allDays, weekView]);
-
   // Today tracking
   const today = useMemo(() => startOfDay(new Date()), []);
   const todayKey = useMemo(() => dateKey(today), [today]);
-  const todayIndex = useMemo(
-    () => allDays.findIndex((d) => dateKey(d) === todayKey),
-    [allDays, todayKey]
-  );
+  const todayIndex = useMemo(() => {
+    if (weekView) {
+      return weeks.findIndex((w) => w.some((d) => dateKey(d) === todayKey));
+    }
+
+    return allDays.findIndex((d) => dateKey(d) === todayKey);
+  }, [weekView, weeks, allDays, todayKey]);
 
   // Container ref for scroll margin calculation
   const containerRef = useRef<HTMLDivElement>(null);
@@ -129,10 +151,10 @@ export function MobileTimeline({
 
   // Window virtualizer (like recipe grid)
   const virtualizer = useWindowVirtualizer({
-    count: allDays.length,
-    getItemKey: (index) => dayKeys[index] ?? index,
-    estimateSize: () => ESTIMATED_DAY_HEIGHT,
-    overscan: 5,
+    count: itemCount,
+    getItemKey: (index) => itemKeys[index] ?? index,
+    estimateSize: () => (weekView ? ESTIMATED_WEEK_HEIGHT : ESTIMATED_DAY_HEIGHT),
+    overscan: weekView ? 2 : 5,
     scrollMargin,
     shouldAdjustScrollPositionOnItemSizeChange: (item, _delta, instance) => {
       const scrollOffset = instance.scrollOffset ?? 0;
@@ -230,7 +252,7 @@ export function MobileTimeline({
     if (!firstItem || !lastItem) return;
 
     const isNearStart = firstItem.index <= 2;
-    const isNearEnd = lastItem.index >= allDays.length - 2;
+    const isNearEnd = lastItem.index >= itemCount - 2;
 
     if (isNearStart && !isLoadingMore && !hasTriggeredExpandPastRef.current) {
       const scrollOffset = virtualizer.scrollOffset ?? 0;
@@ -255,7 +277,7 @@ export function MobileTimeline({
     if (!isNearEnd) {
       hasTriggeredExpandFutureRef.current = false;
     }
-  }, [virtualItems, allDays.length, isLoadingMore, expandRange, virtualizer, captureAnchor]);
+  }, [virtualItems, itemCount, isLoadingMore, expandRange, virtualizer, captureAnchor]);
 
   const handleScrollToToday = useCallback(() => {
     virtualizer.scrollToIndex(todayIndex, { align: "start", behavior: "smooth" });
@@ -400,6 +422,56 @@ export function MobileTimeline({
             }}
           >
             {virtualItems.map((virtualItem) => {
+              if (weekView) {
+                const weekDays = weeks[virtualItem.index];
+
+                if (!weekDays) {
+                  return null;
+                }
+
+                const weekLabel = weekRangeFormatter.formatRange
+                  ? weekRangeFormatter.formatRange(
+                      weekDays[0] ?? new Date(),
+                      weekDays[weekDays.length - 1] ?? new Date()
+                    )
+                  : `${weekRangeFormatter.format(weekDays[0])} – ${weekRangeFormatter.format(weekDays[weekDays.length - 1])}`;
+                const isCurrentWeek = weekDays.some((d) => dateKey(d) === todayKey);
+                const itemsByDate: Record<string, PlannedItemDisplay[]> = {};
+
+                for (const d of weekDays) {
+                  const key = dateKey(d);
+
+                  itemsByDate[key] = (calendarData[key] ?? []).map((it) => it as PlannedItemDisplay);
+                }
+
+                return (
+                  <div
+                    key={virtualItem.key}
+                    ref={virtualizer.measureElement}
+                    data-index={virtualItem.index}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      padding: "4px 8px",
+                      overflow: "visible",
+                      transform: `translateY(${virtualItem.start - scrollMargin}px)`,
+                    }}
+                  >
+                    <MobileWeekCard
+                      days={weekDays}
+                      isCurrentWeek={isCurrentWeek}
+                      itemsByDate={itemsByDate}
+                      weekLabel={weekLabel}
+                      onAddItem={onAddItem}
+                      onNoteClick={onNoteClick}
+                      onRecipeClick={onRecipeClick}
+                    />
+                  </div>
+                );
+              }
+
               const d = allDays[virtualItem.index];
 
               if (!d) {
@@ -411,8 +483,6 @@ export function MobileTimeline({
                 .sort((a, b) => (SLOT_ORDER[a.slot] ?? 0) - (SLOT_ORDER[b.slot] ?? 0))
                 .map((it) => it as PlannedItemDisplay);
               const isToday = key === todayKey;
-              const isWeekStart = weekStartKeys.has(key);
-              const weekEnd = isWeekStart ? new Date(d.getFullYear(), d.getMonth(), d.getDate() + 6) : null;
 
               return (
                 <div
@@ -430,13 +500,6 @@ export function MobileTimeline({
                     transform: `translateY(${virtualItem.start - scrollMargin}px)`,
                   }}
                 >
-                  {isWeekStart && weekEnd && (
-                    <div className="sticky top-0 z-10 -mx-2 mb-2 bg-background/95 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground backdrop-blur">
-                      {weekRangeFormatter.formatRange
-                        ? weekRangeFormatter.formatRange(d, weekEnd)
-                        : `${weekRangeFormatter.format(d)} – ${weekRangeFormatter.format(weekEnd)}`}
-                    </div>
-                  )}
                   <TimelineDaySection
                     date={d}
                     dateKey={key}

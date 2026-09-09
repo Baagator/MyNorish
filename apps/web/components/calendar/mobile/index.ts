@@ -1,5 +1,6 @@
 export { MobileTimeline } from "./mobile-timeline";
 export { TimelineDaySection } from "./timeline-day-section";
+export { MobileWeekCard } from "./mobile-week-card";
 export { TimelineSlotContainer } from "./timeline-slot-container";
 export { TimelinePlannedItem } from "./timeline-planned-item";
 export { TimelineScrollToToday } from "./timeline-scroll-to-today";

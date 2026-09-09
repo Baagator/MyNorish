@@ -27,3 +27,27 @@ export default function TodaysMealsSkeleton() {
     </div>
   );
 }
+
+function WeekMealsRowSkeleton() {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3">
+      <div className="flex w-12 shrink-0 flex-col items-center gap-1">
+        <Skeleton className="h-2.5 w-6 rounded-md" />
+        <Skeleton className="h-4 w-4 rounded-md" />
+      </div>
+      <Skeleton className="h-6 w-2/3 rounded-full" />
+    </div>
+  );
+}
+
+export function WeekMealsSkeleton() {
+  return (
+    <Card className="w-full overflow-hidden rounded-2xl p-0">
+      <Card.Content className="divide-border flex flex-col divide-y p-0">
+        {Array.from({ length: 7 }).map((_, index) => (
+          <WeekMealsRowSkeleton key={index} />
+        ))}
+      </Card.Content>
+    </Card>
+  );
+}
