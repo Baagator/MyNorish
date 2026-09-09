@@ -4,6 +4,7 @@
   },
   "mobile": {
     "today": "I dag",
+    "thisWeek": "Denne uge",
     "scrollToToday": "Gå til i dag"
   },
   "editNote": {

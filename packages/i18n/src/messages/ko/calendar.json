@@ -4,6 +4,7 @@
   },
   "mobile": {
     "today": "오늘",
+    "thisWeek": "이번 주",
     "scrollToToday": "오늘로 이동"
   },
   "editNote": {

@@ -1,6 +1,6 @@
 {
   "page": { "title": "Kalendarz" },
-  "mobile": { "today": "Dziś", "scrollToToday": "Przejdź do dziś" },
+  "mobile": { "today": "Dziś", "thisWeek": "Ten tydzień", "scrollToToday": "Przejdź do dziś" },
   "editNote": {
     "title": "Edytuj notatkę",
     "noteLabel": "Notatka",

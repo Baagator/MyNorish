@@ -4,6 +4,7 @@
   },
   "mobile": {
     "today": "Aujourd'hui",
+    "thisWeek": "Cette semaine",
     "scrollToToday": "Aller à aujourd'hui"
   },
   "editNote": {

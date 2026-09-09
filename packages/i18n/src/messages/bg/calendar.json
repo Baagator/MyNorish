@@ -4,6 +4,7 @@
   },
   "mobile": {
     "today": "Днес",
+    "thisWeek": "Тази седмица",
     "scrollToToday": "Към днес"
   },
   "editNote": {

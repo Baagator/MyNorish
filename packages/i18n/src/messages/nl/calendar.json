@@ -4,6 +4,7 @@
   },
   "mobile": {
     "today": "Vandaag",
+    "thisWeek": "Deze week",
     "scrollToToday": "Ga naar vandaag"
   },
   "editNote": {
