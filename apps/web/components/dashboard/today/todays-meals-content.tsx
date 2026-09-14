@@ -31,6 +31,7 @@ export default function TodaysMealsContent({ visibility }: TodaysMealsContentPro
   const todayDate = useMemo(() => new Date(`${todayKey}T00:00:00`), [todayKey]);
   const { plannedItemsByDate, isLoading } = useCalendarContext();
   const [planningSlot, setPlanningSlot] = useState<Slot | undefined>(undefined);
+  const [planningDate, setPlanningDate] = useState<Date>(todayDate);
   const [planningOpen, setPlanningOpen] = useState(false);
   const [calendarView] = useCalendarView();
   const isWeekView = calendarView === "week";
@@ -77,7 +78,16 @@ export default function TodaysMealsContent({ visibility }: TodaysMealsContentPro
   );
 
   const openPlanner = (slot: Slot) => {
+    setPlanningDate(todayDate);
     setPlanningSlot(slot);
+    setPlanningOpen(true);
+  };
+
+  // Week view: tapping/clicking a day cell opens the recipe picker directly,
+  // with no slot choice for the user — lunch is used by default.
+  const openWeekPlanner = (date: Date) => {
+    setPlanningDate(date);
+    setPlanningSlot("Lunch");
     setPlanningOpen(true);
   };
 
@@ -97,7 +107,11 @@ export default function TodaysMealsContent({ visibility }: TodaysMealsContentPro
         isLoading ? (
           <WeekMealsSkeleton />
         ) : (
-          <WeekMealsTile plannedItemsByDate={plannedItemsByDate} weekDays={weekDays} />
+          <WeekMealsTile
+            plannedItemsByDate={plannedItemsByDate}
+            weekDays={weekDays}
+            onAddItem={openWeekPlanner}
+          />
         )
       ) : (
         <ScrollShadow
@@ -124,7 +138,7 @@ export default function TodaysMealsContent({ visibility }: TodaysMealsContentPro
       )}
 
       <MiniRecipes
-        date={todayDate}
+        date={planningDate}
         open={planningOpen}
         slot={planningSlot}
         onOpenChange={setPlanningOpen}

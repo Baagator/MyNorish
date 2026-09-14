@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { MealIcon } from "@/lib/meal-icon";
-import { Card } from "@heroui/react";
+import { PlusIcon } from "@heroicons/react/16/solid";
+import { Button, Card } from "@heroui/react";
 import { useLocale, useTranslations } from "next-intl";
 
 import type { PlannedItemFromQuery } from "@norish/shared/contracts";
@@ -13,6 +14,8 @@ import { getPlannedItemTitle } from "./todays-meals-helpers";
 type WeekMealsTileProps = {
   weekDays: Date[];
   plannedItemsByDate: Record<string, PlannedItemFromQuery[]>;
+  /** Opens the recipe picker for the given day (lunch slot, no slot choice). */
+  onAddItem: (date: Date) => void;
 };
 
 const SLOT_ORDER: Record<PlannedItemFromQuery["slot"], number> = {
@@ -34,10 +37,15 @@ function sortDayItems(items: PlannedItemFromQuery[]): PlannedItemFromQuery[] {
  * The week-view counterpart to the four day slot cards: a single tile
  * listing every planned item across the current week, one row per day.
  */
-export default function WeekMealsTile({ weekDays, plannedItemsByDate }: WeekMealsTileProps) {
+export default function WeekMealsTile({
+  weekDays,
+  plannedItemsByDate,
+  onAddItem,
+}: WeekMealsTileProps) {
   const router = useRouter();
   const locale = useLocale();
   const tCalendar = useTranslations("calendar.timeline");
+  const tPanel = useTranslations("calendar.panel");
 
   const weekdayFormatter = new Intl.DateTimeFormat(locale, { weekday: "short" });
   const dayLabelFormatter = new Intl.DateTimeFormat(locale, {
@@ -85,7 +93,13 @@ export default function WeekMealsTile({ weekDays, plannedItemsByDate }: WeekMeal
 
               <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5 pt-1.5">
                 {items.length === 0 ? (
-                  <span className="text-muted text-sm">{tCalendar("noItems")}</span>
+                  <button
+                    className="text-muted hover:text-foreground text-sm transition-colors"
+                    type="button"
+                    onClick={() => onAddItem(day)}
+                  >
+                    {tCalendar("noItems")}
+                  </button>
                 ) : (
                   items.map((item) => (
                     <button
@@ -102,6 +116,17 @@ export default function WeekMealsTile({ weekDays, plannedItemsByDate }: WeekMeal
                   ))
                 )}
               </div>
+
+              <Button
+                isIconOnly
+                aria-label={tPanel("addRecipe")}
+                className="text-muted hover:text-accent h-7 w-7 shrink-0 self-start rounded-full"
+                size="sm"
+                variant="tertiary"
+                onPress={() => onAddItem(day)}
+              >
+                <PlusIcon className="h-4 w-4" />
+              </Button>
             </div>
           );
         })}
