@@ -441,7 +441,9 @@ export function MobileTimeline({
                 for (const d of weekDays) {
                   const key = dateKey(d);
 
-                  itemsByDate[key] = (calendarData[key] ?? []).map((it) => it as PlannedItemDisplay);
+                  itemsByDate[key] = (calendarData[key] ?? []).map(
+                    (it) => it as PlannedItemDisplay
+                  );
                 }
 
                 return (

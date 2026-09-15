@@ -77,7 +77,7 @@ export default function WeekMealsTile({
             <div key={key} className="flex items-start gap-3 px-4 py-3">
               <button
                 aria-label={dayLabelFormatter.format(day)}
-                className="flex w-12 shrink-0 flex-col items-center rounded-lg py-1 text-center transition-colors hover:bg-surface-secondary"
+                className="hover:bg-surface-secondary flex w-12 shrink-0 flex-col items-center rounded-lg py-1 text-center transition-colors"
                 type="button"
                 onClick={() => router.push("/calendar")}
               >

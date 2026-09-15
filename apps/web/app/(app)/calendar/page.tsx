@@ -7,11 +7,10 @@ import { MobileTimeline } from "@/components/calendar/mobile";
 import { EditNotePanel } from "@/components/Panel/consumers/edit-note-panel";
 import { EditPlannedRecipePanel } from "@/components/Panel/consumers/edit-planned-recipe-panel";
 import MiniRecipes from "@/components/Panel/consumers/mini-recipes";
+import { useCalendarView } from "@/context/calendar-view-context";
 import { useWindowSize } from "usehooks-ts";
 
 import type { Slot } from "@norish/shared/contracts";
-
-import { useCalendarView } from "@/context/calendar-view-context";
 
 import { CalendarContextProvider } from "./context";
 

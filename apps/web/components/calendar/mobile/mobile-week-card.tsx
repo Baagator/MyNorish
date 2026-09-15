@@ -1,6 +1,5 @@
 "use client";
 
-import type { PlannedItemDisplay } from "./types";
 import { memo, useMemo, useState } from "react";
 import { ChevronLeftIcon, PlusIcon, XMarkIcon } from "@heroicons/react/16/solid";
 import { Button, Card, Separator, ToggleButton, ToggleButtonGroup } from "@heroui/react";
@@ -9,6 +8,7 @@ import { useTranslations } from "next-intl";
 import type { Slot } from "@norish/shared/contracts";
 import { dateKey } from "@norish/shared/lib/helpers";
 
+import type { PlannedItemDisplay } from "./types";
 import { SLOT_ORDER, SLOTS } from "./types";
 
 const DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
@@ -72,7 +72,8 @@ export const MobileWeekCard = memo(function MobileWeekCard({
       const items = (itemsByDate[key] ?? [])
         .slice()
         .sort(
-          (a, b) => (SLOT_ORDER[a.slot] ?? 0) - (SLOT_ORDER[b.slot] ?? 0) || a.sortOrder - b.sortOrder
+          (a, b) =>
+            (SLOT_ORDER[a.slot] ?? 0) - (SLOT_ORDER[b.slot] ?? 0) || a.sortOrder - b.sortOrder
         );
 
       for (const item of items) {
@@ -177,7 +178,11 @@ export const MobileWeekCard = memo(function MobileWeekCard({
               }}
             >
               {DAY_KEYS.map((dayKey, index) => (
-                <ToggleButton key={dayKey} className="min-w-0 flex-1 px-1 text-xs font-medium" id={String(index)}>
+                <ToggleButton
+                  key={dayKey}
+                  className="min-w-0 flex-1 px-1 text-xs font-medium"
+                  id={String(index)}
+                >
                   {index > 0 && <ToggleButtonGroup.Separator />}
                   {tWeekdays(dayKey)}
                 </ToggleButton>
@@ -244,7 +249,9 @@ export const MobileWeekCard = memo(function MobileWeekCard({
                     {tWeekdays(dayKey)}
                   </span>
                   <span className="text-foreground truncate text-sm">
-                    {item.itemType === "note" ? (item.title ?? t("untitled")) : (item.recipeName ?? t("untitled"))}
+                    {item.itemType === "note"
+                      ? (item.title ?? t("untitled"))
+                      : (item.recipeName ?? t("untitled"))}
                   </span>
                 </button>
               </li>

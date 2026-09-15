@@ -73,7 +73,8 @@ export const DesktopWeekCard = memo(function DesktopWeekCard({
       const items = (itemsByDate[key] ?? [])
         .slice()
         .sort(
-          (a, b) => (SLOT_ORDER[a.slot] ?? 0) - (SLOT_ORDER[b.slot] ?? 0) || a.sortOrder - b.sortOrder
+          (a, b) =>
+            (SLOT_ORDER[a.slot] ?? 0) - (SLOT_ORDER[b.slot] ?? 0) || a.sortOrder - b.sortOrder
         );
 
       for (const item of items) {
@@ -179,7 +180,11 @@ export const DesktopWeekCard = memo(function DesktopWeekCard({
               }}
             >
               {DAY_KEYS.map((dayKey, index) => (
-                <ToggleButton key={dayKey} className="min-w-0 flex-1 px-1 text-xs font-medium" id={String(index)}>
+                <ToggleButton
+                  key={dayKey}
+                  className="min-w-0 flex-1 px-1 text-xs font-medium"
+                  id={String(index)}
+                >
                   {index > 0 && <ToggleButtonGroup.Separator />}
                   {tWeekdays(dayKey)}
                 </ToggleButton>
@@ -247,7 +252,9 @@ export const DesktopWeekCard = memo(function DesktopWeekCard({
                       {tWeekdays(dayKey)}
                     </span>
                     <span className="text-foreground truncate text-sm">
-                      {item.itemType === "note" ? (item.title ?? t("untitled")) : (item.recipeName ?? t("untitled"))}
+                      {item.itemType === "note"
+                        ? (item.title ?? t("untitled"))
+                        : (item.recipeName ?? t("untitled"))}
                     </span>
                   </button>
                 </li>
