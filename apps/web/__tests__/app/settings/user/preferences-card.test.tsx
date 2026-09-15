@@ -52,6 +52,15 @@ vi.mock("@/context/recipe-page-color-context", () => ({
   useRecipePageColor: () => [recipePageColorMock.mode, recipePageColorMock.setMode],
 }));
 
+const calendarViewMock = vi.hoisted(() => ({
+  view: "day" as "day" | "week",
+  setView: vi.fn(),
+}));
+
+vi.mock("@/context/calendar-view-context", () => ({
+  useCalendarView: () => [calendarViewMock.view, calendarViewMock.setView],
+}));
+
 let timersMock = { timersEnabled: true, globalEnabled: true } as any;
 
 vi.mock("@/hooks/config", () => ({
@@ -124,6 +133,7 @@ describe("PreferencesCard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hiddenItemsMock.hidden = [];
+    calendarViewMock.view = "day";
     mockContext.user = { preferences: {} } as any;
   });
 

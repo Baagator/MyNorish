@@ -22,6 +22,10 @@ vi.mock("@/context/todays-meals-visibility-context", () => ({
   useTodaySectionVisibility: () => [visibilityMock, setVisibilityMock],
 }));
 
+vi.mock("@/context/calendar-view-context", () => ({
+  useCalendarView: () => ["day", vi.fn()],
+}));
+
 vi.mock("next-intl", () => ({
   useLocale: () => "en",
   useTranslations: (namespace?: string) => (key: string) => {
