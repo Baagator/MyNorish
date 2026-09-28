@@ -5,7 +5,10 @@
   "mobile": {
     "today": "오늘",
     "thisWeek": "이번 주",
-    "scrollToToday": "오늘로 이동"
+    "scrollToToday": "오늘로 이동",
+    "previousWeek": "이전 주",
+    "nextWeek": "다음 주",
+    "week": "주"
   },
   "editNote": {
     "title": "메모 편집",

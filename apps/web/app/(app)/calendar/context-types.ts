@@ -11,6 +11,8 @@ export type CalendarDateRange = {
 export type CalendarContextValue = {
   plannedItemsByDate: CalendarData;
   isLoading: boolean;
+  /** True whenever the query for the current range is loading (e.g. after `goToWeek`). */
+  isRangeLoading: boolean;
   isLoadingMore: boolean;
   dateRange: CalendarDateRange;
   planMeal: (date: string, slot: Slot, recipeId: string) => void;
@@ -20,6 +22,8 @@ export type CalendarContextValue = {
   updateItem: (itemId: string, title: string) => void;
   getItemsForSlot: (date: string, slot: Slot) => PlannedItemFromQuery[];
   expandRange: (direction: "past" | "future") => void;
+  /** Replace the loaded range with the week (Mon-Sun) containing the given date. */
+  goToWeek: (date: Date) => void;
   isDateInRange: (date: Date) => boolean;
 };
 

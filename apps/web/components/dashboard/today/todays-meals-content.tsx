@@ -1,18 +1,19 @@
 "use client";
 
 import type { TodaySectionVisibility } from "@/lib/todays-meals-visibility";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useCalendarContext } from "@/app/(app)/calendar/context";
 import MiniRecipes from "@/components/Panel/consumers/mini-recipes";
 import TodaysMealsSkeleton, {
   WeekMealsSkeleton,
 } from "@/components/skeleton/todays-meals-skeleton";
 import { useCalendarView } from "@/context/calendar-view-context";
-import { ScrollShadow } from "@heroui/react";
+import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/16/solid";
+import { Button, ScrollShadow } from "@heroui/react";
 import { useLocale, useTranslations } from "next-intl";
 
 import type { Slot } from "@norish/shared/contracts";
-import { dateKey, getWeekDays } from "@norish/shared/lib/helpers";
+import { addWeeks, dateKey, getWeekDays } from "@norish/shared/lib/helpers";
 
 import TodayMealSlotCard from "./today-meal-slot-card";
 import { slotTranslationKeys, TODAY_MEAL_SLOTS } from "./todays-meals-constants";
@@ -29,14 +30,35 @@ export default function TodaysMealsContent({ visibility }: TodaysMealsContentPro
   const tSlots = useTranslations("common.slots");
   const todayKey = useMemo(() => dateKey(new Date()), []);
   const todayDate = useMemo(() => new Date(`${todayKey}T00:00:00`), [todayKey]);
-  const { plannedItemsByDate, isLoading } = useCalendarContext();
+  const { plannedItemsByDate, isLoading, isRangeLoading, goToWeek } = useCalendarContext();
   const [planningSlot, setPlanningSlot] = useState<Slot | undefined>(undefined);
   const [planningDate, setPlanningDate] = useState<Date>(todayDate);
   const [planningOpen, setPlanningOpen] = useState(false);
   const [calendarView] = useCalendarView();
   const isWeekView = calendarView === "week";
+  // Week shown in the week view, relative to the current week (0 = this week).
+  const [weekOffset, setWeekOffset] = useState(0);
+  const isLoadingWeek = isLoading || Boolean(isRangeLoading);
 
-  const weekDays = useMemo(() => getWeekDays(todayDate), [todayDate]);
+  const weekDays = useMemo(
+    () => getWeekDays(addWeeks(todayDate, weekOffset)),
+    [todayDate, weekOffset]
+  );
+
+  // Changing the week also moves the calendar context's loaded range, so the
+  // items, mutations and realtime updates all follow the displayed week.
+  const changeWeek = useCallback(
+    (offset: number) => {
+      setWeekOffset(offset);
+      goToWeek(addWeeks(todayDate, offset));
+    },
+    [goToWeek, todayDate]
+  );
+
+  // The day view reads today's items, so return to the current week when leaving the week view.
+  useEffect(() => {
+    if (!isWeekView && weekOffset !== 0) changeWeek(0);
+  }, [isWeekView, weekOffset, changeWeek]);
 
   const weekRangeFormatter = useMemo(
     () => new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" }),
@@ -92,19 +114,57 @@ export default function TodaysMealsContent({ visibility }: TodaysMealsContentPro
   };
 
   if (!isLoading && !isWeekView && visibleSlots.length === 0) return null;
-  if (!isLoading && isWeekView && visibility === "planned" && !hasWeekItems) return null;
+  // When browsing other weeks, keep the section (and its arrows) visible even if the week is empty.
+  if (!isLoadingWeek && isWeekView && visibility === "planned" && !hasWeekItems && weekOffset === 0)
+    return null;
 
   return (
     <section aria-labelledby="today-meals-heading" className="flex shrink-0 flex-col gap-4">
-      <div className="min-w-0">
-        <h2 className="text-foreground text-2xl leading-8 font-semibold" id="today-meals-heading">
-          {isWeekView ? tCalendar("mobile.thisWeek") : tCalendar("mobile.today")}
-        </h2>
-        <p className="text-muted mt-1 text-sm">{dateLabel}</p>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-foreground text-2xl leading-8 font-semibold" id="today-meals-heading">
+            {isWeekView
+              ? weekOffset === 0
+                ? tCalendar("mobile.thisWeek")
+                : tCalendar("mobile.week")
+              : tCalendar("mobile.today")}
+          </h2>
+          <p className="text-muted mt-1 text-sm">{dateLabel}</p>
+        </div>
+
+        {isWeekView && (
+          <div className="flex shrink-0 items-center gap-1">
+            {weekOffset !== 0 && (
+              <Button size="sm" variant="tertiary" onPress={() => changeWeek(0)}>
+                {tCalendar("mobile.thisWeek")}
+              </Button>
+            )}
+            <Button
+              isIconOnly
+              aria-label={tCalendar("mobile.previousWeek")}
+              className="text-muted hover:text-foreground h-8 w-8 rounded-full"
+              size="sm"
+              variant="tertiary"
+              onPress={() => changeWeek(weekOffset - 1)}
+            >
+              <ChevronLeftIcon className="h-4 w-4" />
+            </Button>
+            <Button
+              isIconOnly
+              aria-label={tCalendar("mobile.nextWeek")}
+              className="text-muted hover:text-foreground h-8 w-8 rounded-full"
+              size="sm"
+              variant="tertiary"
+              onPress={() => changeWeek(weekOffset + 1)}
+            >
+              <ChevronRightIcon className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </div>
 
       {isWeekView ? (
-        isLoading ? (
+        isLoadingWeek ? (
           <WeekMealsSkeleton />
         ) : (
           <WeekMealsTile

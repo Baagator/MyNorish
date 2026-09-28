@@ -5,7 +5,10 @@
   "mobile": {
     "today": "Vandaag",
     "thisWeek": "Deze week",
-    "scrollToToday": "Ga naar vandaag"
+    "scrollToToday": "Ga naar vandaag",
+    "previousWeek": "Vorige week",
+    "nextWeek": "Volgende week",
+    "week": "Week"
   },
   "editNote": {
     "title": "Notitie bewerken",

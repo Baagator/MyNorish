@@ -14,7 +14,7 @@ import { useCalendarQuery } from "@/hooks/calendar/use-calendar-query";
 import { useCalendarSubscription } from "@/hooks/calendar/use-calendar-subscription";
 
 import type { PlannedItemFromQuery, Slot } from "@norish/shared/contracts";
-import { dateKey } from "@norish/shared/lib/helpers";
+import { dateKey, getWeekEnd, getWeekStart } from "@norish/shared/lib/helpers";
 
 import type {
   CalendarContextProviderProps,
@@ -88,6 +88,20 @@ export function CalendarContextProvider({
     [isExpandingRange]
   );
 
+  // Replace the loaded range with the week containing `date`. The query,
+  // mutations and realtime subscription all follow the range, so the week the
+  // dashboard shows stays consistent when planning items in it.
+  const goToWeek = useCallback((date: Date) => {
+    const start = getWeekStart(date);
+    const end = getWeekEnd(date);
+
+    setDateRange((prev) =>
+      dateKey(prev.start) === dateKey(start) && dateKey(prev.end) === dateKey(end)
+        ? prev
+        : { start, end }
+    );
+  }, []);
+
   const isDateInRange = useCallback(
     (date: Date): boolean => {
       const d = new Date(date);
@@ -131,6 +145,7 @@ export function CalendarContextProvider({
     () => ({
       plannedItemsByDate: calendarData,
       isLoading: isInitialLoading,
+      isRangeLoading: isQueryLoading,
       isLoadingMore: isExpandingRange,
       dateRange,
       planMeal,
@@ -140,11 +155,13 @@ export function CalendarContextProvider({
       updateItem,
       getItemsForSlot,
       expandRange,
+      goToWeek,
       isDateInRange,
     }),
     [
       calendarData,
       isInitialLoading,
+      isQueryLoading,
       isExpandingRange,
       dateRange,
       planMeal,
@@ -154,6 +171,7 @@ export function CalendarContextProvider({
       updateItem,
       getItemsForSlot,
       expandRange,
+      goToWeek,
       isDateInRange,
     ]
   );

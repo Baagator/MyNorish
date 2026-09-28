@@ -5,7 +5,10 @@
   "mobile": {
     "today": "Heute",
     "thisWeek": "Diese Woche",
-    "scrollToToday": "Zu heute springen"
+    "scrollToToday": "Zu heute springen",
+    "previousWeek": "Vorherige Woche",
+    "nextWeek": "Nächste Woche",
+    "week": "Woche"
   },
   "editNote": {
     "title": "Notiz bearbeiten",

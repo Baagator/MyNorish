@@ -5,7 +5,10 @@
   "mobile": {
     "today": "I dag",
     "thisWeek": "Denne uken",
-    "scrollToToday": "Gå til i dag"
+    "scrollToToday": "Gå til i dag",
+    "previousWeek": "Forrige uke",
+    "nextWeek": "Neste uke",
+    "week": "Uke"
   },
   "editNote": {
     "title": "Rediger notat",

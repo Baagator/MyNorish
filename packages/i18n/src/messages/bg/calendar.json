@@ -5,7 +5,10 @@
   "mobile": {
     "today": "Днес",
     "thisWeek": "Тази седмица",
-    "scrollToToday": "Към днес"
+    "scrollToToday": "Към днес",
+    "previousWeek": "Предишна седмица",
+    "nextWeek": "Следваща седмица",
+    "week": "Седмица"
   },
   "editNote": {
     "title": "Редактиране на бележка",
