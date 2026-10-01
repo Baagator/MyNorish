@@ -38,13 +38,13 @@ export default function TodaysMealsContent({ visibility }: TodaysMealsContentPro
   const isWeekView = calendarView === "week";
   // Week shown in the week view, relative to the current week (0 = this week).
   const [weekOffset, setWeekOffset] = useState(0);
-+  // The navigation arrows render only after the client has mounted, so the
-+  // very first client render stays identical to the server-rendered markup
-+  // no matter what triggers it — avoiding any hydration mismatch risk from
-+  // this block regardless of its exact cause.
-+  const [mounted, setMounted] = useState(false);
-+
-+  useEffect(() => setMounted(true), []);
+  // The navigation arrows render only after the client has mounted, so the
+  // very first client render stays identical to the server-rendered markup
+  // no matter what triggers it — avoiding any hydration mismatch risk from
+  // this block regardless of its exact cause.
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   const weekDays = useMemo(
     () => getWeekDays(addWeeks(todayDate, weekOffset)),
