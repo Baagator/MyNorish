@@ -145,7 +145,6 @@ export function CalendarContextProvider({
     () => ({
       plannedItemsByDate: calendarData,
       isLoading: isInitialLoading,
-      isRangeLoading: isQueryLoading,
       isLoadingMore: isExpandingRange,
       dateRange,
       planMeal,
@@ -161,7 +160,6 @@ export function CalendarContextProvider({
     [
       calendarData,
       isInitialLoading,
-      isQueryLoading,
       isExpandingRange,
       dateRange,
       planMeal,

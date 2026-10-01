@@ -11,8 +11,6 @@ export type CalendarDateRange = {
 export type CalendarContextValue = {
   plannedItemsByDate: CalendarData;
   isLoading: boolean;
-  /** True whenever the query for the current range is loading (e.g. after `goToWeek`). */
-  isRangeLoading: boolean;
   isLoadingMore: boolean;
   dateRange: CalendarDateRange;
   planMeal: (date: string, slot: Slot, recipeId: string) => void;

@@ -222,7 +222,6 @@ describe("TodaysMeals", () => {
       useCalendarContextMock.mockReturnValue({
         plannedItemsByDate,
         isLoading: false,
-        isRangeLoading: false,
         goToWeek: goToWeekMock,
       });
     }
@@ -305,7 +304,6 @@ describe("TodaysMeals", () => {
       useCalendarContextMock.mockReturnValue({
         plannedItemsByDate: {},
         isLoading: false,
-        isRangeLoading: false,
         goToWeek: goToWeekMock,
       });
       fireEvent.click(screen.getByRole("button", { name: "Next week" }));

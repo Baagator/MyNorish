@@ -30,7 +30,7 @@ export default function TodaysMealsContent({ visibility }: TodaysMealsContentPro
   const tSlots = useTranslations("common.slots");
   const todayKey = useMemo(() => dateKey(new Date()), []);
   const todayDate = useMemo(() => new Date(`${todayKey}T00:00:00`), [todayKey]);
-  const { plannedItemsByDate, isLoading, isRangeLoading, goToWeek } = useCalendarContext();
+  const { plannedItemsByDate, isLoading, goToWeek } = useCalendarContext();
   const [planningSlot, setPlanningSlot] = useState<Slot | undefined>(undefined);
   const [planningDate, setPlanningDate] = useState<Date>(todayDate);
   const [planningOpen, setPlanningOpen] = useState(false);
@@ -38,7 +38,13 @@ export default function TodaysMealsContent({ visibility }: TodaysMealsContentPro
   const isWeekView = calendarView === "week";
   // Week shown in the week view, relative to the current week (0 = this week).
   const [weekOffset, setWeekOffset] = useState(0);
-  const isLoadingWeek = isLoading || Boolean(isRangeLoading);
++  // The navigation arrows render only after the client has mounted, so the
++  // very first client render stays identical to the server-rendered markup
++  // no matter what triggers it — avoiding any hydration mismatch risk from
++  // this block regardless of its exact cause.
++  const [mounted, setMounted] = useState(false);
++
++  useEffect(() => setMounted(true), []);
 
   const weekDays = useMemo(
     () => getWeekDays(addWeeks(todayDate, weekOffset)),
@@ -115,8 +121,8 @@ export default function TodaysMealsContent({ visibility }: TodaysMealsContentPro
 
   if (!isLoading && !isWeekView && visibleSlots.length === 0) return null;
   // When browsing other weeks, keep the section (and its arrows) visible even if the week is empty.
-  if (!isLoadingWeek && isWeekView && visibility === "planned" && !hasWeekItems && weekOffset === 0)
-    return null;
+if (!isLoading && isWeekView && visibility === "planned" && !hasWeekItems && weekOffset === 0)    
+  return null;
 
   return (
     <section aria-labelledby="today-meals-heading" className="flex shrink-0 flex-col gap-4">
@@ -131,10 +137,40 @@ export default function TodaysMealsContent({ visibility }: TodaysMealsContentPro
           </h2>
           <p className="text-muted mt-1 text-sm">{dateLabel}</p>
         </div>
+
+        {isWeekView && mounted && (
+          <div className="flex shrink-0 items-center gap-1">
+            {weekOffset !== 0 && (
+              <Button size="sm" variant="tertiary" onPress={() => changeWeek(0)}>
+                {tCalendar("mobile.thisWeek")}
+              </Button>
+            )}
+            <Button
+              isIconOnly
+              aria-label={tCalendar("mobile.previousWeek")}
+              className="text-muted hover:text-foreground h-8 w-8 rounded-full"
+              size="sm"
+              variant="tertiary"
+              onPress={() => changeWeek(weekOffset - 1)}
+            >
+              <ChevronLeftIcon className="h-4 w-4" />
+            </Button>
+            <Button
+              isIconOnly
+              aria-label={tCalendar("mobile.nextWeek")}
+              className="text-muted hover:text-foreground h-8 w-8 rounded-full"
+              size="sm"
+              variant="tertiary"
+              onPress={() => changeWeek(weekOffset + 1)}
+            >
+              <ChevronRightIcon className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </div>
 
       {isWeekView ? (
-        isLoadingWeek ? (
+        isLoading ? (
           <WeekMealsSkeleton />
         ) : (
           <WeekMealsTile
