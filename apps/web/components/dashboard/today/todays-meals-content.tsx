@@ -131,36 +131,6 @@ export default function TodaysMealsContent({ visibility }: TodaysMealsContentPro
           </h2>
           <p className="text-muted mt-1 text-sm">{dateLabel}</p>
         </div>
-
-        {isWeekView && (
-          <div className="flex shrink-0 items-center gap-1">
-            {weekOffset !== 0 && (
-              <Button size="sm" variant="tertiary" onPress={() => changeWeek(0)}>
-                {tCalendar("mobile.thisWeek")}
-              </Button>
-            )}
-            <Button
-              isIconOnly
-              aria-label={tCalendar("mobile.previousWeek")}
-              className="text-muted hover:text-foreground h-8 w-8 rounded-full"
-              size="sm"
-              variant="tertiary"
-              onPress={() => changeWeek(weekOffset - 1)}
-            >
-              <ChevronLeftIcon className="h-4 w-4" />
-            </Button>
-            <Button
-              isIconOnly
-              aria-label={tCalendar("mobile.nextWeek")}
-              className="text-muted hover:text-foreground h-8 w-8 rounded-full"
-              size="sm"
-              variant="tertiary"
-              onPress={() => changeWeek(weekOffset + 1)}
-            >
-              <ChevronRightIcon className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
       </div>
 
       {isWeekView ? (
