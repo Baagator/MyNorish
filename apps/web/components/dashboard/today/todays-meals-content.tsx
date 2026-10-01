@@ -121,8 +121,8 @@ export default function TodaysMealsContent({ visibility }: TodaysMealsContentPro
 
   if (!isLoading && !isWeekView && visibleSlots.length === 0) return null;
   // When browsing other weeks, keep the section (and its arrows) visible even if the week is empty.
-if (!isLoading && isWeekView && visibility === "planned" && !hasWeekItems && weekOffset === 0)    
-  return null;
+  if (!isLoading && isWeekView && visibility === "planned" && !hasWeekItems && weekOffset === 0)
+    return null;
 
   return (
     <section aria-labelledby="today-meals-heading" className="flex shrink-0 flex-col gap-4">
